@@ -1,0 +1,17 @@
+export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 flex flex-col">
+      <header className="p-6 flex items-center justify-center border-b border-zinc-100 dark:border-zinc-800">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-zinc-950 dark:bg-white rounded-lg flex items-center justify-center">
+            <div className="w-3 h-3 bg-white dark:bg-zinc-950 rounded-sm transform rotate-45" />
+          </div>
+          <span className="text-xl font-bold tracking-tight dark:text-white">Resonance</span>
+        </div>
+      </header>
+      <main className="flex-1 flex flex-col items-center p-6 sm:p-10 max-w-3xl mx-auto w-full">
+        {children}
+      </main>
+    </div>
+  );
+}
