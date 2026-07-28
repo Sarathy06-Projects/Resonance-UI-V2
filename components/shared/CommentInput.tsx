@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
 
 interface CommentInputProps {
-  onSubmit: (content: string) => void;
+  onSubmit: (content: string) => void | Promise<void>;
   placeholder?: string;
   autoFocus?: boolean;
 }
@@ -14,16 +14,24 @@ interface CommentInputProps {
 export function CommentInput({ onSubmit, placeholder = "Post your reply", autoFocus = false }: CommentInputProps) {
   const { user, isAuthenticated, openAuthModal } = useAuthStore();
   const [content, setContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!isAuthenticated) {
       openAuthModal();
       return;
     }
     if (!content.trim()) return;
-    
-    onSubmit(content.trim());
-    setContent("");
+
+    setIsSubmitting(true);
+    try {
+      await onSubmit(content.trim());
+      setContent("");
+    } catch {
+      // Leave the draft content in place so the user can retry.
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -47,12 +55,12 @@ export function CommentInput({ onSubmit, placeholder = "Post your reply", autoFo
           autoFocus={autoFocus}
         />
         <div className="flex justify-end mt-2">
-          <Button 
+          <Button
             className="rounded-full px-6 font-semibold shadow-sm h-9 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
             onClick={handleSubmit}
-            disabled={!content.trim() && isAuthenticated}
+            disabled={isSubmitting || (!content.trim() && isAuthenticated)}
           >
-            Reply
+            {isSubmitting ? "Posting..." : "Reply"}
           </Button>
         </div>
       </div>

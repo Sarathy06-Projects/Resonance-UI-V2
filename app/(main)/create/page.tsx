@@ -1,22 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  ImageIcon, Type, Bold, Italic, List, ListOrdered, Quote, 
-  Code, Link2, Hash, AtSign, Smile, Paperclip, ChevronDown,
-  Globe, Users, Lock, Check, Loader2, PenTool, Layout, 
+import {
+  Hash, ChevronDown,
+  Globe, Users, Lock, Check, Loader2, PenTool,
   MessageSquare, HelpCircle, FileText, UploadCloud
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ArticleEditor } from "@/components/editor/ArticleEditor";
+import { getDraft, createDraft, updateDraft, publishDraft } from "@/lib/api/drafts";
+import { uploadArticleCover } from "@/lib/api/uploads";
 
 const TOPICS = [
-  "UI Design", "UX", "Typography", "Accessibility", 
-  "Research", "Motion", "Design Systems", "Branding", 
+  "UI Design", "UX", "Typography", "Accessibility",
+  "Research", "Motion", "Design Systems", "Branding",
   "Illustration", "AI"
 ];
 
@@ -24,44 +26,98 @@ const FEEDBACK_TYPES = [
   "Visual Design", "UX", "Research", "Accessibility", "Interaction", "Prototype"
 ];
 
+type Mode = "discussion" | "showcase" | "feedback" | "article";
+
+function estimateWordCount(text: string) {
+  return text.trim() ? text.trim().split(/\s+/).length : 0;
+}
+
 export default function CreatePage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center text-zinc-400">Loading…</div>}>
+      <CreatePageInner />
+    </Suspense>
+  );
+}
+
+function CreatePageInner() {
   const { user } = useAuthStore();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const draftIdParam = searchParams.get("draftId");
 
-  const [mode, setMode] = useState<"discussion" | "showcase" | "feedback" | "article">("article");
+  const [mode, setMode] = useState<Mode>("article");
   const [visibility, setVisibility] = useState<"public" | "followers" | "private">("public");
-  
-  // Shared State
+
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
-  
-  // Showcase State
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+
   const [toolsUsed, setToolsUsed] = useState("");
   const [portfolioLink, setPortfolioLink] = useState("");
-  
-  // Feedback State
+
   const [feedbackType, setFeedbackType] = useState("");
   const [urgency, setUrgency] = useState("Flexible");
   const [figmaLink, setFigmaLink] = useState("");
 
-  // Publishing State
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishSuccess, setPublishSuccess] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
 
-  // Autosave mock
+  const draftId = useRef<string | null>(draftIdParam);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const hasLoadedDraft = useRef(false);
+
+  // Load an existing draft if navigated here with ?draftId=
   useEffect(() => {
-    if (title || content) {
-      const timer = setTimeout(() => {
+    if (!draftIdParam || hasLoadedDraft.current) return;
+    hasLoadedDraft.current = true;
+    getDraft(draftIdParam).then((draft) => {
+      setMode(draft.mode);
+      setTitle(draft.title ?? "");
+      setContent(draft.content ?? "");
+      setCoverImage(draft.coverImage);
+      const meta = draft.meta ?? {};
+      if (Array.isArray(meta.tags)) setSelectedTopics(meta.tags as string[]);
+      if (typeof meta.toolsUsed === "string") setToolsUsed(meta.toolsUsed);
+      if (typeof meta.portfolioLink === "string") setPortfolioLink(meta.portfolioLink);
+      if (typeof meta.feedbackType === "string") setFeedbackType(meta.feedbackType);
+      if (typeof meta.urgency === "string") setUrgency(meta.urgency);
+      if (typeof meta.figmaLink === "string") setFigmaLink(meta.figmaLink);
+    }).catch(() => {});
+  }, [draftIdParam]);
+
+  // Debounced autosave.
+  useEffect(() => {
+    if (!title && !content) return;
+    const timer = setTimeout(async () => {
+      const payload = {
+        mode,
+        title: title || undefined,
+        content: content || undefined,
+        coverImage: coverImage ?? undefined,
+        meta: { tags: selectedTopics, toolsUsed, portfolioLink, feedbackType, urgency, figmaLink },
+      };
+      try {
+        if (draftId.current) {
+          await updateDraft(draftId.current, payload);
+        } else {
+          const created = await createDraft(payload);
+          draftId.current = created.id;
+        }
         setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [title, content, mode]);
+      } catch {
+        // Autosave failures are silent - the user's content stays in local state.
+      }
+    }, 1200);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, content, mode, selectedTopics, toolsUsed, portfolioLink, feedbackType, urgency, figmaLink, coverImage]);
 
   const toggleTopic = (topic: string) => {
-    setSelectedTopics(prev => 
+    setSelectedTopics(prev =>
       prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
     );
   };
@@ -74,16 +130,50 @@ export default function CreatePage() {
     return false;
   };
 
-  const handlePublish = () => {
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingCover(true);
+    try {
+      const result = await uploadArticleCover(file);
+      setCoverImage(result.url);
+    } finally {
+      setIsUploadingCover(false);
+      e.target.value = "";
+    }
+  };
+
+  const handlePublish = async () => {
     if (!isPublishReady()) return;
     setIsPublishing(true);
-    setTimeout(() => {
-      setIsPublishing(false);
+    try {
+      if (!draftId.current) {
+        const created = await createDraft({
+          mode,
+          title: title || undefined,
+          content,
+          coverImage: coverImage ?? undefined,
+          meta: { tags: selectedTopics, toolsUsed, portfolioLink, feedbackType, urgency, figmaLink },
+        });
+        draftId.current = created.id;
+      } else {
+        await updateDraft(draftId.current, {
+          mode,
+          title: title || undefined,
+          content,
+          coverImage: coverImage ?? undefined,
+          meta: { tags: selectedTopics, toolsUsed, portfolioLink, feedbackType, urgency, figmaLink },
+        });
+      }
+
+      const result = await publishDraft(draftId.current);
       setPublishSuccess(true);
       setTimeout(() => {
-        router.push("/");
-      }, 1500);
-    }, 1500);
+        router.push(result.resultType === "article" ? `/article/${result.id}` : `/post/${result.id}`);
+      }, 1200);
+    } catch {
+      setIsPublishing(false);
+    }
   };
 
   if (!user) {
@@ -99,35 +189,39 @@ export default function CreatePage() {
   }
 
   const checklist = [
-    { label: "Add a title", done: title.trim().length > 0 },
+    { label: "Add a title", done: mode === "discussion" || title.trim().length > 0 },
     { label: "Write content", done: content.trim().length > 10 },
-    { label: "Select topics", done: selectedTopics.length > 0 },
+    ...(mode === "article" ? [{ label: "Select topics", done: selectedTopics.length > 0 }] : []),
   ];
   if (mode === "feedback") checklist.push({ label: "Select feedback type", done: feedbackType !== "" });
 
-  const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
-  const readTime = Math.max(1, Math.ceil(wordCount / 200));
+  const words = estimateWordCount(mode === "article" ? content.replace(/<[^>]*>/g, " ") : content);
+  const readTime = Math.max(1, Math.ceil(words / 200));
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white dark:bg-zinc-950 pb-20 md:pb-0">
-      
-      {/* Top Navigation / Controls */}
+
       <div className="sticky top-0 z-20 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 px-4 sm:px-8 h-16 flex items-center justify-between">
-        
-        {/* Visibility Selector */}
+
         <div className="flex items-center gap-2 text-sm font-semibold text-zinc-600 dark:text-zinc-300 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-900 px-3 py-1.5 rounded-lg transition-colors">
           {visibility === "public" && <Globe className="w-4 h-4 text-emerald-500" />}
           {visibility === "followers" && <Users className="w-4 h-4 text-blue-500" />}
           {visibility === "private" && <Lock className="w-4 h-4 text-zinc-500" />}
-          <span className="capitalize">{visibility}</span>
-          <ChevronDown className="w-4 h-4 opacity-50" />
+          <select
+            value={visibility}
+            onChange={(e) => setVisibility(e.target.value as typeof visibility)}
+            className="bg-transparent outline-none cursor-pointer capitalize"
+          >
+            <option value="public">Public</option>
+            <option value="followers">Followers</option>
+            <option value="private">Private</option>
+          </select>
         </div>
 
-        {/* Publish Button */}
         <div className="flex items-center gap-4">
           <AnimatePresence>
             {lastSaved && !isPublishing && !publishSuccess && (
-              <motion.span 
+              <motion.span
                 initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 className="text-xs font-medium text-zinc-400 dark:text-zinc-500 hidden sm:block"
               >
@@ -135,8 +229,8 @@ export default function CreatePage() {
               </motion.span>
             )}
           </AnimatePresence>
-          
-          <Button 
+
+          <Button
             onClick={handlePublish}
             disabled={!isPublishReady() || isPublishing || publishSuccess}
             className={cn(
@@ -162,23 +256,19 @@ export default function CreatePage() {
       </div>
 
       <div className="flex-1 w-full max-w-[1200px] mx-auto flex flex-col lg:flex-row items-stretch">
-        
-        {/* =========================================================
-            LEFT COLUMN (COMPOSER)
-        ========================================================== */}
+
         <div className="flex-1 flex flex-col px-4 sm:px-8 py-8 min-w-0">
-          
-          {/* Segmented Mode Selector */}
+
           <div className="bg-zinc-50 dark:bg-zinc-900/50 p-1 rounded-2xl flex items-center mb-10 overflow-x-auto no-scrollbar border border-zinc-100 dark:border-zinc-800 shrink-0">
             {[
-              { id: "discussion", icon: MessageSquare, label: "Discussion" },
-              { id: "showcase", icon: Layout, label: "Showcase" },
-              { id: "feedback", icon: HelpCircle, label: "Request Feedback" },
-              { id: "article", icon: FileText, label: "Article" }
+              { id: "discussion" as const, icon: MessageSquare, label: "Discussion" },
+              { id: "showcase" as const, icon: PenTool, label: "Showcase" },
+              { id: "feedback" as const, icon: HelpCircle, label: "Request Feedback" },
+              { id: "article" as const, icon: FileText, label: "Article" }
             ].map(m => (
               <button
                 key={m.id}
-                onClick={() => setMode(m.id as any)}
+                onClick={() => setMode(m.id)}
                 className={cn(
                   "relative flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold transition-colors whitespace-nowrap",
                   mode === m.id ? "text-zinc-950 dark:text-white" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
@@ -194,14 +284,13 @@ export default function CreatePage() {
           </div>
 
           <div className="max-w-[700px] w-full mx-auto space-y-8 pb-20">
-            
-            {/* Dynamic Title Input */}
+
             {mode !== "discussion" && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder={
-                    mode === "showcase" ? "Project Title..." : 
+                    mode === "showcase" ? "Project Title..." :
                     mode === "feedback" ? "What design are you sharing?" :
                     "Article Title..."
                   }
@@ -215,24 +304,38 @@ export default function CreatePage() {
               </motion.div>
             )}
 
-            {/* Article Specific: Cover Image Mock */}
             {mode === "article" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full h-48 sm:h-64 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors cursor-pointer group">
-                <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                  <UploadCloud className="w-6 h-6" />
-                </div>
-                <span className="font-semibold text-sm">Add Cover Image</span>
-                <span className="text-xs mt-1 opacity-70">Drag and drop or click</span>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
+                {coverImage ? (
+                  <div className="relative w-full h-48 sm:h-64 rounded-3xl overflow-hidden group cursor-pointer" onClick={() => coverInputRef.current?.click()}>
+                    <img src={coverImage} alt="" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-sm font-semibold">
+                      Change cover
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => coverInputRef.current?.click()}
+                    disabled={isUploadingCover}
+                    className="w-full h-48 sm:h-64 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors group"
+                  >
+                    <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <UploadCloud className="w-6 h-6" />
+                    </div>
+                    <span className="font-semibold text-sm">{isUploadingCover ? "Uploading..." : "Add Cover Image"}</span>
+                    <span className="text-xs mt-1 opacity-70">Click to upload</span>
+                  </button>
+                )}
               </motion.div>
             )}
 
-            {/* Showcase & Feedback Specific Fields */}
             {(mode === "showcase" || mode === "feedback") && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid sm:grid-cols-2 gap-4">
                 {mode === "feedback" && (
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Feedback Type</label>
-                    <select 
+                    <select
                       className="w-full h-12 px-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm font-medium outline-none focus:border-zinc-400 dark:focus:border-zinc-600 dark:text-white"
                       value={feedbackType} onChange={e => setFeedbackType(e.target.value)}
                     >
@@ -244,7 +347,7 @@ export default function CreatePage() {
                 {mode === "feedback" && (
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Figma / Prototype Link</label>
-                    <input 
+                    <input
                       type="text" placeholder="https://figma.com/..."
                       className="w-full h-12 px-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm font-medium outline-none focus:border-zinc-400 dark:focus:border-zinc-600 dark:text-white"
                       value={figmaLink} onChange={e => setFigmaLink(e.target.value)}
@@ -254,7 +357,7 @@ export default function CreatePage() {
                 {mode === "showcase" && (
                   <div className="space-y-2 sm:col-span-2">
                     <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Tools Used (Comma separated)</label>
-                    <input 
+                    <input
                       type="text" placeholder="Figma, Spline, React..."
                       className="w-full h-12 px-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm font-medium outline-none focus:border-zinc-400 dark:focus:border-zinc-600 dark:text-white"
                       value={toolsUsed} onChange={e => setToolsUsed(e.target.value)}
@@ -264,71 +367,53 @@ export default function CreatePage() {
               </motion.div>
             )}
 
-            {/* Premium Rich Text Editor Mock */}
-            <div className="relative group">
-              <textarea 
+            {mode === "article" ? (
+              <ArticleEditor content={content} onChange={setContent} />
+            ) : (
+              <textarea
                 placeholder={
                   mode === "discussion" ? "What design question is on your mind?" :
                   mode === "showcase" ? "Describe your project and design process..." :
-                  mode === "feedback" ? "What specific feedback are you looking for?" :
-                  "Start writing your article..."
+                  "What specific feedback are you looking for?"
                 }
-                className={cn(
-                  "w-full min-h-[300px] bg-transparent resize-none outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-700 dark:text-zinc-200 font-serif leading-relaxed",
-                  mode === "article" ? "text-xl" : "text-lg font-sans"
-                )}
+                className="w-full min-h-[300px] bg-transparent resize-none outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-700 dark:text-zinc-200 font-serif leading-relaxed text-lg font-sans"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
               />
-              
-              {/* Floating Formatting Toolbar (Mock) */}
-              <div className="absolute -top-12 left-0 right-0 sm:left-auto sm:right-0 bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 px-2 py-1.5 rounded-xl shadow-xl flex items-center justify-center sm:justify-start gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none sm:pointer-events-auto scale-95 group-hover:scale-100 z-10">
-                <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 text-zinc-400 dark:text-zinc-500 hover:text-white dark:hover:text-zinc-900"><Bold className="w-4 h-4" /></Button>
-                <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 text-zinc-400 dark:text-zinc-500 hover:text-white dark:hover:text-zinc-900"><Italic className="w-4 h-4" /></Button>
-                <div className="w-px h-4 bg-zinc-800 dark:bg-zinc-200 mx-1" />
-                <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 text-zinc-400 dark:text-zinc-500 hover:text-white dark:hover:text-zinc-900"><Link2 className="w-4 h-4" /></Button>
-                <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 text-zinc-400 dark:text-zinc-500 hover:text-white dark:hover:text-zinc-900"><Quote className="w-4 h-4" /></Button>
-                <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 text-zinc-400 dark:text-zinc-500 hover:text-white dark:hover:text-zinc-900"><Code className="w-4 h-4" /></Button>
-                <div className="w-px h-4 bg-zinc-800 dark:bg-zinc-200 mx-1" />
-                <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 text-zinc-400 dark:text-zinc-500 hover:text-white dark:hover:text-zinc-900"><ImageIcon className="w-4 h-4" /></Button>
-              </div>
-            </div>
+            )}
 
-            {/* Topics Selection Chips */}
-            <div className="pt-8 border-t border-zinc-100 dark:border-zinc-800/60">
-              <label className="text-sm font-bold dark:text-white mb-3 block flex items-center gap-2">
-                <Hash className="w-4 h-4 text-zinc-400" /> Select Topics
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {TOPICS.map(topic => {
-                  const isSelected = selectedTopics.includes(topic);
-                  return (
-                    <button
-                      key={topic}
-                      onClick={() => toggleTopic(topic)}
-                      className={cn(
-                        "px-3 py-1.5 rounded-xl text-sm font-semibold transition-all border",
-                        isSelected 
-                          ? "bg-zinc-950 border-zinc-950 text-white dark:bg-white dark:border-white dark:text-zinc-950 shadow-sm" 
-                          : "bg-zinc-50 border-zinc-200 text-zinc-600 hover:border-zinc-300 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-700"
-                      )}
-                    >
-                      {topic}
-                    </button>
-                  )
-                })}
+            {mode === "article" && (
+              <div className="pt-8 border-t border-zinc-100 dark:border-zinc-800/60">
+                <label className="text-sm font-bold dark:text-white mb-3 block flex items-center gap-2">
+                  <Hash className="w-4 h-4 text-zinc-400" /> Select Topics
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {TOPICS.map(topic => {
+                    const isSelected = selectedTopics.includes(topic);
+                    return (
+                      <button
+                        key={topic}
+                        onClick={() => toggleTopic(topic)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-xl text-sm font-semibold transition-all border",
+                          isSelected
+                            ? "bg-zinc-950 border-zinc-950 text-white dark:bg-white dark:border-white dark:text-zinc-950 shadow-sm"
+                            : "bg-zinc-50 border-zinc-200 text-zinc-600 hover:border-zinc-300 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-700"
+                        )}
+                      >
+                        {topic}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
           </div>
         </div>
 
-        {/* =========================================================
-            RIGHT COLUMN (SIDEBAR)
-        ========================================================== */}
         <div className="hidden lg:flex flex-col w-[340px] shrink-0 border-l border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/50 dark:bg-zinc-900/10 p-8">
-          
-          {/* Draft Status */}
+
           <div className="mb-8">
             <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-4">Draft Status</h3>
             <div className="space-y-3">
@@ -353,10 +438,9 @@ export default function CreatePage() {
             </div>
           </div>
 
-          {/* Stats */}
           <div className="mb-8 grid grid-cols-2 gap-4">
             <div className="p-4 bg-white dark:bg-zinc-950 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm">
-              <div className="text-2xl font-bold dark:text-white mb-1">{wordCount}</div>
+              <div className="text-2xl font-bold dark:text-white mb-1">{words}</div>
               <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Words</div>
             </div>
             <div className="p-4 bg-white dark:bg-zinc-950 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm">
@@ -365,7 +449,6 @@ export default function CreatePage() {
             </div>
           </div>
 
-          {/* Writing Tips Contextual */}
           <div className="bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-900/30 rounded-2xl p-5">
             <h3 className="font-bold text-blue-800 dark:text-blue-400 text-sm mb-2 flex items-center gap-2">
               <PenTool className="w-4 h-4" /> Writing Tips

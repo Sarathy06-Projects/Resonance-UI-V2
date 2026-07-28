@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,6 +8,9 @@ import { CheckCircle2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { completeOnboarding } from "@/lib/api/onboarding";
+import { checkUsername } from "@/lib/api/users";
+import { useAuthStore } from "@/store/useAuthStore";
 
 const roles = [
   "UI Designer", "UX Designer", "Product Designer", 
@@ -22,21 +25,59 @@ const allTopics = [
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const syncSession = useAuthStore((s) => s.syncSession);
   const [step, setStep] = useState(1);
   const [selectedRole, setSelectedRole] = useState("");
   const [isOtherRole, setIsOtherRole] = useState(false);
   const [manualRole, setManualRole] = useState("");
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [profile, setProfile] = useState({ name: "", username: "", bio: "" });
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [isFinishing, setIsFinishing] = useState(false);
+  const [finishError, setFinishError] = useState<string | null>(null);
 
   const toggleTopic = (topic: string) => {
-    setSelectedTopics(prev => 
+    setSelectedTopics(prev =>
       prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
     );
   };
 
-  const handleFinish = () => {
-    router.push("/");
+  useEffect(() => {
+    if (profile.username.length < 3) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting on input change, not syncing external state
+      setUsernameAvailable(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      checkUsername(profile.username).then((r) => setUsernameAvailable(r.available)).catch(() => setUsernameAvailable(null));
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [profile.username]);
+
+  const handleFinish = async () => {
+    setIsFinishing(true);
+    setFinishError(null);
+    try {
+      const updated = await completeOnboarding({
+        role: selectedRole,
+        topics: selectedTopics,
+        name: profile.name || undefined,
+        username: profile.username || undefined,
+        bio: profile.bio || undefined,
+      });
+      syncSession({
+        id: updated.id,
+        name: updated.name,
+        username: updated.username ?? "",
+        avatar: updated.image ?? `https://api.dicebear.com/9.x/glass/svg?seed=${updated.id}`,
+        role: updated.role ?? undefined,
+      });
+      router.push("/");
+    } catch (err) {
+      setFinishError(err instanceof Error ? err.message : "Something went wrong finishing setup.");
+    } finally {
+      setIsFinishing(false);
+    }
   };
 
   return (
@@ -219,10 +260,13 @@ export default function OnboardingPage() {
                       onChange={(e) => setProfile({...profile, username: e.target.value})}
                     />
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 text-lg font-semibold">@</span>
-                    {profile.username.length > 3 && (
+                    {usernameAvailable === true && (
                       <CheckCircle2 className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500 w-5 h-5" />
                     )}
                   </div>
+                  {usernameAvailable === false && (
+                    <p className="text-sm text-red-500 ml-1">That username isn&apos;t available.</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -236,15 +280,17 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
+              {finishError && <p className="text-sm text-red-500 text-center">{finishError}</p>}
+
               <div className="pt-8 flex justify-between items-center">
                 <Button variant="ghost" size="lg" onClick={() => setStep(2)} className="rounded-xl dark:text-zinc-300 dark:hover:bg-zinc-800">Back</Button>
-                <Button 
-                  size="lg" 
-                  disabled={!profile.name || !profile.username}
+                <Button
+                  size="lg"
+                  disabled={!profile.name || !profile.username || usernameAvailable === false || isFinishing}
                   onClick={handleFinish}
                   className="rounded-xl px-10 h-14 text-base font-semibold dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
                 >
-                  Join Resonance
+                  {isFinishing ? "Setting up..." : "Join Resonance"}
                 </Button>
               </div>
             </motion.div>

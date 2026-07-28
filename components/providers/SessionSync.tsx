@@ -32,6 +32,7 @@ export function SessionSync() {
       name: sessionUser.name,
       username: sessionUser.username || sessionUser.email.split("@")[0],
       avatar: sessionUser.image || `https://api.dicebear.com/9.x/glass/svg?seed=${sessionUser.id}`,
+      email: sessionUser.email,
       bio: sessionUser.bio ?? undefined,
       role: sessionUser.role ?? undefined,
     });

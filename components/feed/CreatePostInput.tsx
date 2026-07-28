@@ -1,12 +1,12 @@
 "use client";
 
 import { useAuthStore } from "@/store/useAuthStore";
-import { useDataStore } from "@/store/useDataStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Image as ImageIcon, Link as LinkIcon, Smile, Hash, List } from "lucide-react";
+import { Image as ImageIcon, Smile, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
+import { createPost } from "@/lib/api/posts";
 
 const placeholders = [
   "Share an idea...",
@@ -18,10 +18,14 @@ const placeholders = [
   "What inspired you today?"
 ];
 
-export function CreatePostInput() {
+interface CreatePostInputProps {
+  onPosted?: () => void;
+}
+
+export function CreatePostInput({ onPosted }: CreatePostInputProps) {
   const { user, isAuthenticated, openAuthModal } = useAuthStore();
-  const { addPost } = useDataStore();
   const [content, setContent] = useState("");
+  const [isPosting, setIsPosting] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -39,26 +43,23 @@ export function CreatePostInput() {
     }
   };
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (!isAuthenticated || !user) {
       openAuthModal();
       return;
     }
     if (!content.trim()) return;
 
-    addPost({
-      id: `p_${Date.now()}`,
-      author: user as any,
-      content: content.trim(),
-      timestamp: "Just now",
-      likes: 0,
-      comments: 0,
-      shares: 0,
-      bookmarks: 0,
-      hashtags: [],
-    });
-
-    setContent("");
+    setIsPosting(true);
+    try {
+      await createPost({ type: "discussion", content: content.trim() });
+      setContent("");
+      onPosted?.();
+    } catch {
+      // Leave content in place so the user can retry.
+    } finally {
+      setIsPosting(false);
+    }
   };
 
   return (
@@ -73,11 +74,11 @@ export function CreatePostInput() {
           <AvatarFallback className="bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500">?</AvatarFallback>
         )}
       </Avatar>
-      
+
       <div className="flex-1">
         <div className="relative min-h-[60px]">
-          <textarea 
-            placeholder={placeholders[placeholderIndex]} 
+          <textarea
+            placeholder={placeholders[placeholderIndex]}
             className="w-full bg-transparent resize-none outline-none text-[17px] placeholder:text-zinc-500 dark:text-zinc-200 dark:placeholder:text-zinc-500 pt-1.5 transition-all duration-500 ease-in-out z-10 relative"
             onClick={handleInteraction}
             onFocus={() => setIsFocused(true)}
@@ -86,7 +87,7 @@ export function CreatePostInput() {
             onChange={(e) => setContent(e.target.value)}
           />
         </div>
-        
+
         <div className={cn("flex items-center justify-between pt-3 mt-1 border-t border-zinc-100 dark:border-zinc-800/60 transition-opacity duration-300", content || isFocused ? "opacity-100" : "opacity-60 hover:opacity-100")}>
           <div className="flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
             <button className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors dark:hover:text-zinc-200" onClick={handleInteraction}>
@@ -99,13 +100,13 @@ export function CreatePostInput() {
               <Smile className="w-[18px] h-[18px]" />
             </button>
           </div>
-          
-          <Button 
+
+          <Button
             className="rounded-full px-6 font-semibold shadow-sm dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
             onClick={handlePost}
-            disabled={!content.trim() && isAuthenticated}
+            disabled={isPosting || (!content.trim() && isAuthenticated)}
           >
-            Post
+            {isPosting ? "Posting..." : "Post"}
           </Button>
         </div>
       </div>

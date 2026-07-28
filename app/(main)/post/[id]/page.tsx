@@ -1,26 +1,22 @@
 "use client";
 
 import { use } from "react";
+import useSWR, { mutate } from "swr";
 import { PostCard } from "@/components/shared/PostCard";
-import { useDataStore } from "@/store/useDataStore";
-import { useAuthStore } from "@/store/useAuthStore";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { CommentInput } from "@/components/shared/CommentInput";
 import { CommentThread } from "@/components/shared/CommentThread";
+import { getPost } from "@/lib/api/posts";
+import { createComment } from "@/lib/api/comments";
 
 export default function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const { posts, addComment } = useDataStore();
-  const { user } = useAuthStore();
-  
-  // Find post or fallback to first
-  const post = posts.find(p => p.id === resolvedParams.id) || posts[0];
+  const { data: post, isLoading, error } = useSWR(`post-${resolvedParams.id}`, () => getPost(resolvedParams.id));
 
-  const handleMainReplySubmit = (content: string) => {
-    if (user) {
-      addComment(post.id, content, user);
-    }
+  const handleMainReplySubmit = async (content: string) => {
+    await createComment({ targetType: "post", targetId: resolvedParams.id, content });
+    mutate(`comments-post-${resolvedParams.id}`);
   };
 
   return (
@@ -32,17 +28,27 @@ export default function PostPage({ params }: { params: Promise<{ id: string }> }
         <h1 className="text-xl font-bold tracking-tight dark:text-white">Post</h1>
       </div>
 
-      <div className="border-b border-zinc-100 dark:border-zinc-800 pt-2 pb-4">
-        <PostCard post={post} isDetailed />
-      </div>
+      {isLoading && (
+        <div className="p-6 text-center text-zinc-400">Loading post…</div>
+      )}
 
-      {/* Reply Input */}
-      <div className="border-b border-zinc-100 dark:border-zinc-800">
-        <CommentInput onSubmit={handleMainReplySubmit} />
-      </div>
+      {error && !isLoading && (
+        <div className="p-10 text-center text-zinc-500">This post couldn&apos;t be found.</div>
+      )}
 
-      {/* Comments / Replies */}
-      <CommentThread postId={post.id} postAuthorId={post.author.id} />
+      {post && (
+        <>
+          <div className="border-b border-zinc-100 dark:border-zinc-800 pt-2 pb-4">
+            <PostCard post={post} isDetailed />
+          </div>
+
+          <div className="border-b border-zinc-100 dark:border-zinc-800">
+            <CommentInput onSubmit={handleMainReplySubmit} />
+          </div>
+
+          <CommentThread targetType="post" targetId={post.id} targetAuthorId={post.authorId} />
+        </>
+      )}
     </div>
   );
 }

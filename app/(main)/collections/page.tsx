@@ -1,20 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import useSWR from "swr";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PostCard } from "@/components/shared/PostCard";
 import { ArticleCard } from "@/components/shared/ArticleCard";
-import { mockPosts, mockArticles } from "@/lib/mock-data";
-import { Bookmark, Sparkles } from "lucide-react";
+import { Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { getBookmarkedArticles, getBookmarkedPosts } from "@/lib/api/users";
+import { unbookmarkArticle } from "@/lib/api/articles";
+import { unbookmarkPost } from "@/lib/api/posts";
 
 export default function CollectionsPage() {
   const router = useRouter();
-  
-  // Mock data for the collections
-  const savedPosts = mockPosts; 
-  const savedArticles = mockArticles;
+  const { data: postsData, isLoading: postsLoading, mutate: mutatePosts } = useSWR("saved-posts", getBookmarkedPosts);
+  const { data: articlesData, isLoading: articlesLoading, mutate: mutateArticles } = useSWR("saved-articles", getBookmarkedArticles);
+
+  const savedPosts = postsData?.posts ?? [];
+  const savedArticles = articlesData?.articles ?? [];
+
+  const removePost = async (id: string) => {
+    await unbookmarkPost(id);
+    mutatePosts();
+  };
+
+  const removeArticle = async (id: string) => {
+    await unbookmarkArticle(id);
+    mutateArticles();
+  };
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4 md:px-6 min-h-[80vh]">
@@ -30,13 +43,15 @@ export default function CollectionsPage() {
         </TabsList>
 
         <TabsContent value="posts" className="mt-0 outline-none">
-          {savedPosts.length > 0 ? (
+          {postsLoading ? (
+            <div className="text-center py-20 text-zinc-400">Loading…</div>
+          ) : savedPosts.length > 0 ? (
             <div className="flex flex-col">
               {savedPosts.map(post => (
                 <div key={post.id} className="relative group">
                   <PostCard post={post} />
                   <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity z-10 hidden sm:block">
-                    <Button variant="secondary" size="sm" className="bg-white/95 dark:bg-zinc-800/95 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-xs shadow-sm font-medium" onClick={(e) => { e.preventDefault(); }}>
+                    <Button variant="secondary" size="sm" className="bg-white/95 dark:bg-zinc-800/95 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-xs shadow-sm font-medium" onClick={(e) => { e.preventDefault(); e.stopPropagation(); removePost(post.id); }}>
                       Remove from Saved
                     </Button>
                   </div>
@@ -44,9 +59,9 @@ export default function CollectionsPage() {
               ))}
             </div>
           ) : (
-            <EmptyState 
-              title="No saved content yet" 
-              subtitle="Save posts and articles to build your personal design library." 
+            <EmptyState
+              title="No saved content yet"
+              subtitle="Save posts to build your personal design library."
               onAction={() => router.push("/explore")}
               actionLabel="Explore"
             />
@@ -54,13 +69,15 @@ export default function CollectionsPage() {
         </TabsContent>
 
         <TabsContent value="articles" className="mt-0 outline-none">
-          {savedArticles.length > 0 ? (
+          {articlesLoading ? (
+            <div className="text-center py-20 text-zinc-400">Loading…</div>
+          ) : savedArticles.length > 0 ? (
             <div className="flex flex-wrap gap-6">
               {savedArticles.map(article => (
                 <div key={article.id} className="relative group">
                   <ArticleCard article={article} />
                   <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                    <Button variant="secondary" size="sm" className="bg-white/95 dark:bg-zinc-800/95 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-xs shadow-sm font-medium" onClick={(e) => { e.preventDefault(); }}>
+                    <Button variant="secondary" size="sm" className="bg-white/95 dark:bg-zinc-800/95 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-xs shadow-sm font-medium" onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeArticle(article.id); }}>
                       Remove from Saved
                     </Button>
                   </div>
@@ -68,9 +85,9 @@ export default function CollectionsPage() {
               ))}
             </div>
           ) : (
-            <EmptyState 
-              title="No saved articles yet" 
-              subtitle="Save articles to read them later." 
+            <EmptyState
+              title="No saved articles yet"
+              subtitle="Save articles to read them later."
               onAction={() => router.push("/explore")}
               actionLabel="Explore Articles"
             />
