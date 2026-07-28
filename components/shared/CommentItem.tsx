@@ -143,7 +143,7 @@ export function CommentItem({ comment, targetType, targetId, viewerIsTargetAutho
         </div>
       )}
 
-      {comment.replies.length > 0 && (
+      {comment.replies?.length > 0 && (
         <div className="pl-6 sm:pl-9 ml-6 sm:ml-9 border-l-2 border-zinc-100 dark:border-zinc-800 relative">
           <div className="absolute -bottom-4 -left-0.5 w-1 h-6 bg-white dark:bg-zinc-950" />
           {comment.replies.map((reply) => (
