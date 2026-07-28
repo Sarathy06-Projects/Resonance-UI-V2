@@ -18,6 +18,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
             <img
               src={article.coverImage}
               alt={article.title}
+              loading="lazy"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
             />
           )}

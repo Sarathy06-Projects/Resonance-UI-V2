@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SessionSync } from "@/components/providers/SessionSync";
 import { AuthModal } from "@/components/shared/AuthModal";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,10 +16,9 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Resonance - Design Community",
-  description: "A modern design community platform where designers share ideas, validate concepts, and discuss design.",
-};
+import { constructMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = constructMetadata();
 
 export default function RootLayout({
   children,
@@ -38,6 +38,7 @@ export default function RootLayout({
           {children}
           <AuthModal />
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );

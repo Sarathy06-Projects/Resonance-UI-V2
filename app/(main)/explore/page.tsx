@@ -18,6 +18,7 @@ import { getPopularArticles } from "@/lib/api/articles";
 import { cn } from "@/lib/utils";
 import { formatCount } from "@/lib/formatCount";
 import Link from "next/link";
+import { JsonLd } from "@/components/seo/JsonLd";
 import type { Author } from "@/lib/api/types";
 
 const SectionHeader = ({ title, subtitle, action }: { title: string, subtitle?: string, action?: React.ReactNode }) => (
@@ -109,8 +110,16 @@ export default function ExplorePage() {
 
   const filters = ["All", "Posts", "Articles", "Designers", "Topics", "Hashtags"];
 
+  const exploreJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Explore - Resonance",
+    "url": "https://resonance.design/explore"
+  };
+
   return (
-    <div className="flex flex-col min-h-screen w-full bg-white dark:bg-zinc-950 pb-20 overflow-x-hidden">
+    <main className="flex flex-col min-h-screen w-full bg-white dark:bg-zinc-950 pb-20 overflow-x-hidden">
+      <JsonLd data={exploreJsonLd} />
 
       <div className="sticky top-0 sm:top-16 z-30 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800">
 
@@ -319,6 +328,6 @@ export default function ExplorePage() {
           </>
         )}
       </div>
-    </div>
+    </main>
   );
 }

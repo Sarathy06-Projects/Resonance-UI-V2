@@ -15,6 +15,8 @@ import { timeAgo } from "@/lib/formatTime";
 import { cn } from "@/lib/utils";
 import { CommentInput } from "@/components/shared/CommentInput";
 import { CommentThread } from "@/components/shared/CommentThread";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { RelatedArticles } from "@/components/seo/RelatedArticles";
 import type { Article } from "@/lib/api/types";
 
 export default function ArticlePage({ params }: { params: Promise<{ id: string }> }) {
@@ -57,9 +59,23 @@ function ArticleView({ article }: { article: Article }) {
     mutate(`comments-article-${article.id}`);
   };
 
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": article.title,
+    "image": article.coverImage ? [article.coverImage] : [],
+    "datePublished": article.publishedAt || article.createdAt,
+    "author": [{
+      "@type": "Person",
+      "name": article.author.name,
+      "url": `https://resonance.design/profile/${article.author.username}`
+    }]
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-zinc-950 pb-20 md:pb-0">
-      <div className="sticky top-0 sm:top-16 z-10 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 px-4 py-3 flex items-center justify-between">
+    <main className="flex flex-col min-h-screen bg-white dark:bg-zinc-950 pb-20 md:pb-0">
+      <JsonLd data={articleJsonLd} />
+      <header className="sticky top-0 sm:top-16 z-10 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/" className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors dark:text-zinc-100">
             <ArrowLeft className="w-5 h-5" />
@@ -82,12 +98,14 @@ function ArticleView({ article }: { article: Article }) {
             {isFollowing ? "Following" : "Follow"}
           </Button>
         )}
-      </div>
+      </header>
 
-      <div className="max-w-3xl mx-auto w-full px-4 sm:px-8 py-8 sm:py-12">
-        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight leading-tight mb-8 dark:text-zinc-50">
-          {article.title}
-        </h1>
+      <article className="max-w-3xl mx-auto w-full px-4 sm:px-8 py-8 sm:py-12">
+        <header className="mb-8">
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight leading-tight dark:text-zinc-50">
+            {article.title}
+          </h1>
+        </header>
 
         {article.coverImage && (
           <img src={article.coverImage} alt={article.title} className="w-full aspect-video object-cover rounded-2xl mb-12" />
@@ -137,7 +155,8 @@ function ArticleView({ article }: { article: Article }) {
           <CommentInput onSubmit={handleReplySubmit} placeholder="Share your thoughts on this article" />
           <CommentThread targetType="article" targetId={article.id} targetAuthorId={article.authorId} />
         </div>
-      </div>
-    </div>
+        <RelatedArticles currentArticleId={article.id} tags={article.tags || []} />
+      </article>
+    </main>
   );
 }

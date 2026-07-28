@@ -7,6 +7,7 @@ import { Hash, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getHashtagPosts } from "@/lib/api/hashtags";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 export default function HashtagPage({ params }: { params: Promise<{ tag: string }> }) {
   const resolvedParams = use(params);
@@ -15,8 +16,16 @@ export default function HashtagPage({ params }: { params: Promise<{ tag: string 
   const { data, isLoading } = useSWR(`hashtag-${tagName}`, () => getHashtagPosts(tagName));
   const posts = data?.posts ?? [];
 
+  const hashtagJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": `#${tagName} - Resonance`,
+    "url": `https://resonance.design/hashtag/${tagName}`
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-zinc-950 pb-20 md:pb-0">
+    <main className="flex flex-col min-h-screen bg-white dark:bg-zinc-950 pb-20 md:pb-0">
+      <JsonLd data={hashtagJsonLd} />
 
       <div className="sticky top-0 sm:top-16 z-20 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800">
         <div className="px-4 py-4 sm:px-6 flex items-center gap-4">
@@ -57,6 +66,6 @@ export default function HashtagPage({ params }: { params: Promise<{ tag: string 
         )}
       </div>
 
-    </div>
+    </main>
   );
 }

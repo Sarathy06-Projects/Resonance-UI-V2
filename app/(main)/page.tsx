@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowRight, Inbox } from "lucide-react";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"foryou" | "following">("foryou");
@@ -76,8 +77,21 @@ export default function Home() {
     }
   });
 
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Resonance - Design Community",
+    "url": "https://resonance.design",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://resonance.design/explore?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  };
+
   return (
-    <div className="flex flex-col min-h-screen">
+    <main className="flex flex-col min-h-screen">
+      <JsonLd data={websiteJsonLd} />
 
       {/* Header & Tabs */}
       <div className="sticky top-0 sm:top-14 z-30 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 transition-all duration-300">
@@ -157,7 +171,7 @@ export default function Home() {
         )}
       </div>
 
-    </div>
+    </main>
   )
 }
 

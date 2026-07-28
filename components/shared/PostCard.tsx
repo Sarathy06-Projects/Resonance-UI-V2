@@ -82,7 +82,7 @@ export function PostCard({ post, isDetailed = false }: PostCardProps) {
 
           {post.images && post.images.length > 0 && (
             <div className="mt-4 mb-4 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800/60 shadow-sm">
-              <img src={post.images[0]} alt="Post attachment" className="w-full h-auto object-cover max-h-[400px]" />
+              <img src={post.images[0]} alt="Post attachment" loading="lazy" className="w-full h-auto object-cover max-h-[400px]" />
             </div>
           )}
 
@@ -93,7 +93,7 @@ export function PostCard({ post, isDetailed = false }: PostCardProps) {
             >
               <div className="sm:w-1/3 h-[140px] sm:h-auto shrink-0 relative overflow-hidden bg-zinc-100 dark:bg-zinc-900">
                 {linkedArticle.coverImage && (
-                  <img src={linkedArticle.coverImage} className="w-full h-full object-cover group-hover/article:scale-105 transition-transform duration-500" />
+                  <img src={linkedArticle.coverImage} alt={linkedArticle.title} loading="lazy" className="w-full h-full object-cover group-hover/article:scale-105 transition-transform duration-500" />
                 )}
               </div>
               <div className="p-4 sm:p-5 flex flex-col flex-1">

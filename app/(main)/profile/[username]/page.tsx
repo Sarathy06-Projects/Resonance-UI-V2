@@ -20,6 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { JsonLd } from "@/components/seo/JsonLd";
 import type { Profile } from "@/lib/api/types";
 
 const TABS = [
@@ -82,8 +83,23 @@ function ProfileView({ profile, onProfileChanged }: { profile: Profile; onProfil
     }
   };
 
+  const personJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": profile.name,
+    "url": `https://resonance.design/profile/${profile.username}`,
+    "image": profile.image,
+    "description": profile.bio,
+    "jobTitle": profile.role,
+    "worksFor": {
+      "@type": "Organization",
+      "name": profile.company
+    }
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-zinc-950 pb-20 md:pb-0 w-full overflow-x-hidden">
+    <main className="flex flex-col min-h-screen bg-white dark:bg-zinc-950 pb-20 md:pb-0 w-full overflow-x-hidden">
+      <JsonLd data={personJsonLd} />
 
       {/* Cover Banner */}
       <div className="h-48 sm:h-72 w-full relative group bg-zinc-100 dark:bg-zinc-900">
@@ -330,7 +346,7 @@ function ProfileView({ profile, onProfileChanged }: { profile: Profile; onProfil
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
