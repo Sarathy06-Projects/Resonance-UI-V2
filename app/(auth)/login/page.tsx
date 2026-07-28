@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -17,8 +17,28 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+// Only ever redirect to a same-site path after login. `next` comes from a
+// URL query param, which anyone can craft - without this check, a link like
+// /login?next=https://evil.example would send a freshly-authenticated user
+// straight to an attacker's site (a classic open-redirect phishing vector).
+function safeRedirectTarget(next: string | null): string {
+  if (!next) return "/";
+  if (!next.startsWith("/") || next.startsWith("//")) return "/";
+  return next;
+}
+
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="w-full max-w-[400px]" />}>
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = safeRedirectTarget(searchParams.get("next"));
   const [formError, setFormError] = useState<string | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
@@ -38,13 +58,13 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/");
+    router.push(redirectTo);
     router.refresh();
   };
 
   const onGoogleSignIn = async () => {
     setIsGoogleLoading(true);
-    await authClient.signIn.social({ provider: "google", callbackURL: "/" });
+    await authClient.signIn.social({ provider: "google", callbackURL: redirectTo });
   };
 
   return (
