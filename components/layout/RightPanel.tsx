@@ -46,8 +46,8 @@ export function RightPanel({ className }: RightPanelProps) {
               <span>{featuredArticle.author.name}</span>
               <span>{featuredArticle.readTime}</span>
             </div>
-            <Button variant="secondary" size="sm" className="w-full mt-5 rounded-xl font-semibold bg-white dark:bg-zinc-800 text-zinc-950 dark:text-white shadow-sm border border-zinc-100 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors" asChild>
-              <Link href={`/article/${featuredArticle.id}`}>Read Article</Link>
+            <Button variant="secondary" size="sm" className="w-full mt-5 rounded-xl font-semibold bg-white dark:bg-zinc-800 text-zinc-950 dark:text-white shadow-sm border border-zinc-100 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors" render={<Link href={`/article/${featuredArticle.id}`} />}>
+              Read Article
             </Button>
           </div>
         </div>

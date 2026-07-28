@@ -131,7 +131,7 @@ export function TopNav({ className }: TopNavProps) {
 
             {isAuthenticated && (
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+                <DropdownMenuTrigger render={
                   <Button 
                     size="sm" 
                     className="hidden md:flex rounded-full h-9 px-4 font-semibold shadow-sm dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-transform"
@@ -139,7 +139,7 @@ export function TopNav({ className }: TopNavProps) {
                     <PenSquare className="w-4 h-4 mr-2" />
                     Write
                   </Button>
-                </DropdownMenuTrigger>
+                } />
                 <DropdownMenuContent align="end" className="w-48 dark:bg-zinc-900 dark:border-zinc-800">
                   <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push('/create?type=discussion')}>
                     <MessageSquare className="w-4 h-4 text-zinc-500" />

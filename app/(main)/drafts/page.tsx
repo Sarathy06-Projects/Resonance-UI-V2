@@ -82,11 +82,11 @@ export default function DraftsPage() {
                       Continue Editing
                     </Button>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                      <DropdownMenuTrigger render={
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full dark:hover:bg-zinc-800">
                           <MoreVertical className="w-4 h-4 text-zinc-500" />
                         </Button>
-                      </DropdownMenuTrigger>
+                      } />
                       <DropdownMenuContent align="end" className="w-40 rounded-xl dark:bg-zinc-900 dark:border-zinc-800">
                         <DropdownMenuItem className="gap-2 cursor-pointer rounded-lg py-2">
                           <Eye className="w-4 h-4 text-zinc-500" />

@@ -98,7 +98,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen">
       
       {/* Header & Tabs */}
-      <div className="sticky top-0 sm:top-16 z-30 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800">
+      <div className="sticky top-0 sm:top-14 z-30 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 transition-all duration-300">
         <div className="px-4 py-2 sm:px-6">
           <div className="flex items-center gap-1 p-1 bg-zinc-100/50 dark:bg-zinc-900/50 rounded-xl w-full sm:w-fit">
             <button
