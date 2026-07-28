@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { authClient } from '@/lib/auth-client'
 
 export interface User {
   id: string
@@ -15,6 +16,7 @@ interface AuthState {
   isAuthModalOpen: boolean
   login: (user: User) => void
   logout: () => void
+  syncSession: (user: User | null) => void
   openAuthModal: () => void
   closeAuthModal: () => void
 }
@@ -24,7 +26,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   isAuthModalOpen: false,
   login: (user) => set({ user, isAuthenticated: true, isAuthModalOpen: false }),
-  logout: () => set({ user: null, isAuthenticated: false }),
+  logout: () => {
+    set({ user: null, isAuthenticated: false })
+    void authClient.signOut()
+  },
+  // Internal: called by SessionSync to reflect the real Better Auth session
+  // without re-triggering a signOut request (avoids login/logout feedback loops).
+  syncSession: (user) => set({ user, isAuthenticated: !!user }),
   openAuthModal: () => set({ isAuthModalOpen: true }),
   closeAuthModal: () => set({ isAuthModalOpen: false }),
 }))

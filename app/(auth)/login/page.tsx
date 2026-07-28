@@ -1,13 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useAuthStore } from "@/store/useAuthStore";
-import { mockUsers } from "@/lib/mock-data";
+import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 
 const loginSchema = z.object({
@@ -18,22 +18,33 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const login = useAuthStore((state) => state.login);
   const router = useRouter();
-  
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "demo@resonance.design",
-      password: "password123",
-    }
   });
 
   const onSubmit = async (data: LoginFormValues) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    login(mockUsers[0]);
+    setFormError(null);
+    const { error } = await authClient.signIn.email({
+      email: data.email,
+      password: data.password,
+    });
+
+    if (error) {
+      setFormError(error.message ?? "Unable to sign in. Check your credentials.");
+      return;
+    }
+
     router.push("/");
+    router.refresh();
+  };
+
+  const onGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    await authClient.signIn.social({ provider: "google", callbackURL: "/" });
   };
 
   return (
@@ -45,10 +56,10 @@ export default function LoginPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
-          <Input 
+          <Input
             {...register("email")}
-            type="email" 
-            placeholder="m@example.com" 
+            type="email"
+            placeholder="m@example.com"
             className="h-12 rounded-xl bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 dark:text-white dark:placeholder:text-zinc-500"
           />
           {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
@@ -59,17 +70,19 @@ export default function LoginPage() {
               Forgot password?
             </Link>
           </div>
-          <Input 
+          <Input
             {...register("password")}
-            type="password" 
-            placeholder="••••••••" 
+            type="password"
+            placeholder="••••••••"
             className="h-12 rounded-xl bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 dark:text-white dark:placeholder:text-zinc-500"
           />
           {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
         </div>
 
+        {formError && <p className="text-sm text-red-500">{formError}</p>}
+
         <Button type="submit" disabled={isSubmitting} className="w-full h-12 rounded-xl text-base font-semibold shadow-sm mt-2 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
-          {isSubmitting ? "Signing in..." : "Sign in (Demo)"}
+          {isSubmitting ? "Signing in..." : "Sign in"}
         </Button>
       </form>
 
@@ -83,16 +96,14 @@ export default function LoginPage() {
       </div>
 
       <div className="flex flex-col gap-3">
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           type="button"
-          onClick={() => {
-            login(mockUsers[0]);
-            router.push("/");
-          }}
+          disabled={isGoogleLoading}
+          onClick={onGoogleSignIn}
           className="h-12 rounded-xl font-medium w-full dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-900"
         >
-          One-Click Demo Login
+          {isGoogleLoading ? "Redirecting..." : "Continue with Google"}
         </Button>
       </div>
 
