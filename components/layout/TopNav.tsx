@@ -177,7 +177,7 @@ export function TopNav({ className }: TopNavProps) {
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">
                       {user.name && <p className="font-medium">{user.name}</p>}
-                      {user.email && <p className="w-[200px] truncate text-sm text-zinc-500">{user.email}</p>}
+                      {(user as any).email && <p className="w-[200px] truncate text-sm text-zinc-500">{(user as any).email}</p>}
                     </div>
                   </div>
                   <DropdownMenuSeparator />

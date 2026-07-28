@@ -25,7 +25,7 @@ export default function Home() {
 
   // Insert discovery modules naturally between posts
   // e.g. Featured Designers after index 1, Popular Articles after index 3
-  const feedWithModules = [];
+  const feedWithModules: React.ReactNode[] = [];
   
   if (posts.length > 0) {
     posts.forEach((post, index) => {

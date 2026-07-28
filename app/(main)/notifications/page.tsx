@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 type NotificationGroup = "Today" | "Yesterday" | "Earlier this week";
-type NotificationCategory = "all" | "mentions" | "replies" | "likes" | "follows" | "articles" | "system";
+type NotificationCategory = "all" | "unread" | "mentions" | "replies" | "likes" | "follows" | "articles" | "system";
 
 interface NotificationItem {
   id: string;

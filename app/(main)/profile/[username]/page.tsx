@@ -8,7 +8,7 @@ import { mockUsers, mockPosts, mockArticles, exploreTopics } from "@/lib/mock-da
 import { useAuthStore } from "@/store/useAuthStore";
 import { 
   MapPin, Link as LinkIcon, Calendar, CheckCircle2, Award, 
-  TrendingUp, PenTool, Figma, ArrowRight, ExternalLink,
+  TrendingUp, PenTool, ArrowRight, ExternalLink,
   BookOpen, Heart, Eye, Bookmark, Share2, MessageCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -235,7 +235,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                     </div>
                     <div className="flex flex-col flex-1 min-w-0 py-1">
                       <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 dark:text-zinc-400 mb-2 uppercase tracking-wide">
-                        <span>{article.category}</span>
+                        <span>{article.tags[0]}</span>
                         <span>·</span>
                         <span>{article.readTime}</span>
                       </div>
@@ -243,7 +243,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                         {article.title}
                       </h2>
                       <p className="text-zinc-500 dark:text-zinc-400 text-[15px] line-clamp-2 mb-4">
-                        {article.excerpt}
+                        {article.preview}
                       </p>
                       <div className="mt-auto flex items-center justify-between">
                         <div className="flex gap-4 text-zinc-500 dark:text-zinc-400">

@@ -48,7 +48,7 @@ export function CreatePostInput() {
 
     addPost({
       id: `p_${Date.now()}`,
-      author: user,
+      author: user as any,
       content: content.trim(),
       timestamp: "Just now",
       likes: 0,
