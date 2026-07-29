@@ -67,3 +67,17 @@ export function getBookmarkedPosts() {
 export function getBookmarkedArticles() {
   return apiFetch<{ articles: Article[] }>("/api/users/me/bookmarks?type=articles");
 }
+
+export function getLikedPosts(cursor?: string | null) {
+  const params = new URLSearchParams();
+  if (cursor) params.set("cursor", cursor);
+  const qs = params.toString();
+  return apiFetch<{ posts: Post[]; nextCursor: string | null }>(`/api/users/me/liked-posts${qs ? `?${qs}` : ""}`);
+}
+
+export function getCommentedPosts(cursor?: string | null) {
+  const params = new URLSearchParams();
+  if (cursor) params.set("cursor", cursor);
+  const qs = params.toString();
+  return apiFetch<{ posts: Post[]; nextCursor: string | null }>(`/api/users/me/commented-posts${qs ? `?${qs}` : ""}`);
+}

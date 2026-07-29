@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { sendEmail } from "@/lib/email";
 
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
@@ -14,6 +15,13 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 8,
     maxPasswordLength: 128,
+    sendResetPassword: async ({ user, url }) => {
+      await sendEmail({
+        to: user.email,
+        subject: "Reset your Resonance password",
+        html: `<p>Hi ${user.name || ""},</p><p>Someone requested a password reset for your Resonance account. If this was you, click the link below to choose a new password. This link expires shortly.</p><p><a href="${url}">Reset your password</a></p><p>If you didn't request this, you can safely ignore this email.</p>`,
+      });
+    },
   },
   // Enabled in every environment (not just production) - better-auth's
   // default of only turning this on when NODE_ENV=production means dev

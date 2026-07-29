@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { Heart, MessageCircle, ChevronRight } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +30,9 @@ export default function SettingsPage() {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [isSendingReset, setIsSendingReset] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   // The Zustand user store loads asynchronously after mount (SessionSync),
   // so the form fields need a one-time sync once it arrives - guarded so it
@@ -91,6 +96,18 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSendResetLink = async () => {
+    if (!user.email) return;
+    setIsSendingReset(true);
+    setResetMessage(null);
+    try {
+      await authClient.requestPasswordReset({ email: user.email, redirectTo: "/reset-password" });
+      setResetMessage("Check your email for a link to reset your password.");
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
     try {
@@ -129,14 +146,48 @@ export default function SettingsPage() {
             </div>
             {passwordMessage && <p className="text-sm text-emerald-600">{passwordMessage}</p>}
             {passwordError && <p className="text-sm text-red-500">{passwordError}</p>}
-            <Button
-              variant="outline"
-              className="rounded-xl h-10 px-6"
-              disabled={isChangingPassword || !currentPassword || newPassword.length < 8}
-              onClick={handleChangePassword}
-            >
-              {isChangingPassword ? "Changing..." : "Change Password"}
-            </Button>
+            <div className="flex flex-wrap items-center gap-4">
+              <Button
+                variant="outline"
+                className="rounded-xl h-10 px-6"
+                disabled={isChangingPassword || !currentPassword || newPassword.length < 8}
+                onClick={handleChangePassword}
+              >
+                {isChangingPassword ? "Changing..." : "Change Password"}
+              </Button>
+              <button
+                type="button"
+                onClick={handleSendResetLink}
+                disabled={isSendingReset}
+                className="text-sm font-medium text-blue-600 hover:underline disabled:opacity-50"
+              >
+                {isSendingReset ? "Sending..." : "Forgot your password?"}
+              </button>
+            </div>
+            {resetMessage && <p className="text-sm text-emerald-600">{resetMessage}</p>}
+          </div>
+        </section>
+
+        <Separator className="bg-zinc-100" />
+
+        {/* Activity */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-bold">Activity</h2>
+          <div className="rounded-xl border border-zinc-200 divide-y divide-zinc-100 overflow-hidden">
+            <Link href="/activity?tab=liked" className="flex items-center justify-between px-4 py-3.5 hover:bg-zinc-50 transition-colors">
+              <span className="flex items-center gap-3">
+                <Heart className="w-5 h-5 text-zinc-500" />
+                <span className="text-sm font-medium">Posts You&apos;ve Liked</span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-zinc-400" />
+            </Link>
+            <Link href="/activity?tab=commented" className="flex items-center justify-between px-4 py-3.5 hover:bg-zinc-50 transition-colors">
+              <span className="flex items-center gap-3">
+                <MessageCircle className="w-5 h-5 text-zinc-500" />
+                <span className="text-sm font-medium">Comments</span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-zinc-400" />
+            </Link>
           </div>
         </section>
 

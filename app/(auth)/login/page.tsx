@@ -86,7 +86,7 @@ function LoginPageInner() {
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Link href="/reset-password" className="text-sm font-medium text-blue-600 dark:text-blue-500 hover:underline">
+            <Link href="/forgot-password" className="text-sm font-medium text-blue-600 dark:text-blue-500 hover:underline">
               Forgot password?
             </Link>
           </div>
