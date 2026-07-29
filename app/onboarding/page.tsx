@@ -11,16 +11,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { completeOnboarding } from "@/lib/api/onboarding";
 import { checkUsername } from "@/lib/api/users";
 import { useAuthStore } from "@/store/useAuthStore";
+import { allTopics } from "@/lib/topics";
 
 const roles = [
-  "UI Designer", "UX Designer", "Product Designer", 
+  "UI Designer", "UX Designer", "Product Designer",
   "Graphic Designer", "Motion Designer", "Student"
-];
-
-const allTopics = [
-  "UI Design", "UX Research", "Typography", "Accessibility", 
-  "Figma", "Interaction Design", "Motion Graphics", "AI Tools", 
-  "Design Systems", "Branding", "Illustration", "Web Design"
 ];
 
 export default function OnboardingPage() {

@@ -149,7 +149,7 @@ function ProfileView({ profile, onProfileChanged }: { profile: Profile; onProfil
 
             <div className="flex gap-3 mb-2">
               {profile.isSelf ? (
-                <Button variant="outline" nativeButton={false} className="rounded-full font-semibold px-6 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800 shadow-sm" render={<Link href="/settings" />}>
+                <Button variant="outline" nativeButton={false} className="rounded-full font-semibold px-6 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800 shadow-sm" render={<Link href="/settings/profile" />}>
                   Edit Profile
                 </Button>
               ) : (

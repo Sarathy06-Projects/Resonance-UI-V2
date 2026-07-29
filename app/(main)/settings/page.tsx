@@ -1,26 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { Heart, MessageCircle, ChevronRight } from "lucide-react";
+import { Heart, MessageCircle, ChevronRight, User as UserIcon } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { updateProfile, changePassword, deleteAccount } from "@/lib/api/users";
+import { changePassword, deleteAccount } from "@/lib/api/users";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
   const { user, isAuthenticated, logout } = useAuthStore();
   const router = useRouter();
-
-  const [name, setName] = useState(user?.name ?? "");
-  const [username, setUsername] = useState(user?.username ?? "");
-  const [bio, setBio] = useState(user?.bio ?? "");
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [profileMessage, setProfileMessage] = useState<string | null>(null);
-  const [profileError, setProfileError] = useState<string | null>(null);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -34,22 +27,6 @@ export default function SettingsPage() {
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
-  // The Zustand user store loads asynchronously after mount (SessionSync),
-  // so the form fields need a one-time sync once it arrives - guarded so it
-  // never clobbers edits the user has already started making.
-  const hasInitializedForm = useRef(false);
-  useEffect(() => {
-    if (user && !hasInitializedForm.current) {
-      hasInitializedForm.current = true;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setName(user.name);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setUsername(user.username);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setBio(user.bio ?? "");
-    }
-  }, [user]);
-
   if (!isAuthenticated || !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
@@ -57,28 +34,6 @@ export default function SettingsPage() {
       </div>
     );
   }
-
-  const handleSaveProfile = async () => {
-    setIsSavingProfile(true);
-    setProfileMessage(null);
-    setProfileError(null);
-    try {
-      const updated = await updateProfile({ name, username, bio });
-      useAuthStore.getState().syncSession({
-        id: updated.id,
-        name: updated.name,
-        username: updated.username ?? username,
-        avatar: updated.image ?? user.avatar,
-        bio: updated.bio ?? undefined,
-        role: updated.role ?? undefined,
-      });
-      setProfileMessage("Profile updated.");
-    } catch (err) {
-      setProfileError(err instanceof Error ? err.message : "Couldn't save your profile.");
-    } finally {
-      setIsSavingProfile(false);
-    }
-  };
 
   const handleChangePassword = async () => {
     setIsChangingPassword(true);
@@ -127,6 +82,22 @@ export default function SettingsPage() {
       </div>
 
       <div className="max-w-2xl p-4 sm:p-6 space-y-10">
+
+        {/* Profile */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-bold">Profile</h2>
+          <div className="rounded-xl border border-zinc-200 overflow-hidden">
+            <Link href="/settings/profile" className="flex items-center justify-between px-4 py-3.5 hover:bg-zinc-50 transition-colors">
+              <span className="flex items-center gap-3">
+                <UserIcon className="w-5 h-5 text-zinc-500" />
+                <span className="text-sm font-medium">Edit Profile</span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-zinc-400" />
+            </Link>
+          </div>
+        </section>
+
+        <Separator className="bg-zinc-100" />
 
         {/* Account Settings */}
         <section className="space-y-4">
@@ -188,36 +159,6 @@ export default function SettingsPage() {
               </span>
               <ChevronRight className="w-4 h-4 text-zinc-400" />
             </Link>
-          </div>
-        </section>
-
-        <Separator className="bg-zinc-100" />
-
-        {/* Profile Settings */}
-        <section className="space-y-4">
-          <h2 className="text-lg font-bold">Profile</h2>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-zinc-700">Display Name</label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-zinc-50 border-zinc-200 h-12 rounded-xl" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-zinc-700">Username</label>
-              <Input value={username} onChange={(e) => setUsername(e.target.value)} className="bg-zinc-50 border-zinc-200 h-12 rounded-xl" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-zinc-700">Bio</label>
-              <textarea
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-sm min-h-[100px] outline-none focus:border-zinc-400 transition-colors"
-              />
-            </div>
-            {profileMessage && <p className="text-sm text-emerald-600">{profileMessage}</p>}
-            {profileError && <p className="text-sm text-red-500">{profileError}</p>}
-            <Button className="rounded-xl h-12 px-8 font-semibold w-full sm:w-auto" disabled={isSavingProfile} onClick={handleSaveProfile}>
-              {isSavingProfile ? "Saving..." : "Save Changes"}
-            </Button>
           </div>
         </section>
 
