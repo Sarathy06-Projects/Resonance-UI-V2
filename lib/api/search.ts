@@ -1,14 +1,15 @@
 import { apiFetch } from "./client";
-import type { Article, Author, HashtagStat, Post } from "./types";
+import type { Article, Author, CommentSearchResult, HashtagStat, Post } from "./types";
 
 export interface SearchResults {
   posts: Post[];
   articles: Article[];
   users: Author[];
   hashtags: HashtagStat[];
+  comments: CommentSearchResult[];
 }
 
-export function search(q: string, type: "all" | "posts" | "articles" | "users" | "hashtags" = "all") {
+export function search(q: string, type: "all" | "posts" | "articles" | "users" | "hashtags" | "comments" = "all") {
   return apiFetch<SearchResults>(`/api/search?q=${encodeURIComponent(q)}&type=${type}`);
 }
 

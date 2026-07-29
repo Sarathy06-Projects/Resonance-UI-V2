@@ -1,25 +1,18 @@
 "use client";
 
 import { use } from "react";
-import useSWR, { mutate } from "swr";
+import useSWR from "swr";
 import { PostCard } from "@/components/shared/PostCard";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { CommentInput } from "@/components/shared/CommentInput";
 import { CommentThread } from "@/components/shared/CommentThread";
 import { getPost } from "@/lib/api/posts";
-import { createComment } from "@/lib/api/comments";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { RelatedDiscussions } from "@/components/seo/RelatedDiscussions";
 
 export default function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const { data: post, isLoading, error } = useSWR(`post-${resolvedParams.id}`, () => getPost(resolvedParams.id));
-
-  const handleMainReplySubmit = async (content: string) => {
-    await createComment({ targetType: "post", targetId: resolvedParams.id, content });
-    mutate(`comments-post-${resolvedParams.id}`);
-  };
 
   return (
     <main className="flex flex-col min-h-screen pb-20 md:pb-0">
@@ -54,10 +47,6 @@ export default function PostPage({ params }: { params: Promise<{ id: string }> }
           }} />
           <div className="border-b border-zinc-100 dark:border-zinc-800 pt-2 pb-4">
             <PostCard post={post} isDetailed />
-          </div>
-
-          <div className="border-b border-zinc-100 dark:border-zinc-800">
-            <CommentInput onSubmit={handleMainReplySubmit} />
           </div>
 
           <CommentThread targetType="post" targetId={post.id} targetAuthorId={post.authorId} />

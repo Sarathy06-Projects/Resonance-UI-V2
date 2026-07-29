@@ -1,5 +1,5 @@
 import { apiFetch } from "./client";
-import type { Comment, Post } from "./types";
+import type { Comment, CommentSort, Post } from "./types";
 
 export interface CreatePostInput {
   type?: "discussion" | "showcase" | "feedback";
@@ -32,8 +32,13 @@ export function deletePost(id: string) {
   return apiFetch<{ deleted: boolean }>(`/api/posts/${id}`, { method: "DELETE" });
 }
 
-export function getPostComments(id: string) {
-  return apiFetch<{ comments: Comment[] }>(`/api/posts/${id}/comments`);
+export function getPostComments(id: string, opts: { cursor?: string | null; sort?: CommentSort; limit?: number } = {}) {
+  const params = new URLSearchParams();
+  if (opts.cursor) params.set("cursor", opts.cursor);
+  if (opts.sort) params.set("sort", opts.sort);
+  if (opts.limit) params.set("limit", String(opts.limit));
+  const qs = params.toString();
+  return apiFetch<{ comments: Comment[]; nextCursor: string | null }>(`/api/posts/${id}/comments${qs ? `?${qs}` : ""}`);
 }
 
 export function likePost(id: string) {

@@ -1,5 +1,5 @@
 import { apiFetch } from "./client";
-import type { Article, Comment } from "./types";
+import type { Article, Comment, CommentSort } from "./types";
 
 export interface CreateArticleInput {
   title: string;
@@ -31,8 +31,13 @@ export function deleteArticle(id: string) {
   return apiFetch<{ deleted: boolean }>(`/api/articles/${id}`, { method: "DELETE" });
 }
 
-export function getArticleComments(id: string) {
-  return apiFetch<{ comments: Comment[] }>(`/api/articles/${id}/comments`);
+export function getArticleComments(id: string, opts: { cursor?: string | null; sort?: CommentSort; limit?: number } = {}) {
+  const params = new URLSearchParams();
+  if (opts.cursor) params.set("cursor", opts.cursor);
+  if (opts.sort) params.set("sort", opts.sort);
+  if (opts.limit) params.set("limit", String(opts.limit));
+  const qs = params.toString();
+  return apiFetch<{ comments: Comment[]; nextCursor: string | null }>(`/api/articles/${id}/comments${qs ? `?${qs}` : ""}`);
 }
 
 export function getPopularArticles(limit = 6) {

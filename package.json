@@ -17,6 +17,7 @@
     "@hookform/resolvers": "^5.5.7",
     "@neondatabase/serverless": "^1.1.0",
     "@tailwindcss/typography": "^0.5.20",
+    "@tanstack/react-virtual": "^3.14.9",
     "@tiptap/react": "^3.29.0",
     "@tiptap/starter-kit": "^3.29.0",
     "@vercel/analytics": "^2.0.1",

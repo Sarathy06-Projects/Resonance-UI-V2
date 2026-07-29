@@ -63,15 +63,22 @@ export interface Article {
   isBookmarked: boolean;
 }
 
+export type CommentSort = "relevant" | "newest" | "oldest" | "liked";
+export type CommentReportReason = "spam" | "harassment" | "hate_speech" | "misinformation" | "other";
+
 export interface Comment {
   id: string;
   targetType: "post" | "article";
   targetId: string;
   parentId: string | null;
+  depth: number;
   authorId: string;
   content: string;
   likesCount: number;
+  repliesCount: number;
   isPinned: boolean;
+  editedAt: string | null;
+  isDeleted: boolean;
   createdAt: string;
   author: Author;
   isLiked: boolean;
@@ -79,6 +86,18 @@ export interface Comment {
   likedByCreator: boolean;
   isTargetAuthor: boolean;
   replies: Comment[];
+  hasMoreReplies: boolean;
+  nextRepliesCursor: string | null;
+  hashtags?: string[];
+}
+
+export interface CommentSearchResult {
+  id: string;
+  targetType: "post" | "article";
+  targetId: string;
+  content: string;
+  createdAt: string;
+  author: Author;
 }
 
 export interface Profile {

@@ -1,19 +1,17 @@
 "use client";
 
 import { use, useEffect } from "react";
-import useSWR, { mutate } from "swr";
+import useSWR from "swr";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Bookmark, Heart, MessageCircle, Share } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getArticle, recordArticleView } from "@/lib/api/articles";
-import { createComment } from "@/lib/api/comments";
 import { useArticleInteractions } from "@/lib/hooks/useArticleInteractions";
 import { useFollowState } from "@/lib/hooks/useFollowState";
 import { useAuthStore } from "@/store/useAuthStore";
 import { timeAgo } from "@/lib/formatTime";
 import { cn } from "@/lib/utils";
-import { CommentInput } from "@/components/shared/CommentInput";
 import { CommentThread } from "@/components/shared/CommentThread";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { RelatedArticles } from "@/components/seo/RelatedArticles";
@@ -52,11 +50,6 @@ function ArticleView({ article }: { article: Article }) {
       return;
     }
     action();
-  };
-
-  const handleReplySubmit = async (content: string) => {
-    await createComment({ targetType: "article", targetId: article.id, content });
-    mutate(`comments-article-${article.id}`);
   };
 
   const articleJsonLd = {
@@ -152,7 +145,6 @@ function ArticleView({ article }: { article: Article }) {
         </div>
 
         <div className="border-t border-zinc-100 dark:border-zinc-800 -mx-4 sm:-mx-8">
-          <CommentInput onSubmit={handleReplySubmit} placeholder="Share your thoughts on this article" />
           <CommentThread targetType="article" targetId={article.id} targetAuthorId={article.authorId} />
         </div>
         <RelatedArticles currentArticleId={article.id} tags={article.tags || []} />
