@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontal, Pencil, Pin, Trash2, Flag, RotateCcw, ShieldAlert } from "lucide-react";
+import { MoreHorizontal, Pencil, Pin, Trash2, Flag, ShieldAlert } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface CommentActionsMenuProps {
@@ -8,14 +8,12 @@ interface CommentActionsMenuProps {
   onOpenChange?: (open: boolean) => void;
   canEdit: boolean;
   canDelete: boolean;
-  canRestore: boolean;
   canReport: boolean;
   canPin: boolean;
   isPinned: boolean;
   isAdminAction: boolean;
   onEdit: () => void;
   onDelete: () => void;
-  onRestore: () => void;
   onReport: () => void;
   onTogglePin: () => void;
 }
@@ -25,18 +23,16 @@ export function CommentActionsMenu({
   onOpenChange,
   canEdit,
   canDelete,
-  canRestore,
   canReport,
   canPin,
   isPinned,
   isAdminAction,
   onEdit,
   onDelete,
-  onRestore,
   onReport,
   onTogglePin,
 }: CommentActionsMenuProps) {
-  if (!canEdit && !canDelete && !canRestore && !canReport && !canPin) return null;
+  if (!canEdit && !canDelete && !canReport && !canPin) return null;
 
   return (
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
@@ -59,12 +55,6 @@ export function CommentActionsMenu({
             Edit
           </DropdownMenuItem>
         )}
-        {canRestore && (
-          <DropdownMenuItem onClick={onRestore} className="cursor-pointer dark:focus:bg-zinc-800 dark:focus:text-zinc-100">
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Restore comment
-          </DropdownMenuItem>
-        )}
         {canReport && (
           <DropdownMenuItem onClick={onReport} className="cursor-pointer dark:focus:bg-zinc-800 dark:focus:text-zinc-100">
             <Flag className="mr-2 h-4 w-4" />
@@ -75,7 +65,7 @@ export function CommentActionsMenu({
         {canDelete && (
           <DropdownMenuItem onClick={onDelete} variant="destructive" className="cursor-pointer">
             {isAdminAction ? <ShieldAlert className="mr-2 h-4 w-4" /> : <Trash2 className="mr-2 h-4 w-4" />}
-            {isAdminAction ? "Remove comment" : "Delete"}
+            {isAdminAction ? "Remove permanently" : "Delete permanently"}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

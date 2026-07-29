@@ -78,7 +78,6 @@ export interface Comment {
   repliesCount: number;
   isPinned: boolean;
   editedAt: string | null;
-  isDeleted: boolean;
   createdAt: string;
   author: Author;
   isLiked: boolean;

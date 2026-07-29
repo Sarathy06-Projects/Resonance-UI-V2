@@ -25,6 +25,11 @@ interface CommentItemProps {
   viewerIsTargetAuthor: boolean;
   isAdmin: boolean;
   onChanged: () => void;
+  // Called after this exact comment is permanently deleted, so whichever
+  // parent list is rendering it (top-level page or a sibling's replies
+  // array) can remove it. There's no soft delete/restore - once this fires
+  // the comment and its entire reply subtree are gone for good.
+  onDeleted?: () => void;
 }
 
 // Past this depth, replies keep nesting logically (server enforces the real
@@ -32,7 +37,7 @@ interface CommentItemProps {
 // reply to a reply..." horizontal-scroll problem on deep threads.
 const MAX_VISUAL_DEPTH = 4;
 
-function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAuthor, isAdmin, onChanged }: CommentItemProps) {
+function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAuthor, isAdmin, onChanged, onDeleted }: CommentItemProps) {
   const { user, isAuthenticated, openAuthModal } = useAuthStore();
   const router = useRouter();
 
@@ -43,7 +48,7 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
   const [isPinned, setIsPinned] = useState(comment.isPinned);
   const [content, setContent] = useState(comment.content);
   const [editedAt, setEditedAt] = useState(comment.editedAt);
-  const [isDeleted, setIsDeleted] = useState(comment.isDeleted);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -54,14 +59,14 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
     isLoading: isLoadingReplies,
     loadMore,
     addReply,
+    removeReply,
   } = useCommentReplies(comment.id, comment.replies, comment.hasMoreReplies, comment.nextRepliesCursor);
 
   const isOwner = user?.id === comment.authorId;
-  const canEdit = isOwner && !isDeleted;
-  const canDelete = (isOwner || isAdmin) && !isDeleted;
-  const canRestore = (isOwner || isAdmin) && isDeleted;
-  const canReport = isAuthenticated && !isOwner && !isDeleted;
-  const canPin = !comment.parentId && viewerIsTargetAuthor && !isDeleted;
+  const canEdit = isOwner;
+  const canDelete = isOwner || isAdmin;
+  const canReport = isAuthenticated && !isOwner;
+  const canPin = !comment.parentId && viewerIsTargetAuthor;
 
   const handleInteraction = (e: React.MouseEvent, action?: () => void) => {
     e.stopPropagation();
@@ -111,21 +116,14 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
 
   const handleDelete = async () => {
     setMenuOpen(false);
-    setIsDeleted(true);
+    if (isDeleting) return;
+    if (!window.confirm("Delete this comment? This can't be undone.")) return;
+    setIsDeleting(true);
     try {
       await commentsApi.deleteComment(comment.id);
+      onDeleted?.();
     } catch {
-      setIsDeleted(false);
-    }
-  };
-
-  const handleRestore = async () => {
-    setMenuOpen(false);
-    setIsDeleted(false);
-    try {
-      await commentsApi.restoreComment(comment.id);
-    } catch {
-      setIsDeleted(true);
+      setIsDeleting(false);
     }
   };
 
@@ -163,7 +161,7 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
   const totalReplies = replies.length;
 
   return (
-    <div role="article" aria-label={`Comment by ${comment.author.name}`} className="flex flex-col">
+    <div role="article" aria-label={`Comment by ${comment.author.name}`} className={cn("flex flex-col", isDeleting && "opacity-50 pointer-events-none")}>
       {isPinned && (
         <div className="ml-12 flex items-center gap-2 px-4 pt-3 pb-1 text-xs font-semibold text-zinc-500">
           <Pin className="h-3.5 w-3.5" />
@@ -201,7 +199,7 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
                 )}
                 <span className="truncate text-sm text-zinc-500">@{comment.author.username}</span>
                 <span className="ml-1 text-sm text-zinc-500">· {timeAgo(comment.createdAt)}</span>
-                {editedAt && !isDeleted && <span className="ml-1 text-xs text-zinc-400">(edited)</span>}
+                {editedAt && <span className="ml-1 text-xs text-zinc-400">(edited)</span>}
               </div>
 
               <CommentActionsMenu
@@ -209,7 +207,6 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
                 onOpenChange={setMenuOpen}
                 canEdit={canEdit}
                 canDelete={canDelete}
-                canRestore={canRestore}
                 canReport={canReport}
                 canPin={canPin}
                 isPinned={isPinned}
@@ -219,7 +216,6 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
                   setIsEditing(true);
                 }}
                 onDelete={handleDelete}
-                onRestore={handleRestore}
                 onReport={() => {
                   setMenuOpen(false);
                   setReportOpen(true);
@@ -228,9 +224,7 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
               />
             </div>
 
-            {isDeleted ? (
-              <p className="mb-2 text-[15px] text-zinc-400 italic">This comment was deleted.</p>
-            ) : isEditing ? (
+            {isEditing ? (
               <CommentInput
                 targetType={targetType}
                 targetId={targetId}
@@ -257,7 +251,6 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
                   onClick={(e) => handleInteraction(e, toggleLike)}
                   aria-label={isLiked ? "Unlike comment" : "Like comment"}
                   aria-pressed={isLiked}
-                  disabled={isDeleted}
                   className={cn(
                     "group flex items-center gap-1.5 transition-colors",
                     isLiked ? "text-pink-600 dark:text-pink-500" : "text-zinc-500 hover:text-pink-500 dark:hover:text-pink-400"
@@ -342,13 +335,14 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
               <div className="absolute -bottom-4 -left-0.5 h-6 w-1 bg-white dark:bg-zinc-950" />
               {replies.map((reply) => (
                 <CommentItem
-                  key={`${reply.id}-${reply.likesCount}-${reply.isPinned}-${reply.content.length}-${reply.isDeleted}`}
+                  key={`${reply.id}-${reply.likesCount}-${reply.isPinned}-${reply.content.length}`}
                   comment={reply}
                   targetType={targetType}
                   targetId={targetId}
                   viewerIsTargetAuthor={viewerIsTargetAuthor}
                   isAdmin={isAdmin}
                   onChanged={onChanged}
+                  onDeleted={() => removeReply(reply.id)}
                 />
               ))}
               {hasMore && (

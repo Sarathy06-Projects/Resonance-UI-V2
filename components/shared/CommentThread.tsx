@@ -50,6 +50,13 @@ export function CommentThread({ targetType, targetId, targetAuthorId }: CommentT
     );
   };
 
+  const removeTopLevelComment = (id: string) => {
+    void mutate(
+      (pages) => pages?.map((page) => ({ ...page, comments: page.comments.filter((c) => c.id !== id) })),
+      { revalidate: false }
+    );
+  };
+
   const handleMobileTrigger = () => {
     if (!isAuthenticated) {
       openAuthModal();
@@ -157,6 +164,7 @@ export function CommentThread({ targetType, targetId, targetAuthorId }: CommentT
                   viewerIsTargetAuthor={viewerIsTargetAuthor}
                   isAdmin={isAdmin}
                   onChanged={() => mutate()}
+                  onDeleted={() => removeTopLevelComment(comment.id)}
                 />
               </div>
             );
@@ -174,6 +182,7 @@ export function CommentThread({ targetType, targetId, targetAuthorId }: CommentT
                   viewerIsTargetAuthor={viewerIsTargetAuthor}
                   isAdmin={isAdmin}
                   onChanged={() => mutate()}
+                  onDeleted={() => removeTopLevelComment(comment.id)}
                 />
               </motion.div>
             ))}

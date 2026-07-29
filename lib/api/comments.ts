@@ -25,11 +25,7 @@ export function pinComment(id: string) {
 }
 
 export function deleteComment(id: string) {
-  return apiFetch<{ deleted: boolean }>(`/api/comments/${id}`, { method: "DELETE" });
-}
-
-export function restoreComment(id: string) {
-  return apiFetch<{ deleted: boolean }>(`/api/comments/${id}/restore`, { method: "POST" });
+  return apiFetch<{ deleted: boolean; removedCount: number }>(`/api/comments/${id}`, { method: "DELETE" });
 }
 
 export function reportComment(id: string, reason: CommentReportReason, details?: string) {

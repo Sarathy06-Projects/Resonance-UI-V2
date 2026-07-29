@@ -32,10 +32,10 @@ function insertReply(comments: Comment[], parentId: string, reply: Comment): { n
 
 // Live-updates a comment thread over SSE (see realtime/commentStream.ts on
 // the backend). New top-level/replies are inserted directly into the SWR
-// cache for a snappy feel; every other event (like/unlike/edit/delete/
-// restore/pin) triggers a silent revalidate instead of hand-patching cache
-// state - simpler and avoids double-counting against each component's own
-// local optimistic state (see CommentItem, which mirrors the existing
+// cache for a snappy feel; every other event (like/unlike/edit/delete/pin)
+// triggers a silent revalidate instead of hand-patching cache state -
+// simpler and avoids double-counting against each component's own local
+// optimistic state (see CommentItem, which mirrors the existing
 // post-interaction pattern of owning its own useState copy).
 export function useCommentStream(targetType: "post" | "article", targetId: string, mutate: SWRInfiniteKeyedMutator<CommentPage[]>) {
   useEffect(() => {
@@ -68,7 +68,6 @@ export function useCommentStream(targetType: "post" | "article", targetId: strin
     source.addEventListener("comment:liked", revalidate);
     source.addEventListener("comment:unliked", revalidate);
     source.addEventListener("comment:deleted", revalidate);
-    source.addEventListener("comment:restored", revalidate);
     source.addEventListener("comment:pinned", revalidate);
 
     source.onerror = () => {

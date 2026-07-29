@@ -37,5 +37,9 @@ export function useCommentReplies(commentId: string, initialReplies: Comment[], 
     setExpanded(true);
   }, []);
 
-  return { replies, hasMore, isLoading, expanded, setExpanded, loadMore, addReply };
+  const removeReply = useCallback((id: string) => {
+    setReplies((prev) => prev.filter((r) => r.id !== id));
+  }, []);
+
+  return { replies, hasMore, isLoading, expanded, setExpanded, loadMore, addReply, removeReply };
 }
