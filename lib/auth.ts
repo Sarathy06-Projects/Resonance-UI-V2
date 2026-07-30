@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { bearer } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -11,6 +12,10 @@ export const auth = betterAuth({
     provider: "pg",
     schema,
   }),
+  // Lets native clients (no cookie jar - the Android app) authenticate via
+  // `Authorization: Bearer <token>` instead of a session cookie. Purely
+  // additive: browser sign-in still uses cookies exactly as before.
+  plugins: [bearer()],
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
