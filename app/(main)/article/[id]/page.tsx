@@ -3,10 +3,11 @@
 import { use, useEffect } from "react";
 import useSWR from "swr";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Bookmark, Heart, MessageCircle, Share } from "lucide-react";
+import { ArrowLeft, Bookmark, Heart, MessageCircle, Share, Layers } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getArticle, recordArticleView } from "@/lib/api/articles";
+import { getSeries } from "@/lib/api/series";
 import { useArticleInteractions } from "@/lib/hooks/useArticleInteractions";
 import { useFollowState } from "@/lib/hooks/useFollowState";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -37,6 +38,11 @@ function ArticleView({ article }: { article: Article }) {
   const { isLiked, likesCount, isBookmarked, bookmarksCount, toggleLike, toggleBookmark } = useArticleInteractions(article);
   const { isFollowing, toggleFollow } = useFollowState(article.authorId, false);
   const isSelf = user?.id === article.authorId;
+
+  const { data: series } = useSWR(article.seriesId ? `series-${article.seriesId}` : null, () => getSeries(article.seriesId!));
+  const seriesIndex = series?.articles.findIndex((a) => a.id === article.id) ?? -1;
+  const prevInSeries = series && seriesIndex > 0 ? series.articles[seriesIndex - 1] : null;
+  const nextInSeries = series && seriesIndex >= 0 && seriesIndex < series.articles.length - 1 ? series.articles[seriesIndex + 1] : null;
 
   useEffect(() => {
     recordArticleView(article.id).catch(() => {});
@@ -94,6 +100,17 @@ function ArticleView({ article }: { article: Article }) {
       </header>
 
       <article className="max-w-3xl mx-auto w-full px-4 sm:px-8 py-8 sm:py-12">
+        {series && (
+          <Link
+            href={`/series/${series.id}`}
+            className="flex items-center gap-2 mb-4 text-xs font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>
+              Part {article.seriesPosition ?? seriesIndex + 1} of {series.articlesCount} in {series.title}
+            </span>
+          </Link>
+        )}
         <header className="mb-8">
           <h1 className="text-3xl sm:text-5xl font-bold tracking-tight leading-tight dark:text-zinc-50">
             {article.title}
@@ -108,6 +125,38 @@ function ArticleView({ article }: { article: Article }) {
           className="prose prose-zinc dark:prose-invert prose-lg max-w-none"
           dangerouslySetInnerHTML={{ __html: article.content || '' }}
         />
+
+        {article.images && article.images.length > 0 && (
+          <div className="flex flex-col gap-4 mt-12">
+            {article.images.map((src, idx) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={src + idx} src={src} alt="" loading="lazy" className="w-full h-auto rounded-2xl object-cover" />
+            ))}
+          </div>
+        )}
+
+        {series && (prevInSeries || nextInSeries) && (
+          <div className="grid sm:grid-cols-2 gap-4 mt-12">
+            {prevInSeries && (
+              <Link
+                href={`/article/${prevInSeries.id}`}
+                className="p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+              >
+                <div className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">← Previous in series</div>
+                <div className="font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-2">{prevInSeries.title}</div>
+              </Link>
+            )}
+            {nextInSeries && (
+              <Link
+                href={`/article/${nextInSeries.id}`}
+                className="p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors sm:text-right sm:col-start-2"
+              >
+                <div className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">Next in series →</div>
+                <div className="font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-2">{nextInSeries.title}</div>
+              </Link>
+            )}
+          </div>
+        )}
 
         {article.tags && article.tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-12 mb-8">

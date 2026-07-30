@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { Logo } from "@/components/shared/Logo";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface TopNavProps {
@@ -67,9 +68,7 @@ export function TopNav({ className }: TopNavProps) {
         <div className="flex items-center justify-between max-w-5xl w-full gap-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 shrink-0 group">
-            <div className="w-8 h-8 bg-zinc-950 dark:bg-white rounded-lg flex items-center justify-center transition-transform group-hover:scale-105">
-              <div className="w-3 h-3 bg-white dark:bg-zinc-950 rounded-sm transform rotate-45 transition-transform group-hover:rotate-90 duration-500" />
-            </div>
+            <Logo size={32} className="transition-transform group-hover:scale-105" />
             <span className="text-xl font-bold tracking-tight hidden lg:block dark:text-white">Resonance</span>
           </Link>
           

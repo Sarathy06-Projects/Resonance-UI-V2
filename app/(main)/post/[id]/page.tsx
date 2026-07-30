@@ -46,7 +46,13 @@ export default function PostPage({ params }: { params: Promise<{ id: string }> }
             "articleBody": post.content
           }} />
           <div className="border-b border-zinc-100 dark:border-zinc-800 pt-2 pb-4">
-            <PostCard post={post} isDetailed />
+            {post.thread && post.thread.length > 1 ? (
+              post.thread.map((segment) => (
+                <PostCard key={segment.id} post={segment} isDetailed={segment.id === post.id} />
+              ))
+            ) : (
+              <PostCard post={post} isDetailed />
+            )}
           </div>
 
           <CommentThread targetType="post" targetId={post.id} targetAuthorId={post.authorId} />

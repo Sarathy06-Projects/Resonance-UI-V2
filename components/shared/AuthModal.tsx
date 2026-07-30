@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { Logo } from "@/components/shared/Logo";
 
 export function AuthModal() {
   const { isAuthModalOpen, closeAuthModal } = useAuthStore();
@@ -14,12 +15,12 @@ export function AuthModal() {
       <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden border-0 shadow-2xl rounded-2xl dark:bg-zinc-950">
         <div className="p-8 pb-6">
           <DialogHeader className="space-y-4">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mx-auto mb-4"
+              className="mx-auto mb-4"
             >
-              <div className="w-6 h-6 bg-white rounded-md transform rotate-45" />
+              <Logo size={48} className="mx-auto" />
             </motion.div>
             <DialogTitle className="text-2xl font-bold text-center tracking-tight">Join Resonance</DialogTitle>
             <DialogDescription className="text-center text-base">

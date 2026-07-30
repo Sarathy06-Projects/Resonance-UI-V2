@@ -6,6 +6,7 @@ import { Home, Compass, Bell, User, Settings, PenSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
+import { Logo } from "@/components/shared/Logo";
 
 interface SidebarProps {
   className?: string;
@@ -33,9 +34,7 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <div className={cn("flex flex-col p-6 h-full", className)}>
       <div className="flex items-center gap-3 mb-10 px-2">
-        <div className="w-8 h-8 bg-zinc-950 dark:bg-white rounded-lg flex items-center justify-center">
-          <div className="w-3 h-3 bg-white dark:bg-zinc-950 rounded-sm transform rotate-45" />
-        </div>
+        <Logo size={32} />
         <span className="text-xl font-bold tracking-tight dark:text-white">Resonance</span>
       </div>
 

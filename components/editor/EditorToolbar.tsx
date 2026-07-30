@@ -1,4 +1,5 @@
 import { type Editor } from "@tiptap/react";
+import { useRef, useState } from "react";
 import {
   Bold,
   Italic,
@@ -12,17 +13,37 @@ import {
   Quote,
   Undo,
   Redo,
+  ImagePlus,
+  SquareCode,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { uploadPostImage } from "@/lib/api/uploads";
 
 interface EditorToolbarProps {
   editor: Editor | null;
 }
 
 export function EditorToolbar({ editor }: EditorToolbarProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
   if (!editor) {
     return null;
   }
+
+  const handleInsertImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setIsUploadingImage(true);
+    try {
+      const uploaded = await uploadPostImage(file);
+      editor.chain().focus().setImage({ src: uploaded.url }).run();
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
 
   return (
     <div className="flex flex-wrap items-center gap-1 py-2 border-y border-zinc-100 dark:border-zinc-800">
@@ -125,6 +146,29 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         className={`h-8 w-8 rounded-md ${editor.isActive("blockquote") ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50" : "text-zinc-500"}`}
       >
         <Quote className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        type="button"
+        onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+        className={`h-8 w-8 rounded-md ${editor.isActive("codeBlock") ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50" : "text-zinc-500"}`}
+      >
+        <SquareCode className="h-4 w-4" />
+      </Button>
+
+      <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-2" />
+
+      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleInsertImage} />
+      <Button
+        variant="ghost"
+        size="icon"
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={isUploadingImage}
+        className="h-8 w-8 rounded-md text-zinc-500"
+      >
+        {isUploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
       </Button>
 
       <div className="flex-1" />

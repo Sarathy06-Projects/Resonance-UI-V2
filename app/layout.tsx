@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SessionSync } from "@/components/providers/SessionSync";
+import { InstallPrompt } from "@/components/providers/InstallPrompt";
 import { AuthModal } from "@/components/shared/AuthModal";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -19,6 +20,10 @@ const geistMono = Geist_Mono({
 import { constructMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = constructMetadata();
+
+export const viewport: Viewport = {
+  themeColor: "#09090b",
+};
 
 export default function RootLayout({
   children,
@@ -37,6 +42,7 @@ export default function RootLayout({
           <SessionSync />
           {children}
           <AuthModal />
+          <InstallPrompt />
         </ThemeProvider>
         <Analytics />
       </body>

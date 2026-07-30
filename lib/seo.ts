@@ -32,6 +32,11 @@ export function constructMetadata({
       creator: "@ResonanceDesign",
     },
     metadataBase: new URL(siteUrl),
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "black-translucent",
+      title: "Resonance",
+    },
     ...(noIndex && {
       robots: {
         index: false,

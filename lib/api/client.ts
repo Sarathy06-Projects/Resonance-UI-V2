@@ -1,4 +1,14 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+// Server-side (generateMetadata, etc.) talks to the backend directly - there's
+// no browser to resolve a relative URL against. In the browser, requests go
+// through this app's own `/proxy/api` rewrite (next.config.ts) instead of
+// NEXT_PUBLIC_API_URL directly: the session cookie is set by *this app's*
+// /api/auth on *this app's* origin, so a cross-origin fetch straight to the
+// backend's own domain would never carry it, no matter what `credentials`
+// option is passed - cookies are scoped to the domain that set them. Routing
+// same-origin through the rewrite sidesteps that entirely.
+const API_URL = typeof window === "undefined"
+  ? process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
+  : "/proxy";
 
 export class ApiError extends Error {
   status: number;

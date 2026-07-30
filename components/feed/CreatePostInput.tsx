@@ -3,10 +3,12 @@
 import { useAuthStore } from "@/store/useAuthStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Image as ImageIcon, Smile, List } from "lucide-react";
+import { Image as ImageIcon, Smile, List, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { createPost } from "@/lib/api/posts";
+import { ImageAttachButton, ImageAttachmentsGrid } from "@/components/shared/ImageAttachments";
+import { ThreadComposer } from "@/components/shared/ThreadComposer";
 
 const placeholders = [
   "Share an idea...",
@@ -25,9 +27,11 @@ interface CreatePostInputProps {
 export function CreatePostInput({ onPosted }: CreatePostInputProps) {
   const { user, isAuthenticated, openAuthModal } = useAuthStore();
   const [content, setContent] = useState("");
+  const [images, setImages] = useState<string[]>([]);
   const [isPosting, setIsPosting] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [isFocused, setIsFocused] = useState(false);
+  const [isThreadOpen, setIsThreadOpen] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -52,14 +56,23 @@ export function CreatePostInput({ onPosted }: CreatePostInputProps) {
 
     setIsPosting(true);
     try {
-      await createPost({ type: "discussion", content: content.trim() });
+      await createPost({ type: "discussion", content: content.trim(), images: images.length ? images : undefined });
       setContent("");
+      setImages([]);
       onPosted?.();
     } catch {
       // Leave content in place so the user can retry.
     } finally {
       setIsPosting(false);
     }
+  };
+
+  const openThreadComposer = () => {
+    if (!isAuthenticated || !user) {
+      openAuthModal();
+      return;
+    }
+    setIsThreadOpen(true);
   };
 
   return (
@@ -88,10 +101,28 @@ export function CreatePostInput({ onPosted }: CreatePostInputProps) {
           />
         </div>
 
+        {isAuthenticated && (
+          <div className="mt-3">
+            <ImageAttachmentsGrid images={images} onChange={setImages} />
+          </div>
+        )}
+
         <div className={cn("flex items-center justify-between pt-3 mt-1 border-t border-zinc-100 dark:border-zinc-800/60 transition-opacity duration-300", content || isFocused ? "opacity-100" : "opacity-60 hover:opacity-100")}>
           <div className="flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
-            <button className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors dark:hover:text-zinc-200" onClick={handleInteraction}>
-              <ImageIcon className="w-[18px] h-[18px]" />
+            {isAuthenticated ? (
+              <ImageAttachButton images={images} onChange={setImages} />
+            ) : (
+              <button className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors dark:hover:text-zinc-200" onClick={handleInteraction}>
+                <ImageIcon className="w-[18px] h-[18px]" />
+              </button>
+            )}
+            <button
+              className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors dark:hover:text-zinc-200"
+              onClick={isAuthenticated ? openThreadComposer : handleInteraction}
+              aria-label="Start a thread"
+              title="Start a thread"
+            >
+              <Layers className="w-[18px] h-[18px]" />
             </button>
             <button className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors dark:hover:text-zinc-200" onClick={handleInteraction}>
               <List className="w-[18px] h-[18px]" />
@@ -109,6 +140,15 @@ export function CreatePostInput({ onPosted }: CreatePostInputProps) {
             {isPosting ? "Posting..." : "Post"}
           </Button>
         </div>
+
+        <ThreadComposer
+          open={isThreadOpen}
+          onClose={() => setIsThreadOpen(false)}
+          onPosted={() => {
+            setIsThreadOpen(false);
+            onPosted?.();
+          }}
+        />
       </div>
     </div>
   );

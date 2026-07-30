@@ -131,6 +131,16 @@
   }
 }
 
+/* Used on horizontally-scrolling strips (mode tabs, topic chips, image
+   carousels) where a visible scrollbar would look out of place. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @keyframes gradient {
   0% {
     background-position: 0% 50%;

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bookmark } from "lucide-react";
+import { Bookmark, Layers } from "lucide-react";
 import type { Article } from "@/lib/api/types";
 import { timeAgo } from "@/lib/formatTime";
 
@@ -46,6 +46,13 @@ export function ArticleCard({ article }: ArticleCardProps) {
               <Bookmark className="w-5 h-5" />
             </button>
           </div>
+
+          {article.seriesId && (
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1.5">
+              <Layers className="w-3 h-3" />
+              <span>Part {article.seriesPosition ?? "?"}</span>
+            </div>
+          )}
 
           <h3 className="text-xl font-bold text-zinc-950 dark:text-white mb-2 leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
             {article.title}

@@ -31,6 +31,10 @@ export interface Post {
   isLiked: boolean;
   isBookmarked: boolean;
   linkedArticle?: ArticlePreview | null;
+  threadId: string | null;
+  threadPosition: number | null;
+  // Only present on GET /api/posts/:id - every post in the chain, in order.
+  thread?: Post[];
 }
 
 export interface ArticlePreview {
@@ -48,9 +52,12 @@ export interface Article {
   preview: string | null;
   content: string;
   coverImage: string | null;
+  images: string[];
   tags: string[];
   status: "draft" | "published";
   readTime: string | null;
+  seriesId: string | null;
+  seriesPosition: number | null;
   likesCount: number;
   commentsCount: number;
   bookmarksCount: number;
@@ -61,6 +68,31 @@ export interface Article {
   author: Author;
   isLiked: boolean;
   isBookmarked: boolean;
+}
+
+export interface Series {
+  id: string;
+  authorId: string;
+  title: string;
+  description: string | null;
+  coverImage: string | null;
+  articlesCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SeriesArticle {
+  id: string;
+  title: string;
+  preview: string | null;
+  coverImage: string | null;
+  readTime: string | null;
+  seriesPosition: number | null;
+  publishedAt: string | null;
+}
+
+export interface SeriesWithArticles extends Series {
+  articles: SeriesArticle[];
 }
 
 export type CommentSort = "relevant" | "newest" | "oldest" | "liked";

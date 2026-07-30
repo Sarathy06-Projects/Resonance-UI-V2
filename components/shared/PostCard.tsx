@@ -2,12 +2,13 @@
 
 import useSWR from "swr";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageCircle, Heart, Repeat2, Bookmark, Share, FileText, Clock } from "lucide-react";
+import { MessageCircle, Heart, Repeat2, Bookmark, Share, FileText, Clock, Layers } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { usePostInteractions } from "@/lib/hooks/usePostInteractions";
 import { getArticle } from "@/lib/api/articles";
 import { timeAgo } from "@/lib/formatTime";
 import type { Post } from "@/lib/api/types";
+import { PostImageGrid } from "@/components/shared/ImageAttachments";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -81,8 +82,15 @@ export function PostCard({ post, isDetailed = false }: PostCardProps) {
           </p>
 
           {post.images && post.images.length > 0 && (
-            <div className="mt-4 mb-4 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800/60 shadow-sm">
-              <img src={post.images[0]} alt="Post attachment" loading="lazy" className="w-full h-auto object-cover max-h-[400px]" />
+            <div className="mt-4 mb-4 shadow-sm">
+              <PostImageGrid images={post.images} />
+            </div>
+          )}
+
+          {post.threadId && (
+            <div className="flex items-center gap-1.5 mb-4 text-xs font-bold uppercase tracking-wider text-zinc-500">
+              <Layers className="w-3.5 h-3.5" />
+              <span>Thread</span>
             </div>
           )}
 

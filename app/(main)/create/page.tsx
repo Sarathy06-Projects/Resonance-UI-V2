@@ -9,12 +9,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Hash, ChevronDown,
   Globe, Users, Lock, Check, Loader2, PenTool,
-  MessageSquare, HelpCircle, FileText, UploadCloud
+  MessageSquare, HelpCircle, FileText, UploadCloud, Layers, Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ArticleEditor } from "@/components/editor/ArticleEditor";
 import { getDraft, createDraft, updateDraft, publishDraft } from "@/lib/api/drafts";
 import { uploadArticleCover } from "@/lib/api/uploads";
+import { ImageAttachButton, ImageAttachmentsGrid } from "@/components/shared/ImageAttachments";
+import { createSeries, getUserSeries } from "@/lib/api/series";
+import type { Series } from "@/lib/api/types";
 
 const TOPICS = [
   "UI Design", "UX", "Typography", "Accessibility",
@@ -54,6 +57,16 @@ function CreatePageInner() {
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [coverImage, setCoverImage] = useState<string | null>(null);
 
+  // Discussion/showcase/feedback attachments (X/Threads-style).
+  const [postImages, setPostImages] = useState<string[]>([]);
+
+  // Article-only: Dribbble-style shot gallery + Medium-style series.
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [userSeries, setUserSeries] = useState<Series[]>([]);
+  const [seriesId, setSeriesId] = useState<string | null>(null);
+  const [isCreatingSeries, setIsCreatingSeries] = useState(false);
+  const [newSeriesTitle, setNewSeriesTitle] = useState("");
+
   const [toolsUsed, setToolsUsed] = useState("");
   const [portfolioLink, setPortfolioLink] = useState("");
 
@@ -86,8 +99,17 @@ function CreatePageInner() {
       if (typeof meta.feedbackType === "string") setFeedbackType(meta.feedbackType);
       if (typeof meta.urgency === "string") setUrgency(meta.urgency);
       if (typeof meta.figmaLink === "string") setFigmaLink(meta.figmaLink);
+      if (Array.isArray(meta.images) && draft.mode === "article") setGalleryImages(meta.images as string[]);
+      if (Array.isArray(meta.images) && draft.mode !== "article") setPostImages(meta.images as string[]);
+      if (typeof meta.seriesId === "string") setSeriesId(meta.seriesId);
     }).catch(() => {});
   }, [draftIdParam]);
+
+  // Load the author's existing series for the "add to series" picker.
+  useEffect(() => {
+    if (!user) return;
+    getUserSeries(user.id).then((res) => setUserSeries(res.series)).catch(() => {});
+  }, [user]);
 
   // Debounced autosave.
   useEffect(() => {
@@ -98,7 +120,16 @@ function CreatePageInner() {
         title: title || undefined,
         content: content || undefined,
         coverImage: coverImage ?? undefined,
-        meta: { tags: selectedTopics, toolsUsed, portfolioLink, feedbackType, urgency, figmaLink },
+        meta: {
+          tags: selectedTopics,
+          toolsUsed,
+          portfolioLink,
+          feedbackType,
+          urgency,
+          figmaLink,
+          images: mode === "article" ? galleryImages : postImages,
+          seriesId: seriesId ?? undefined,
+        },
       };
       try {
         if (draftId.current) {
@@ -114,7 +145,7 @@ function CreatePageInner() {
     }, 1200);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, content, mode, selectedTopics, toolsUsed, portfolioLink, feedbackType, urgency, figmaLink, coverImage]);
+  }, [title, content, mode, selectedTopics, toolsUsed, portfolioLink, feedbackType, urgency, figmaLink, coverImage, postImages, galleryImages, seriesId]);
 
   const toggleTopic = (topic: string) => {
     setSelectedTopics(prev =>
@@ -147,13 +178,23 @@ function CreatePageInner() {
     if (!isPublishReady()) return;
     setIsPublishing(true);
     try {
+      const meta = {
+        tags: selectedTopics,
+        toolsUsed,
+        portfolioLink,
+        feedbackType,
+        urgency,
+        figmaLink,
+        images: mode === "article" ? galleryImages : postImages,
+        seriesId: seriesId ?? undefined,
+      };
       if (!draftId.current) {
         const created = await createDraft({
           mode,
           title: title || undefined,
           content,
           coverImage: coverImage ?? undefined,
-          meta: { tags: selectedTopics, toolsUsed, portfolioLink, feedbackType, urgency, figmaLink },
+          meta,
         });
         draftId.current = created.id;
       } else {
@@ -162,7 +203,7 @@ function CreatePageInner() {
           title: title || undefined,
           content,
           coverImage: coverImage ?? undefined,
-          meta: { tags: selectedTopics, toolsUsed, portfolioLink, feedbackType, urgency, figmaLink },
+          meta,
         });
       }
 
@@ -370,41 +411,114 @@ function CreatePageInner() {
             {mode === "article" ? (
               <ArticleEditor content={content} onChange={setContent} />
             ) : (
-              <textarea
-                placeholder={
-                  mode === "discussion" ? "What design question is on your mind?" :
-                  mode === "showcase" ? "Describe your project and design process..." :
-                  "What specific feedback are you looking for?"
-                }
-                className="w-full min-h-[300px] bg-transparent resize-none outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-700 dark:text-zinc-200 font-serif leading-relaxed text-lg font-sans"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-              />
+              <>
+                <textarea
+                  placeholder={
+                    mode === "discussion" ? "What design question is on your mind?" :
+                    mode === "showcase" ? "Describe your project and design process..." :
+                    "What specific feedback are you looking for?"
+                  }
+                  className="w-full min-h-[300px] bg-transparent resize-none outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-700 dark:text-zinc-200 font-serif leading-relaxed text-lg font-sans"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                />
+                <div className="space-y-3">
+                  <ImageAttachmentsGrid images={postImages} onChange={setPostImages} />
+                  <ImageAttachButton images={postImages} onChange={setPostImages} />
+                </div>
+              </>
             )}
 
             {mode === "article" && (
-              <div className="pt-8 border-t border-zinc-100 dark:border-zinc-800/60">
-                <label className="text-sm font-bold dark:text-white mb-3 block flex items-center gap-2">
-                  <Hash className="w-4 h-4 text-zinc-400" /> Select Topics
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {TOPICS.map(topic => {
-                    const isSelected = selectedTopics.includes(topic);
-                    return (
-                      <button
-                        key={topic}
-                        onClick={() => toggleTopic(topic)}
-                        className={cn(
-                          "px-3 py-1.5 rounded-xl text-sm font-semibold transition-all border",
-                          isSelected
-                            ? "bg-zinc-950 border-zinc-950 text-white dark:bg-white dark:border-white dark:text-zinc-950 shadow-sm"
-                            : "bg-zinc-50 border-zinc-200 text-zinc-600 hover:border-zinc-300 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-700"
-                        )}
+              <div className="pt-8 border-t border-zinc-100 dark:border-zinc-800/60 space-y-8">
+                <div>
+                  <label className="text-sm font-bold dark:text-white mb-3 block flex items-center gap-2">
+                    <Hash className="w-4 h-4 text-zinc-400" /> Select Topics
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {TOPICS.map(topic => {
+                      const isSelected = selectedTopics.includes(topic);
+                      return (
+                        <button
+                          key={topic}
+                          onClick={() => toggleTopic(topic)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-xl text-sm font-semibold transition-all border",
+                            isSelected
+                              ? "bg-zinc-950 border-zinc-950 text-white dark:bg-white dark:border-white dark:text-zinc-950 shadow-sm"
+                              : "bg-zinc-50 border-zinc-200 text-zinc-600 hover:border-zinc-300 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-700"
+                          )}
+                        >
+                          {topic}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-bold dark:text-white mb-3 block flex items-center gap-2">
+                    <UploadCloud className="w-4 h-4 text-zinc-400" /> Gallery (extra shot images)
+                  </label>
+                  <div className="space-y-3">
+                    <ImageAttachmentsGrid images={galleryImages} onChange={setGalleryImages} />
+                    <ImageAttachButton images={galleryImages} onChange={setGalleryImages} max={10} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-bold dark:text-white mb-3 block flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-zinc-400" /> Series
+                  </label>
+                  {isCreatingSeries ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        autoFocus
+                        placeholder="Series title..."
+                        value={newSeriesTitle}
+                        onChange={(e) => setNewSeriesTitle(e.target.value)}
+                        className="flex-1 h-11 px-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm font-medium outline-none focus:border-zinc-400 dark:focus:border-zinc-600 dark:text-white"
+                      />
+                      <Button
+                        type="button"
+                        className="h-11 rounded-xl px-4"
+                        disabled={!newSeriesTitle.trim()}
+                        onClick={async () => {
+                          const created = await createSeries({ title: newSeriesTitle.trim() });
+                          setUserSeries((prev) => [created, ...prev]);
+                          setSeriesId(created.id);
+                          setIsCreatingSeries(false);
+                          setNewSeriesTitle("");
+                        }}
                       >
-                        {topic}
+                        Create
+                      </Button>
+                      <Button type="button" variant="outline" className="h-11 rounded-xl px-4" onClick={() => setIsCreatingSeries(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select
+                        value={seriesId ?? ""}
+                        onChange={(e) => setSeriesId(e.target.value || null)}
+                        className="h-11 px-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm font-medium outline-none focus:border-zinc-400 dark:focus:border-zinc-600 dark:text-white"
+                      >
+                        <option value="">Not part of a series</option>
+                        {userSeries.map((s) => (
+                          <option key={s.id} value={s.id}>{s.title}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setIsCreatingSeries(true)}
+                        className="flex items-center gap-1.5 text-sm font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
+                      >
+                        <Plus className="w-4 h-4" /> New series
                       </button>
-                    )
-                  })}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

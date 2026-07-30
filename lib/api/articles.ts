@@ -5,8 +5,10 @@ export interface CreateArticleInput {
   title: string;
   content: string;
   coverImage?: string;
+  images?: string[];
   tags?: string[];
   preview?: string;
+  seriesId?: string;
 }
 
 export function createArticle(input: CreateArticleInput) {

@@ -2,6 +2,7 @@
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Image from "@tiptap/extension-image";
 import { EditorToolbar } from "./EditorToolbar";
 import { useEffect } from "react";
 
@@ -17,6 +18,9 @@ export function ArticleEditor({ content, onChange }: ArticleEditorProps) {
         heading: {
           levels: [1, 2, 3],
         },
+      }),
+      Image.configure({
+        HTMLAttributes: { class: "rounded-2xl w-full" },
       }),
     ],
     content,

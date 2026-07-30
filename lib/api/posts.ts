@@ -18,6 +18,15 @@ export function createPost(input: CreatePostInput) {
   return apiFetch<Post>("/api/posts", { method: "POST", json: input });
 }
 
+export interface CreateThreadInput {
+  visibility?: "public" | "followers" | "private";
+  posts: { content: string; images?: string[] }[];
+}
+
+export function createThread(input: CreateThreadInput) {
+  return apiFetch<{ threadId: string; posts: Post[] }>("/api/posts/thread", { method: "POST", json: input });
+}
+
 export function getUserPosts(authorId: string, cursor?: string | null) {
   const params = new URLSearchParams({ authorId });
   if (cursor) params.set("cursor", cursor);
