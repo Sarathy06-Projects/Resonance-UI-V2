@@ -28,6 +28,8 @@ export default function OnboardingPage() {
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [profile, setProfile] = useState({ name: "", username: "", bio: "" });
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameReason, setUsernameReason] = useState<string | null>(null);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
   const [finishError, setFinishError] = useState<string | null>(null);
 
@@ -41,10 +43,23 @@ export default function OnboardingPage() {
     if (profile.username.length < 3) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting on input change, not syncing external state
       setUsernameAvailable(null);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUsernameReason(null);
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a check is about to start
+    setIsCheckingUsername(true);
     const timer = setTimeout(() => {
-      checkUsername(profile.username).then((r) => setUsernameAvailable(r.available)).catch(() => setUsernameAvailable(null));
+      checkUsername(profile.username)
+        .then((r) => {
+          setUsernameAvailable(r.available);
+          setUsernameReason(r.available ? null : (r.reason ?? "That username isn't available."));
+        })
+        .catch(() => {
+          setUsernameAvailable(null);
+          setUsernameReason(null);
+        })
+        .finally(() => setIsCheckingUsername(false));
     }, 350);
     return () => clearTimeout(timer);
   }, [profile.username]);
@@ -241,8 +256,9 @@ export default function OnboardingPage() {
               <div className="space-y-5">
                 <div className="space-y-2">
                   <label className="text-sm font-semibold ml-1 dark:text-zinc-300">Full Name</label>
-                  <Input 
-                    placeholder="Jane Doe" 
+                  <Input
+                    placeholder="Jane Doe"
+                    maxLength={80}
                     className="h-14 rounded-xl bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-lg px-4 dark:text-white dark:placeholder:text-zinc-500"
                     value={profile.name}
                     onChange={(e) => setProfile({...profile, name: e.target.value})}
@@ -252,11 +268,12 @@ export default function OnboardingPage() {
                 <div className="space-y-2 relative">
                   <label className="text-sm font-semibold ml-1 dark:text-zinc-300">Username</label>
                   <div className="relative">
-                    <Input 
-                      placeholder="janedoe" 
+                    <Input
+                      placeholder="janedoe"
+                      maxLength={30}
                       className="h-14 rounded-xl bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-lg pl-10 pr-12 dark:text-white dark:placeholder:text-zinc-500"
                       value={profile.username}
-                      onChange={(e) => setProfile({...profile, username: e.target.value})}
+                      onChange={(e) => setProfile({ ...profile, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
                     />
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 text-lg font-semibold">@</span>
                     {usernameAvailable === true && (
@@ -264,14 +281,15 @@ export default function OnboardingPage() {
                     )}
                   </div>
                   {usernameAvailable === false && (
-                    <p className="text-sm text-red-500 ml-1">That username isn&apos;t available.</p>
+                    <p className="text-sm text-red-500 ml-1">{usernameReason}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-semibold ml-1 dark:text-zinc-300">Bio (Optional)</label>
-                  <Input 
-                    placeholder="Designer crafting interfaces..." 
+                  <Input
+                    placeholder="Designer crafting interfaces..."
+                    maxLength={280}
                     className="h-14 rounded-xl bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-lg px-4 dark:text-white dark:placeholder:text-zinc-500"
                     value={profile.bio}
                     onChange={(e) => setProfile({...profile, bio: e.target.value})}
@@ -285,11 +303,11 @@ export default function OnboardingPage() {
                 <Button variant="ghost" size="lg" onClick={() => setStep(2)} className="rounded-xl dark:text-zinc-300 dark:hover:bg-zinc-800">Back</Button>
                 <Button
                   size="lg"
-                  disabled={!profile.name || !profile.username || usernameAvailable === false || isFinishing}
+                  disabled={!profile.name || usernameAvailable !== true || isCheckingUsername || isFinishing}
                   onClick={handleFinish}
                   className="rounded-xl px-10 h-14 text-base font-semibold dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
                 >
-                  {isFinishing ? "Setting up..." : "Join Resonance"}
+                  {isFinishing ? "Setting up..." : isCheckingUsername ? "Checking username…" : "Join Resonance"}
                 </Button>
               </div>
             </motion.div>

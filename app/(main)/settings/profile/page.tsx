@@ -54,6 +54,8 @@ function EditProfileForm({ username }: { username: string }) {
   const [interests, setInterests] = useState<string[]>([]);
 
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameReason, setUsernameReason] = useState<string | null>(null);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -83,12 +85,21 @@ function EditProfileForm({ username }: { username: string }) {
   useEffect(() => {
     if (!profile || handle === profile.username || handle.length < 3) {
       setUsernameAvailable(null);
+      setUsernameReason(null);
       return;
     }
+    setIsCheckingUsername(true);
     const timer = setTimeout(() => {
       checkUsername(handle)
-        .then((r) => setUsernameAvailable(r.available))
-        .catch(() => setUsernameAvailable(null));
+        .then((r) => {
+          setUsernameAvailable(r.available);
+          setUsernameReason(r.available ? null : (r.reason ?? "That username isn't available."));
+        })
+        .catch(() => {
+          setUsernameAvailable(null);
+          setUsernameReason(null);
+        })
+        .finally(() => setIsCheckingUsername(false));
     }, 350);
     return () => clearTimeout(timer);
   }, [handle, profile]);
@@ -195,7 +206,12 @@ function EditProfileForm({ username }: { username: string }) {
     return <div className="p-10 text-center text-zinc-400">Loading…</div>;
   }
 
-  const canSave = name.trim().length > 0 && handle.trim().length >= 3 && usernameAvailable !== false && !isSaving;
+  const handleChanged = handle !== profile.username;
+  const canSave =
+    name.trim().length > 0 &&
+    handle.trim().length >= 3 &&
+    (!handleChanged || (usernameAvailable === true && !isCheckingUsername)) &&
+    !isSaving;
 
   return (
     <div className="flex flex-col min-h-screen pb-20 md:pb-0">
@@ -257,12 +273,13 @@ function EditProfileForm({ username }: { username: string }) {
             <div className="relative">
               <Input
                 value={handle}
-                onChange={(e) => setHandle(e.target.value.toLowerCase())}
+                maxLength={30}
+                onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
                 className="h-12 rounded-xl pr-10"
               />
               {usernameAvailable === true && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 w-5 h-5" />}
             </div>
-            {usernameAvailable === false && <p className="text-sm text-red-500">That username isn&apos;t available.</p>}
+            {usernameAvailable === false && <p className="text-sm text-red-500">{usernameReason}</p>}
           </div>
           <div className="space-y-2">
             <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Bio</label>
