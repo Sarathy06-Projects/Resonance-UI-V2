@@ -64,7 +64,10 @@ function LoginPageInner() {
 
   const onGoogleSignIn = async () => {
     setIsGoogleLoading(true);
-    await authClient.signIn.social({ provider: "google", callbackURL: redirectTo });
+    // newUserCallbackURL: better-auth itself knows, server-side, whether this
+    // OAuth flow just created a brand-new account - a first-time Google
+    // sign-up lands on /create-password instead of going straight in.
+    await authClient.signIn.social({ provider: "google", callbackURL: redirectTo, newUserCallbackURL: "/create-password" });
   };
 
   return (

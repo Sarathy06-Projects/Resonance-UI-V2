@@ -9,6 +9,12 @@ export const user = pgTable("user", {
   username: text("username").unique(),
   bio: text("bio"),
   role: text("role").default("member"),
+  // Not written by this app - the backend's POST /api/onboarding/complete
+  // stamps it. Declared here only so the drizzle adapter (and therefore
+  // better-auth's user.additionalFields config in lib/auth.ts) can read it
+  // back into the session payload; this column already exists in the real
+  // table via the backend's own migrations.
+  onboardedAt: timestamp("onboarded_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

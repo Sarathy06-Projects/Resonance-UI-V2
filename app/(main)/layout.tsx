@@ -1,5 +1,11 @@
 import { AppLayout } from "@/components/layout/AppLayout";
+import { OnboardingGuard } from "@/components/providers/OnboardingGuard";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
-  return <AppLayout>{children}</AppLayout>;
+  return (
+    <>
+      <OnboardingGuard />
+      <AppLayout>{children}</AppLayout>
+    </>
+  );
 }

@@ -62,6 +62,14 @@ export const auth = betterAuth({
         required: false,
         defaultValue: "member",
       },
+      // Not user-settable input - stamped server-side by
+      // POST /api/onboarding/complete. Declared here purely so it's
+      // included in the session payload, letting the client gate on
+      // "has this user finished onboarding" without an extra request.
+      onboardedAt: {
+        type: "date",
+        required: false,
+      },
     },
   },
   session: {

@@ -12,6 +12,7 @@ type SessionUser = {
   username?: string | null;
   bio?: string | null;
   role?: string | null;
+  onboardedAt?: string | Date | null;
 };
 
 export function SessionSync() {
@@ -35,6 +36,7 @@ export function SessionSync() {
       email: sessionUser.email,
       bio: sessionUser.bio ?? undefined,
       role: sessionUser.role ?? undefined,
+      hasOnboarded: Boolean(sessionUser.onboardedAt),
     });
   }, [data, isPending, syncSession]);
 

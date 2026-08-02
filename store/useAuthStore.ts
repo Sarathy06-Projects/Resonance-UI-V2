@@ -9,6 +9,7 @@ export interface User {
   email?: string
   bio?: string
   role?: string
+  hasOnboarded: boolean
 }
 
 interface AuthState {

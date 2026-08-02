@@ -66,6 +66,10 @@ export default function OnboardingPage() {
         username: updated.username ?? "",
         avatar: updated.image ?? `https://api.dicebear.com/9.x/glass/svg?seed=${updated.id}`,
         role: updated.role ?? undefined,
+        // The whole point of this page - mark it done immediately so the
+        // OnboardingGuard doesn't redirect right back here the instant it
+        // re-renders after this navigation.
+        hasOnboarded: true,
       });
       router.push("/");
     } catch (err) {

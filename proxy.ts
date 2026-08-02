@@ -13,10 +13,24 @@ import { getSessionCookie } from "better-auth/cookies";
 // what used to be middleware.ts - unrelated to the "/proxy/*" URL prefix
 // used for backend API rewrites in next.config.ts. Same word, two
 // unconnected things; not a conflict, just a naming coincidence.
-const PROTECTED_PREFIXES = ["/settings", "/create", "/notifications", "/drafts", "/collections", "/onboarding"];
+const PROTECTED_PREFIXES = ["/settings", "/create", "/notifications", "/drafts", "/collections", "/onboarding", "/create-password"];
 
 const AUTH_PAGES = ["/login", "/signup"];
 
+// Onboarding completion is deliberately *not* gated here too. A middleware
+// fast-path would need to read the session-cache cookie without a DB
+// round trip, but /api/onboarding/complete updates the user via a raw DB
+// write on the backend (bypassing better-auth's own update path), so that
+// cookie never gets refreshed on completion - the middleware would keep
+// seeing the stale pre-onboarding snapshot and redirect the user straight
+// back to /onboarding the instant after they finish it. OnboardingGuard
+// (components/providers/OnboardingGuard.tsx, mounted in
+// app/(main)/layout.tsx) is the single source of truth for this instead:
+// it reads live zustand state that the onboarding page explicitly updates
+// the moment completion succeeds, so it doesn't have this staleness class
+// of bug. The trade-off is a possible one-frame flash of a protected page
+// before the client-side redirect fires - acceptable here since, unlike
+// PROTECTED_PREFIXES above, this isn't a real access-control boundary.
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 

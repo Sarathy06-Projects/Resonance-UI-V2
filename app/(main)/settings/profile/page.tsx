@@ -163,6 +163,10 @@ function EditProfileForm({ username }: { username: string }) {
         email: user?.email,
         bio: updated.bio ?? undefined,
         role: updated.role ?? undefined,
+        // This page requires an already-authenticated user, who by
+        // definition already passed onboarding - carry the existing flag
+        // forward rather than guessing.
+        hasOnboarded: user?.hasOnboarded ?? true,
       });
       router.push(`/profile/${updated.username}`);
     } catch (err) {
