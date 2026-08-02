@@ -49,17 +49,21 @@ function ResetPasswordPageInner() {
   const onSubmit = async (data: ResetPasswordFormValues) => {
     if (!token) return;
     setFormError(null);
-    const { error } = await authClient.resetPassword({
-      newPassword: data.password,
-      token,
-    });
+    try {
+      const { error } = await authClient.resetPassword({
+        newPassword: data.password,
+        token,
+      });
 
-    if (error) {
-      setFormError(error.message ?? "Couldn't reset your password. The link may have expired.");
-      return;
+      if (error) {
+        setFormError(error.message ?? "Couldn't reset your password. The link may have expired.");
+        return;
+      }
+      setDone(true);
+      setTimeout(() => router.push("/login"), 1500);
+    } catch {
+      setFormError("Couldn't reach the server. Check your connection and try again.");
     }
-    setDone(true);
-    setTimeout(() => router.push("/login"), 1500);
   };
 
   if (!token || invalidToken) {

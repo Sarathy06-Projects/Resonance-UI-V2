@@ -12,10 +12,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { deleteDraft, getDrafts } from "@/lib/api/drafts";
 import { timeAgo } from "@/lib/formatTime";
+import { ErrorState } from "@/components/shared/ErrorState";
 
 export default function DraftsPage() {
   const router = useRouter();
-  const { data, isLoading, mutate } = useSWR("drafts", getDrafts);
+  const { data, error, isLoading, mutate } = useSWR("drafts", getDrafts);
   const drafts = data?.drafts ?? [];
 
   const handleDelete = async (id: string) => {
@@ -37,6 +38,8 @@ export default function DraftsPage() {
 
       {isLoading ? (
         <div className="text-center py-20 text-zinc-400">Loading…</div>
+      ) : error ? (
+        <ErrorState title="Couldn't load your drafts" error={error} onRetry={() => mutate()} />
       ) : drafts.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {drafts.map(draft => (

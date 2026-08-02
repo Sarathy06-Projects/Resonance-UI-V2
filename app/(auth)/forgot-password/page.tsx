@@ -29,16 +29,20 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (data: ForgotPasswordFormValues) => {
     setFormError(null);
-    const { error } = await authClient.requestPasswordReset({
-      email: data.email,
-      redirectTo: "/reset-password",
-    });
+    try {
+      const { error } = await authClient.requestPasswordReset({
+        email: data.email,
+        redirectTo: "/reset-password",
+      });
 
-    if (error) {
-      setFormError(error.message ?? "Something went wrong. Please try again.");
-      return;
+      if (error) {
+        setFormError(error.message ?? "Something went wrong. Please try again.");
+        return;
+      }
+      setSent(true);
+    } catch {
+      setFormError("Couldn't reach the server. Check your connection and try again.");
     }
-    setSent(true);
   };
 
   if (sent) {

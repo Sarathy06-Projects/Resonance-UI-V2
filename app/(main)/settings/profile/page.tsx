@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { ErrorState, errorMessage } from "@/components/shared/ErrorState";
 import { useAuthStore } from "@/store/useAuthStore";
 import { getProfile, updateProfile, uploadAvatar, uploadCover, checkUsername } from "@/lib/api/users";
 import { allTopics } from "@/lib/topics";
@@ -34,12 +35,13 @@ export default function EditProfilePage() {
 function EditProfileForm({ username }: { username: string }) {
   const router = useRouter();
   const { user, syncSession } = useAuthStore();
-  const { data: profile, isLoading, mutate } = useSWR(`profile-${username}`, () => getProfile(username));
+  const { data: profile, isLoading, error, mutate } = useSWR(`profile-${username}`, () => getProfile(username));
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const [name, setName] = useState("");
   const [handle, setHandle] = useState("");
@@ -95,9 +97,12 @@ function EditProfileForm({ username }: { username: string }) {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsUploadingAvatar(true);
+    setUploadError(null);
     try {
       await uploadAvatar(file);
       await mutate();
+    } catch (err) {
+      setUploadError(errorMessage(err, "Couldn't upload your avatar."));
     } finally {
       setIsUploadingAvatar(false);
       e.target.value = "";
@@ -108,9 +113,12 @@ function EditProfileForm({ username }: { username: string }) {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsUploadingCover(true);
+    setUploadError(null);
     try {
       await uploadCover(file);
       await mutate();
+    } catch (err) {
+      setUploadError(errorMessage(err, "Couldn't upload your cover image."));
     } finally {
       setIsUploadingCover(false);
       e.target.value = "";
@@ -175,6 +183,14 @@ function EditProfileForm({ username }: { username: string }) {
     }
   };
 
+  if (error) {
+    return (
+      <div className="flex flex-col min-h-screen pb-20 md:pb-0">
+        <ErrorState title="Couldn't load your profile" error={error} onRetry={() => mutate()} />
+      </div>
+    );
+  }
+
   if (isLoading || !profile) {
     return <div className="p-10 text-center text-zinc-400">Loading…</div>;
   }
@@ -224,6 +240,7 @@ function EditProfileForm({ username }: { username: string }) {
               </button>
             </div>
           </div>
+          {uploadError && <p className="text-sm text-red-500 mt-3">{uploadError}</p>}
         </section>
 
         <Separator className="bg-zinc-100 dark:bg-zinc-800" />

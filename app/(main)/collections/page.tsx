@@ -10,11 +10,12 @@ import { useRouter } from "next/navigation";
 import { getBookmarkedArticles, getBookmarkedPosts } from "@/lib/api/users";
 import { unbookmarkArticle } from "@/lib/api/articles";
 import { unbookmarkPost } from "@/lib/api/posts";
+import { ErrorState } from "@/components/shared/ErrorState";
 
 export default function CollectionsPage() {
   const router = useRouter();
-  const { data: postsData, isLoading: postsLoading, mutate: mutatePosts } = useSWR("saved-posts", getBookmarkedPosts);
-  const { data: articlesData, isLoading: articlesLoading, mutate: mutateArticles } = useSWR("saved-articles", getBookmarkedArticles);
+  const { data: postsData, error: postsError, isLoading: postsLoading, mutate: mutatePosts } = useSWR("saved-posts", getBookmarkedPosts);
+  const { data: articlesData, error: articlesError, isLoading: articlesLoading, mutate: mutateArticles } = useSWR("saved-articles", getBookmarkedArticles);
 
   const savedPosts = postsData?.posts ?? [];
   const savedArticles = articlesData?.articles ?? [];
@@ -45,6 +46,8 @@ export default function CollectionsPage() {
         <TabsContent value="posts" className="mt-0 outline-none">
           {postsLoading ? (
             <div className="text-center py-20 text-zinc-400">Loading…</div>
+          ) : postsError ? (
+            <ErrorState title="Couldn't load saved posts" error={postsError} onRetry={() => mutatePosts()} />
           ) : savedPosts.length > 0 ? (
             <div className="flex flex-col">
               {savedPosts.map(post => (
@@ -71,6 +74,8 @@ export default function CollectionsPage() {
         <TabsContent value="articles" className="mt-0 outline-none">
           {articlesLoading ? (
             <div className="text-center py-20 text-zinc-400">Loading…</div>
+          ) : articlesError ? (
+            <ErrorState title="Couldn't load saved articles" error={articlesError} onRetry={() => mutateArticles()} />
           ) : savedArticles.length > 0 ? (
             <div className="flex flex-wrap gap-6">
               {savedArticles.map(article => (

@@ -51,26 +51,30 @@ export default function CreatePasswordPage() {
 
   const onSubmit = async (data: CreatePasswordFormValues) => {
     setFormError(null);
-    const res = await fetch("/api/create-password", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ newPassword: data.password }),
-    });
+    try {
+      const res = await fetch("/api/create-password", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPassword: data.password }),
+      });
 
-    if (res.ok) {
-      router.push("/onboarding");
-      return;
-    }
+      if (res.ok) {
+        router.push("/onboarding");
+        return;
+      }
 
-    const body = await res.json().catch(() => ({}) as { code?: string; error?: string });
-    if (body.code === "PASSWORD_ALREADY_SET") {
-      // Already done (e.g. navigated back after completing this once) -
-      // nothing to show an error about, just move them along.
-      router.push("/onboarding");
-      return;
+      const body = await res.json().catch(() => ({}) as { code?: string; error?: string });
+      if (body.code === "PASSWORD_ALREADY_SET") {
+        // Already done (e.g. navigated back after completing this once) -
+        // nothing to show an error about, just move them along.
+        router.push("/onboarding");
+        return;
+      }
+      setFormError(body.error || "Unable to set your password. Please try again.");
+    } catch {
+      setFormError("Couldn't reach the server. Check your connection and try again.");
     }
-    setFormError(body.error || "Unable to set your password. Please try again.");
   };
 
   if (!user) return null;

@@ -35,20 +35,24 @@ export default function SignupPage() {
     setFormError(null);
     const username = data.email.split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "");
 
-    const { error } = await authClient.signUp.email({
-      name: data.name,
-      email: data.email,
-      password: data.password,
-      username,
-    } as Parameters<typeof authClient.signUp.email>[0]);
+    try {
+      const { error } = await authClient.signUp.email({
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        username,
+      } as Parameters<typeof authClient.signUp.email>[0]);
 
-    if (error) {
-      setFormError(error.message ?? "Unable to create your account.");
-      return;
+      if (error) {
+        setFormError(error.message ?? "Unable to create your account.");
+        return;
+      }
+
+      router.push("/onboarding");
+      router.refresh();
+    } catch {
+      setFormError("Couldn't reach the server. Check your connection and try again.");
     }
-
-    router.push("/onboarding");
-    router.refresh();
   };
 
   const onGoogleSignIn = async () => {

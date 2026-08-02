@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { formatCount } from "@/lib/formatCount";
 import Link from "next/link";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { ErrorState } from "@/components/shared/ErrorState";
 import type { Author } from "@/lib/api/types";
 
 const SectionHeader = ({ title, subtitle, action }: { title: string, subtitle?: string, action?: React.ReactNode }) => (
@@ -88,7 +89,7 @@ export default function ExplorePage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const { data: searchResults, isLoading: isSearching } = useSWR(
+  const { data: searchResults, error: searchError, isLoading: isSearching, mutate: mutateSearch } = useSWR(
     debouncedQuery ? `explore-search-${debouncedQuery}` : null,
     () => searchApi(debouncedQuery)
   );
@@ -98,7 +99,7 @@ export default function ExplorePage() {
   const { data: popularArticles } = useSWR(!debouncedQuery ? "popular-articles-explore" : null, () => getPopularArticles(6));
   const { data: topics } = useSWR("topics", getTopics);
   const { data: communities } = useSWR("suggested-communities", () => getSuggestedCommunities(4));
-  const { posts: feedPosts } = useFeed("foryou");
+  const { posts: feedPosts, error: feedError, mutate: mutateFeed } = useFeed("foryou");
 
   const commitSearch = (q: string) => {
     if (q.trim()) recordSearch(q.trim()).catch(() => {});
@@ -210,7 +211,11 @@ export default function ExplorePage() {
           </div>
         )}
 
-        {!isSearching && debouncedQuery && !hasResults && (
+        {!isSearching && debouncedQuery && searchError && (
+          <ErrorState title="Search failed" error={searchError} onRetry={() => mutateSearch()} />
+        )}
+
+        {!isSearching && !searchError && debouncedQuery && !hasResults && (
           <div className="flex flex-col items-center justify-center py-20 text-center px-4">
             <div className="w-16 h-16 bg-zinc-50 dark:bg-zinc-900 rounded-full flex items-center justify-center mb-6">
               <Search className="w-8 h-8 text-zinc-300 dark:text-zinc-600" />
@@ -220,7 +225,7 @@ export default function ExplorePage() {
           </div>
         )}
 
-        {!isSearching && hasResults && (
+        {!isSearching && !searchError && hasResults && (
           <>
             {(activeFilter === "All" || activeFilter === "Hashtags") && !debouncedQuery && trending && trending.hashtags.length > 0 && (
               <section>
@@ -296,11 +301,15 @@ export default function ExplorePage() {
             {(activeFilter === "All" || activeFilter === "Posts") && (
               <section className="px-4 sm:px-6">
                 <SectionHeader title={debouncedQuery ? "Posts" : "Popular Discussions"} subtitle={debouncedQuery ? undefined : "Join the conversation."} />
-                <div className="max-w-2xl mx-auto space-y-4">
-                  {(debouncedQuery ? searchResults?.posts : feedPosts.slice(0, 5))?.map(post => (
-                    <PostCard key={post.id} post={post} />
-                  ))}
-                </div>
+                {!debouncedQuery && feedError ? (
+                  <ErrorState title="Couldn't load discussions" error={feedError} onRetry={() => mutateFeed()} className="min-h-0 py-10" />
+                ) : (
+                  <div className="max-w-2xl mx-auto space-y-4">
+                    {(debouncedQuery ? searchResults?.posts : feedPosts.slice(0, 5))?.map(post => (
+                      <PostCard key={post.id} post={post} />
+                    ))}
+                  </div>
+                )}
               </section>
             )}
 

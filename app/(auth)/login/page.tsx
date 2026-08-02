@@ -48,18 +48,27 @@ function LoginPageInner() {
 
   const onSubmit = async (data: LoginFormValues) => {
     setFormError(null);
-    const { error } = await authClient.signIn.email({
-      email: data.email,
-      password: data.password,
-    });
+    try {
+      const { error } = await authClient.signIn.email({
+        email: data.email,
+        password: data.password,
+      });
 
-    if (error) {
-      setFormError(error.message ?? "Unable to sign in. Check your credentials.");
-      return;
+      if (error) {
+        setFormError(error.message ?? "Unable to sign in. Check your credentials.");
+        return;
+      }
+
+      router.push(redirectTo);
+      router.refresh();
+    } catch {
+      // authClient normally resolves { error } rather than throwing, even
+      // for network failures - this only catches truly unexpected cases
+      // (e.g. the request never reached the network layer at all), so a
+      // failure here never leaves the user staring at a stuck button with
+      // no explanation at all.
+      setFormError("Couldn't reach the server. Check your connection and try again.");
     }
-
-    router.push(redirectTo);
-    router.refresh();
   };
 
   const onGoogleSignIn = async () => {

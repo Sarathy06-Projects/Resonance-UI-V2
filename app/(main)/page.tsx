@@ -15,10 +15,11 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowRight, Inbox } from "lucide-react";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { ErrorState } from "@/components/shared/ErrorState";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"foryou" | "following">("foryou");
-  const { posts, isLoading, hasMore, loadMore, isLoadingMore, mutate } = useFeed(activeTab);
+  const { posts, error, isLoading, hasMore, loadMore, isLoadingMore, mutate } = useFeed(activeTab);
 
   const { data: recommended } = useSWR(activeTab === "foryou" ? "recommended-users-home" : null, () => getRecommendedUsers(4));
   const { data: popularArticles } = useSWR(activeTab === "foryou" ? "popular-articles-home" : null, () => getPopularArticles(4));
@@ -130,7 +131,9 @@ export default function Home() {
 
       {/* Feed Content */}
       <div className="flex-1 flex flex-col pb-20">
-        {isLoading ? (
+        {error ? (
+          <ErrorState title="Couldn't load your feed" error={error} onRetry={() => mutate()} />
+        ) : isLoading ? (
           <div className="p-4 sm:p-6 space-y-6">
             {[1, 2, 3].map(i => (
               <div key={i} className="animate-pulse flex gap-4 p-6 bg-zinc-50/50 dark:bg-zinc-900/20 rounded-3xl border border-zinc-100 dark:border-zinc-800/50">

@@ -13,6 +13,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCommentThread } from "@/lib/hooks/useCommentThread";
 import { useCommentStream } from "@/lib/hooks/useCommentStream";
+import { ErrorState } from "@/components/shared/ErrorState";
 import * as commentsApi from "@/lib/api/comments";
 
 interface CommentThreadProps {
@@ -34,7 +35,7 @@ export function CommentThread({ targetType, targetId, targetAuthorId }: CommentT
   const isAdmin = user?.role === "admin";
   const [mobileComposerOpen, setMobileComposerOpen] = useState(false);
 
-  const { comments, sort, setSort, hasMore, loadMore, isLoading, isLoadingMore, mutate } = useCommentThread({ targetType, targetId });
+  const { comments, sort, setSort, hasMore, loadMore, isLoading, isLoadingMore, error, mutate } = useCommentThread({ targetType, targetId });
   useCommentStream(targetType, targetId, mutate);
 
   const composerPlaceholder = targetType === "article" ? "Share your thoughts on this article" : "Post your reply";
@@ -126,7 +127,7 @@ export function CommentThread({ targetType, targetId, targetAuthorId }: CommentT
         </div>
       )}
 
-      {isLoading && comments.length === 0 && (
+      {isLoading && comments.length === 0 && !error && (
         <div className="flex flex-col gap-4 p-4">
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex gap-3">
@@ -141,11 +142,15 @@ export function CommentThread({ targetType, targetId, targetAuthorId }: CommentT
         </div>
       )}
 
-      {!isLoading && comments.length === 0 && (
+      {error && comments.length === 0 && (
+        <ErrorState title="Couldn't load comments" error={error} onRetry={() => mutate()} className="min-h-0 py-12" />
+      )}
+
+      {!isLoading && !error && comments.length === 0 && (
         <div className="p-8 text-center text-[15px] text-zinc-500 dark:text-zinc-400">No comments yet. Be the first to share your thoughts!</div>
       )}
 
-      {shouldVirtualize ? (
+      {!error && shouldVirtualize ? (
         <div ref={parentRef} style={{ position: "relative", height: virtualizer.getTotalSize() }}>
           {virtualizer.getVirtualItems().map((row) => {
             const comment = comments[row.index];

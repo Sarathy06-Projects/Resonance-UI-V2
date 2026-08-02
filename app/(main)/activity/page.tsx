@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getLikedPosts, getCommentedPosts } from "@/lib/api/users";
+import { ErrorState } from "@/components/shared/ErrorState";
 import type { Post } from "@/lib/api/types";
 
 interface PostsPage {
@@ -26,13 +27,13 @@ function useActivityPosts(kind: ActivityKind) {
 
   const fetcher = ([k, cursor]: [ActivityKind, string | undefined]) => (k === "liked" ? getLikedPosts(cursor) : getCommentedPosts(cursor));
 
-  const { data, isLoading, size, setSize } = useSWRInfinite<PostsPage>(getKey, fetcher);
+  const { data, error, isLoading, size, setSize, mutate } = useSWRInfinite<PostsPage>(getKey, fetcher);
 
   const posts = data?.flatMap((page) => page.posts) ?? [];
   const hasMore = !!data && data.length > 0 && !!data[data.length - 1]?.nextCursor;
   const isLoadingMore = isLoading || (size > 0 && !!data && typeof data[size - 1] === "undefined");
 
-  return { posts, isLoading, isLoadingMore, hasMore, loadMore: () => void setSize((s) => s + 1) };
+  return { posts, error, isLoading, isLoadingMore, hasMore, loadMore: () => void setSize((s) => s + 1), mutate };
 }
 
 export default function ActivityPage() {
@@ -74,6 +75,8 @@ function ActivityPageInner() {
         <TabsContent value="liked" className="mt-0 outline-none">
           {liked.isLoading ? (
             <div className="text-center py-20 text-zinc-400">Loading…</div>
+          ) : liked.error ? (
+            <ErrorState title="Couldn't load liked posts" error={liked.error} onRetry={() => liked.mutate()} />
           ) : liked.posts.length > 0 ? (
             <div className="flex flex-col">
               {liked.posts.map((post) => (
@@ -101,6 +104,8 @@ function ActivityPageInner() {
         <TabsContent value="commented" className="mt-0 outline-none">
           {commented.isLoading ? (
             <div className="text-center py-20 text-zinc-400">Loading…</div>
+          ) : commented.error ? (
+            <ErrorState title="Couldn't load commented posts" error={commented.error} onRetry={() => commented.mutate()} />
           ) : commented.posts.length > 0 ? (
             <div className="flex flex-col">
               {commented.posts.map((post) => (

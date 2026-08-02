@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { ErrorState } from "@/components/shared/ErrorState";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "@/lib/api/notifications";
 import { timeAgo } from "@/lib/formatTime";
 import type { NotificationItem } from "@/lib/api/types";
@@ -60,7 +61,7 @@ export default function NotificationsPage() {
   const { isAuthenticated } = useAuthStore();
   const [activeTab, setActiveTab] = useState<Category>("all");
 
-  const { data, mutate } = useSWR(isAuthenticated ? `notifications-${activeTab}` : null, () => getNotifications(activeTab));
+  const { data, error, isLoading, mutate } = useSWR(isAuthenticated ? `notifications-${activeTab}` : null, () => getNotifications(activeTab));
   const { data: unreadData, mutate: mutateUnread } = useSWR(isAuthenticated ? "notifications-unread-all" : null, () => getNotifications("unread", null));
 
   const unreadCounts = useMemo(() => {
@@ -158,12 +159,16 @@ export default function NotificationsPage() {
       </div>
 
       <div className="flex-1 py-4 sm:py-6">
-        {notifications.length === 0 ? (
+        {error ? (
+          <ErrorState title="Couldn't load notifications" error={error} onRetry={() => mutate()} />
+        ) : notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full min-h-[40vh] text-center px-4">
             <div className="w-16 h-16 bg-zinc-50 dark:bg-zinc-900 rounded-full flex items-center justify-center mb-6">
               <Mailbox className="w-8 h-8 text-zinc-300 dark:text-zinc-600" />
             </div>
-            <h3 className="text-lg font-bold dark:text-white mb-2">You&apos;re all caught up.</h3>
+            <h3 className="text-lg font-bold dark:text-white mb-2">
+              {isLoading ? "Loading…" : "You're all caught up."}
+            </h3>
           </div>
         ) : (
           <div className="flex flex-col gap-6 sm:gap-8 max-w-4xl mx-auto px-0 sm:px-6">

@@ -9,6 +9,8 @@ import { ArticleCard } from "@/components/shared/ArticleCard";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useFollowState } from "@/lib/hooks/useFollowState";
 import { getProfile, uploadAvatar, uploadCover } from "@/lib/api/users";
+import { ApiError } from "@/lib/api/client";
+import { ErrorState } from "@/components/shared/ErrorState";
 import { getUserPosts } from "@/lib/api/posts";
 import { getUserArticles } from "@/lib/api/articles";
 import { formatCount } from "@/lib/formatCount";
@@ -37,7 +39,20 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const { data: profile, isLoading, error, mutate } = useSWR(`profile-${resolvedParams.username}`, () => getProfile(resolvedParams.username));
 
   if (isLoading) return <div className="p-10 text-center text-zinc-400">Loading profile…</div>;
-  if (error || !profile) return <div className="p-10 text-center text-zinc-500 dark:text-zinc-400">This profile couldn&apos;t be found.</div>;
+
+  if (error) {
+    const notFound = error instanceof ApiError && error.status === 404;
+    return (
+      <ErrorState
+        title={notFound ? "Profile not found" : "Couldn't load this profile"}
+        message={notFound ? "This profile couldn't be found." : error instanceof ApiError ? error.message : undefined}
+        error={error}
+        onRetry={notFound ? undefined : () => mutate()}
+      />
+    );
+  }
+
+  if (!profile) return <div className="p-10 text-center text-zinc-500 dark:text-zinc-400">This profile couldn&apos;t be found.</div>;
 
   return <ProfileView profile={profile} onProfileChanged={() => mutate()} />;
 }
@@ -50,8 +65,8 @@ function ProfileView({ profile, onProfileChanged }: { profile: Profile; onProfil
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  const { data: postsData } = useSWR(activeTab === "posts" ? `profile-posts-${profile.id}` : null, () => getUserPosts(profile.id));
-  const { data: articlesData } = useSWR(activeTab === "articles" ? `profile-articles-${profile.id}` : null, () => getUserArticles(profile.id));
+  const { data: postsData, error: postsError, mutate: mutatePosts } = useSWR(activeTab === "posts" ? `profile-posts-${profile.id}` : null, () => getUserPosts(profile.id));
+  const { data: articlesData, error: articlesError, mutate: mutateArticles } = useSWR(activeTab === "articles" ? `profile-articles-${profile.id}` : null, () => getUserArticles(profile.id));
 
   const handleInteraction = () => {
     if (!isAuthenticated) openAuthModal();
@@ -262,7 +277,9 @@ function ProfileView({ profile, onProfileChanged }: { profile: Profile; onProfil
           <div className="min-h-[400px]">
             {activeTab === "posts" && (
               <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60 -mx-4 sm:mx-0 sm:border sm:border-zinc-100 sm:dark:border-zinc-800/60 sm:rounded-3xl sm:overflow-hidden bg-white dark:bg-zinc-950">
-                {postsData?.posts.length ? (
+                {postsError ? (
+                  <ErrorState title="Couldn't load posts" error={postsError} onRetry={() => mutatePosts()} />
+                ) : postsData?.posts.length ? (
                   postsData.posts.map((post) => <PostCard key={post.id} post={post} />)
                 ) : (
                   <EmptyTab label="posts" name={profile.name} />
@@ -272,7 +289,9 @@ function ProfileView({ profile, onProfileChanged }: { profile: Profile; onProfil
 
             {activeTab === "articles" && (
               <div className="space-y-6">
-                {articlesData?.articles.length ? (
+                {articlesError ? (
+                  <ErrorState title="Couldn't load articles" error={articlesError} onRetry={() => mutateArticles()} />
+                ) : articlesData?.articles.length ? (
                   articlesData.articles.map((article) => (
                     <div key={article.id} className="group flex flex-col sm:flex-row gap-4 sm:gap-6 p-4 sm:p-5 border border-zinc-100 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 rounded-3xl transition-all hover:shadow-sm bg-white dark:bg-zinc-950">
                       <Link href={`/article/${article.id}`} className="w-full sm:w-[240px] h-48 sm:h-[160px] shrink-0 rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 block">
