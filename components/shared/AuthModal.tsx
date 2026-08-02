@@ -35,7 +35,7 @@ export function AuthModal() {
           <Button variant="outline" size="lg" className="w-full rounded-xl font-semibold h-12 border-zinc-200 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-800" render={<Link href="/login" onClick={closeAuthModal} />}>
             Log in
           </Button>
-          <p className="text-xs text-center text-zinc-500 font-medium mt-4 px-4">
+          <p className="text-xs text-center text-zinc-500 dark:text-zinc-400 font-medium mt-4 px-4">
             By joining, you agree to our Terms of Service and Privacy Policy.
           </p>
         </div>

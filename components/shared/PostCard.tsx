@@ -54,14 +54,14 @@ export function PostCard({ post, isDetailed = false }: PostCardProps) {
       onClick={handleCardClick}
     >
       {post.linkedArticleId && (
-        <div className="flex items-center gap-1.5 mb-4 text-xs font-bold uppercase tracking-wider text-zinc-500 ml-15">
+        <div className="flex items-center gap-1.5 mb-4 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 ml-15">
           <FileText className="w-3.5 h-3.5" />
           <span>Article</span>
         </div>
       )}
 
       <div className="flex gap-4">
-        <Link href={`/profile/${post.author.username}`} className="shrink-0 pt-1" onClick={(e) => e.stopPropagation()}>
+        <Link href={post.author.username ? `/profile/${post.author.username}` : "#"} className="shrink-0 pt-1" onClick={(e) => { e.stopPropagation(); if (!post.author.username) e.preventDefault(); }}>
           <Avatar className="w-11 h-11 border border-zinc-100 dark:border-zinc-800 shadow-sm">
             <AvatarImage src={post.author.image ?? undefined} />
             <AvatarFallback className="dark:bg-zinc-800 dark:text-zinc-300">{post.author.name.charAt(0)}</AvatarFallback>
@@ -70,9 +70,11 @@ export function PostCard({ post, isDetailed = false }: PostCardProps) {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
-            <Link href={`/profile/${post.author.username}`} className="flex items-center gap-1.5 truncate hover:underline" onClick={(e) => e.stopPropagation()}>
+            <Link href={post.author.username ? `/profile/${post.author.username}` : "#"} className="flex items-center gap-1.5 truncate hover:underline" onClick={(e) => { e.stopPropagation(); if (!post.author.username) e.preventDefault(); }}>
               <span className="font-bold text-[16px] text-zinc-950 dark:text-zinc-100 truncate tracking-tight">{post.author.name}</span>
-              <span className="text-[14px] text-zinc-500 dark:text-zinc-400 font-medium truncate">@{post.author.username}</span>
+              {post.author.username && (
+                <span className="text-[14px] text-zinc-500 dark:text-zinc-400 font-medium truncate">@{post.author.username}</span>
+              )}
             </Link>
             <span className="text-[14px] text-zinc-500 dark:text-zinc-400 font-medium shrink-0">· {timeAgo(post.createdAt)}</span>
           </div>
@@ -88,7 +90,7 @@ export function PostCard({ post, isDetailed = false }: PostCardProps) {
           )}
 
           {post.threadId && (
-            <div className="flex items-center gap-1.5 mb-4 text-xs font-bold uppercase tracking-wider text-zinc-500">
+            <div className="flex items-center gap-1.5 mb-4 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
               <Layers className="w-3.5 h-3.5" />
               <span>Thread</span>
             </div>
@@ -100,12 +102,16 @@ export function PostCard({ post, isDetailed = false }: PostCardProps) {
               onClick={(e) => { e.stopPropagation(); router.push(`/article/${linkedArticle.id}`); }}
             >
               <div className="sm:w-1/3 h-[140px] sm:h-auto shrink-0 relative overflow-hidden bg-zinc-100 dark:bg-zinc-900">
-                {linkedArticle.coverImage && (
+                {linkedArticle.coverImage ? (
                   <img src={linkedArticle.coverImage} alt={linkedArticle.title} loading="lazy" className="w-full h-full object-cover group-hover/article:scale-105 transition-transform duration-500" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <FileText className="w-6 h-6 text-zinc-300 dark:text-zinc-700" />
+                  </div>
                 )}
               </div>
               <div className="p-4 sm:p-5 flex flex-col flex-1">
-                <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 mb-2">
+                <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2">
                   <FileText className="w-3.5 h-3.5" />
                   <span>Article</span>
                   {linkedArticle.readTime && (
@@ -117,7 +123,7 @@ export function PostCard({ post, isDetailed = false }: PostCardProps) {
                   )}
                 </div>
                 <h4 className="font-bold text-[15px] text-zinc-900 dark:text-white leading-tight mb-2 line-clamp-2">{linkedArticle.title}</h4>
-                <p className="text-sm text-zinc-500 line-clamp-2 flex-1">{linkedArticle.preview}</p>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 line-clamp-2 flex-1">{linkedArticle.preview}</p>
               </div>
             </div>
           )}

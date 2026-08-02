@@ -247,7 +247,7 @@ function CreatePageInner() {
         <div className="flex items-center gap-2 text-sm font-semibold text-zinc-600 dark:text-zinc-300 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-900 px-3 py-1.5 rounded-lg transition-colors">
           {visibility === "public" && <Globe className="w-4 h-4 text-emerald-500" />}
           {visibility === "followers" && <Users className="w-4 h-4 text-blue-500" />}
-          {visibility === "private" && <Lock className="w-4 h-4 text-zinc-500" />}
+          {visibility === "private" && <Lock className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />}
           <select
             value={visibility}
             onChange={(e) => setVisibility(e.target.value as typeof visibility)}
@@ -375,7 +375,7 @@ function CreatePageInner() {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid sm:grid-cols-2 gap-4">
                 {mode === "feedback" && (
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Feedback Type</label>
+                    <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Feedback Type</label>
                     <select
                       className="w-full h-12 px-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm font-medium outline-none focus:border-zinc-400 dark:focus:border-zinc-600 dark:text-white"
                       value={feedbackType} onChange={e => setFeedbackType(e.target.value)}
@@ -387,7 +387,7 @@ function CreatePageInner() {
                 )}
                 {mode === "feedback" && (
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Figma / Prototype Link</label>
+                    <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Figma / Prototype Link</label>
                     <input
                       type="text" placeholder="https://figma.com/..."
                       className="w-full h-12 px-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm font-medium outline-none focus:border-zinc-400 dark:focus:border-zinc-600 dark:text-white"
@@ -397,7 +397,7 @@ function CreatePageInner() {
                 )}
                 {mode === "showcase" && (
                   <div className="space-y-2 sm:col-span-2">
-                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Tools Used (Comma separated)</label>
+                    <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Tools Used (Comma separated)</label>
                     <input
                       type="text" placeholder="Figma, Spline, React..."
                       className="w-full h-12 px-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm font-medium outline-none focus:border-zinc-400 dark:focus:border-zinc-600 dark:text-white"
@@ -529,7 +529,7 @@ function CreatePageInner() {
         <div className="hidden lg:flex flex-col w-[340px] shrink-0 border-l border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/50 dark:bg-zinc-900/10 p-8">
 
           <div className="mb-8">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-4">Draft Status</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-4">Draft Status</h3>
             <div className="space-y-3">
               {checklist.map((item, idx) => (
                 <div key={idx} className="flex items-center gap-3">
@@ -555,11 +555,11 @@ function CreatePageInner() {
           <div className="mb-8 grid grid-cols-2 gap-4">
             <div className="p-4 bg-white dark:bg-zinc-950 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm">
               <div className="text-2xl font-bold dark:text-white mb-1">{words}</div>
-              <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Words</div>
+              <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Words</div>
             </div>
             <div className="p-4 bg-white dark:bg-zinc-950 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm">
               <div className="text-2xl font-bold dark:text-white mb-1">{readTime}m</div>
-              <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Read Time</div>
+              <div className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Read Time</div>
             </div>
           </div>
 

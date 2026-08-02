@@ -21,11 +21,11 @@ export default function SeriesPage({ params }: { params: Promise<{ id: string }>
       </div>
 
       {isLoading && <div className="p-10 text-center text-zinc-400">Loading series…</div>}
-      {error && !isLoading && <div className="p-10 text-center text-zinc-500">This series couldn&apos;t be found.</div>}
+      {error && !isLoading && <div className="p-10 text-center text-zinc-500 dark:text-zinc-400">This series couldn&apos;t be found.</div>}
 
       {series && (
         <div className="max-w-2xl mx-auto w-full px-4 sm:px-8 py-8">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-500 mb-2">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2">
             <Layers className="w-3.5 h-3.5" />
             <span>{series.articlesCount} part series</span>
           </div>

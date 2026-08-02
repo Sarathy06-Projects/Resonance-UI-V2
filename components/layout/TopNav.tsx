@@ -11,16 +11,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-  Search, Home, Compass, Bell, PenSquare, LogOut, User as UserIcon, Settings, 
-  Menu, X, MessageSquare, Palette, Eye, FileText, Lightbulb, Grid, FileEdit, Paintbrush
+import {
+  Search, Home, Compass, Bell, PenSquare, LogOut, User as UserIcon, Settings,
+  MessageSquare, Palette, Eye, FileText, Lightbulb, Grid, FileEdit
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { Logo } from "@/components/shared/Logo";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 interface TopNavProps {
   className?: string;
@@ -32,7 +32,6 @@ export function TopNav({ className }: TopNavProps) {
   const router = useRouter();
   
   const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -56,8 +55,7 @@ export function TopNav({ className }: TopNavProps) {
   };
 
   return (
-    <>
-      <div 
+      <div
         className={cn(
           "px-4 md:px-6 flex items-center justify-center border-b sticky top-0 z-50 w-full transition-all duration-300",
           isScrolled 
@@ -131,33 +129,34 @@ export function TopNav({ className }: TopNavProps) {
             {isAuthenticated && (
               <DropdownMenu>
                 <DropdownMenuTrigger render={
-                  <Button 
-                    size="sm" 
-                    className="hidden md:flex rounded-full h-9 px-4 font-semibold shadow-sm dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-transform"
+                  <Button
+                    size="sm"
+                    aria-label="Create"
+                    className="flex rounded-full h-9 w-9 md:w-auto px-0 md:px-4 font-semibold shadow-sm dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-transform"
                   >
-                    <PenSquare className="w-4 h-4 mr-2" />
-                    Write
+                    <PenSquare className="w-4 h-4 md:mr-2" />
+                    <span className="hidden md:inline">Write</span>
                   </Button>
                 } />
                 <DropdownMenuContent align="end" className="w-48 dark:bg-zinc-900 dark:border-zinc-800">
                   <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push('/create?type=discussion')}>
-                    <MessageSquare className="w-4 h-4 text-zinc-500" />
+                    <MessageSquare className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
                     <span>Discussion</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push('/create?type=showcase')}>
-                    <Palette className="w-4 h-4 text-zinc-500" />
+                    <Palette className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
                     <span>Showcase</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push('/create?type=feedback')}>
-                    <Eye className="w-4 h-4 text-zinc-500" />
+                    <Eye className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
                     <span>Request Feedback</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push('/create?type=article')}>
-                    <FileText className="w-4 h-4 text-zinc-500" />
+                    <FileText className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
                     <span>Article</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push('/create?type=resource')}>
-                    <Lightbulb className="w-4 h-4 text-zinc-500" />
+                    <Lightbulb className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
                     <span>Resource</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -175,26 +174,26 @@ export function TopNav({ className }: TopNavProps) {
                 <DropdownMenuContent align="end" className="w-56 dark:bg-zinc-900 dark:border-zinc-800">
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">
-                      {user.name && <p className="font-medium">{user.name}</p>}
-                      {(user as any).email && <p className="w-[200px] truncate text-sm text-zinc-500">{(user as any).email}</p>}
+                      {user.name && <p className="font-medium dark:text-zinc-100">{user.name}</p>}
+                      {(user as any).email && <p className="w-[200px] truncate text-sm text-zinc-500 dark:text-zinc-400">{(user as any).email}</p>}
                     </div>
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push(`/profile/${user.username}`)}>
-                    <UserIcon className="h-4 w-4 text-zinc-500" />
+                    <UserIcon className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
                     <span>Profile</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push("/collections")}>
-                    <Grid className="h-4 w-4 text-zinc-500" />
+                    <Grid className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
                     <span>Collections</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push("/drafts")}>
-                    <FileEdit className="h-4 w-4 text-zinc-500" />
+                    <FileEdit className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
                     <span>Drafts</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push("/settings")}>
-                    <Settings className="h-4 w-4 text-zinc-500" />
+                    <Settings className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
                     <span>Settings</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -211,84 +210,21 @@ export function TopNav({ className }: TopNavProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <div className="hidden md:flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Link href="/login" passHref>
-                  <Button variant="ghost" className="rounded-full font-medium h-9 dark:text-zinc-300 dark:hover:text-white dark:hover:bg-zinc-800 transition-colors">
+                  <Button variant="ghost" size="sm" className="rounded-full font-medium h-9 px-3 md:px-4 dark:text-zinc-300 dark:hover:text-white dark:hover:bg-zinc-800 transition-colors">
                     Log in
                   </Button>
                 </Link>
                 <Link href="/signup" passHref>
-                  <Button className="rounded-full font-medium h-9 px-5 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-transform">
+                  <Button size="sm" className="rounded-full font-medium h-9 px-3 md:px-5 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-transform">
                     Join
                   </Button>
                 </Link>
               </div>
             )}
-
-            {/* Mobile Menu Toggle */}
-            <button 
-              className="md:hidden p-2 -mr-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50 transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
           </div>
         </div>
       </div>
-
-      {/* Mobile Nav Overlay */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-x-0 top-[56px] bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-b border-zinc-200 dark:border-zinc-800 p-4 md:hidden z-40 shadow-lg"
-          >
-            <div className="flex flex-col gap-2">
-              {navItems.filter(item => isAuthenticated || !item.protected).map((item) => {
-                const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={(e) => {
-                      handleProtectedAction(e, item.protected);
-                      setMobileMenuOpen(false);
-                    }}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium",
-                      isActive 
-                        ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white" 
-                        : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
-                    )}
-                  >
-                    <div className="relative">
-                      <item.icon className="w-5 h-5" />
-                      {item.hasUnread && (
-                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-zinc-900" />
-                      )}
-                    </div>
-                    {item.name}
-                  </Link>
-                );
-              })}
-              
-              {!isAuthenticated && (
-                <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                  <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="outline" className="w-full justify-center rounded-full h-10">Log in</Button>
-                  </Link>
-                  <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
-                    <Button className="w-full justify-center rounded-full h-10 dark:bg-white dark:text-zinc-900">Join Resonance</Button>
-                  </Link>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
   );
 }

@@ -25,7 +25,7 @@ const SectionHeader = ({ title, subtitle, action }: { title: string, subtitle?: 
   <div className="flex items-end justify-between mb-6 px-4 sm:px-6">
     <div>
       <h2 className="text-xl font-bold tracking-tight dark:text-white">{title}</h2>
-      {subtitle && <p className="text-sm text-zinc-500 mt-1">{subtitle}</p>}
+      {subtitle && <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{subtitle}</p>}
     </div>
     {action && <div>{action}</div>}
   </div>
@@ -44,7 +44,7 @@ function DesignerCard({ user }: { user: Author & { followersCount?: number } }) 
         </Avatar>
         <div className="min-w-0 flex-1">
           <div className="font-bold text-[15px] dark:text-white truncate">{user.name}</div>
-          <div className="text-[13px] text-zinc-500 truncate">@{user.username}</div>
+          <div className="text-[13px] text-zinc-500 dark:text-zinc-400 truncate">@{user.username}</div>
         </div>
       </Link>
       <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-2">{user.role || "Designer"}</div>
@@ -129,7 +129,7 @@ export default function ExplorePage() {
             <input
               type="text"
               placeholder="Search designers, articles, posts or hashtags"
-              className="w-full pl-12 pr-4 py-3.5 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:bg-zinc-50 dark:focus:bg-zinc-950 border-2 border-transparent focus:border-blue-500 dark:focus:border-blue-500 focus:ring-0 rounded-2xl text-[15px] font-medium dark:text-zinc-100 transition-all outline-none shadow-sm placeholder:text-zinc-500"
+              className="w-full pl-12 pr-4 py-3.5 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:bg-zinc-50 dark:focus:bg-zinc-950 border-2 border-transparent focus:border-blue-500 dark:focus:border-blue-500 focus:ring-0 rounded-2xl text-[15px] font-medium dark:text-zinc-100 transition-all outline-none shadow-sm placeholder:text-zinc-500 dark:placeholder:text-zinc-500"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
@@ -142,7 +142,7 @@ export default function ExplorePage() {
                 <div className="p-2">
                   {recentSearches && recentSearches.recent.length > 0 && (
                     <>
-                      <div className="px-3 py-2 text-xs font-bold text-zinc-500 uppercase tracking-wider">Recent Searches</div>
+                      <div className="px-3 py-2 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Recent Searches</div>
                       {recentSearches.recent.map((r) => (
                         <button key={r.query} onClick={() => setSearchQuery(r.query)} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl transition-colors text-left text-sm dark:text-zinc-200">
                           <Clock className="w-4 h-4 text-zinc-400" /> {r.query}
@@ -154,7 +154,7 @@ export default function ExplorePage() {
 
                   {trending && trending.hashtags.length > 0 && (
                     <>
-                      <div className="px-3 py-2 text-xs font-bold text-zinc-500 uppercase tracking-wider">Trending</div>
+                      <div className="px-3 py-2 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Trending</div>
                       {trending.hashtags.slice(0, 3).map((h) => (
                         <button key={h.tag} onClick={() => setSearchQuery(h.tag)} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl transition-colors text-left text-sm font-medium dark:text-zinc-200">
                           <TrendingUp className="w-4 h-4 text-blue-500" /> {h.tag}
@@ -166,7 +166,7 @@ export default function ExplorePage() {
 
                   {topics && (
                     <>
-                      <div className="px-3 py-2 text-xs font-bold text-zinc-500 uppercase tracking-wider">Suggested Topics</div>
+                      <div className="px-3 py-2 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Suggested Topics</div>
                       <div className="flex flex-wrap gap-2 px-3 py-2">
                         {topics.topics.slice(0, 6).map((topic) => (
                           <span key={topic} onClick={() => setSearchQuery(topic)} className="px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full text-xs font-medium dark:text-zinc-300 cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
@@ -216,7 +216,7 @@ export default function ExplorePage() {
               <Search className="w-8 h-8 text-zinc-300 dark:text-zinc-600" />
             </div>
             <h2 className="text-2xl font-bold mb-2 dark:text-white">No results found</h2>
-            <p className="text-zinc-500 max-w-sm">We couldn&apos;t find anything matching &quot;{debouncedQuery}&quot;. Try different keywords or browse topics.</p>
+            <p className="text-zinc-500 dark:text-zinc-400 max-w-sm">We couldn&apos;t find anything matching &quot;{debouncedQuery}&quot;. Try different keywords or browse topics.</p>
           </div>
         )}
 
@@ -234,7 +234,7 @@ export default function ExplorePage() {
                         </div>
                         <span className="font-bold text-lg dark:text-white">{tag.tag}</span>
                       </div>
-                      <div className="text-sm text-zinc-500 font-medium ml-11">{tag.postsCount} posts</div>
+                      <div className="text-sm text-zinc-500 dark:text-zinc-400 font-medium ml-11">{tag.postsCount} posts</div>
                     </Link>
                   ))}
                 </div>
@@ -247,7 +247,7 @@ export default function ExplorePage() {
                   {searchResults.hashtags.map((tag) => (
                     <Link href={`/hashtag/${tag.tag.replace('#', '')}`} key={tag.tag} className="snap-start shrink-0 min-w-[200px] p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl">
                       <span className="font-bold text-lg dark:text-white">{tag.tag}</span>
-                      <div className="text-sm text-zinc-500 font-medium">{tag.postsCount} posts</div>
+                      <div className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">{tag.postsCount} posts</div>
                     </Link>
                   ))}
                 </div>
@@ -314,7 +314,7 @@ export default function ExplorePage() {
                         {community.icon}
                       </div>
                       <h3 className="font-bold text-zinc-900 dark:text-white mb-1">{community.name}</h3>
-                      <p className="text-sm text-zinc-500 mb-6">{formatCount(community.membersCount)} Members</p>
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">{formatCount(community.membersCount)} Members</p>
                       <div className="mt-auto">
                         <Button disabled variant="outline" className="w-full rounded-full border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500">
                           Coming Soon

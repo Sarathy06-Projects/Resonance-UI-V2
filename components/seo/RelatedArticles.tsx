@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import useSWR from "swr";
+import { ImageOff } from "lucide-react";
 import { getPopularArticles } from "@/lib/api/articles";
 
 export function RelatedArticles({ currentArticleId, tags }: { currentArticleId: string; tags: string[] }) {
@@ -22,12 +23,18 @@ export function RelatedArticles({ currentArticleId, tags }: { currentArticleId: 
         {related.map((article) => (
           <article key={article.id} className="group flex flex-col gap-3">
             <Link href={`/article/${article.id}`} className="block h-40 rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-900">
-              <img 
-                src={article.coverImage ?? undefined} 
-                alt={`Cover image for ${article.title}`} 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                loading="lazy" 
-              />
+              {article.coverImage ? (
+                <img
+                  src={article.coverImage}
+                  alt={`Cover image for ${article.title}`}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <ImageOff className="w-6 h-6 text-zinc-300 dark:text-zinc-700" />
+                </div>
+              )}
             </Link>
             <div className="flex flex-col flex-1 min-w-0">
               <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 dark:text-zinc-400 mb-1 uppercase tracking-wide">

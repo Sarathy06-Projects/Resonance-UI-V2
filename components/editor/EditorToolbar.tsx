@@ -166,7 +166,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         type="button"
         onClick={() => fileInputRef.current?.click()}
         disabled={isUploadingImage}
-        className="h-8 w-8 rounded-md text-zinc-500"
+        className="h-8 w-8 rounded-md text-zinc-500 dark:text-zinc-400"
       >
         {isUploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
       </Button>
@@ -179,7 +179,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         type="button"
         onClick={() => editor.chain().focus().undo().run()}
         disabled={!editor.can().chain().focus().undo().run()}
-        className="h-8 w-8 rounded-md text-zinc-500"
+        className="h-8 w-8 rounded-md text-zinc-500 dark:text-zinc-400"
       >
         <Undo className="h-4 w-4" />
       </Button>
@@ -189,7 +189,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         type="button"
         onClick={() => editor.chain().focus().redo().run()}
         disabled={!editor.can().chain().focus().redo().run()}
-        className="h-8 w-8 rounded-md text-zinc-500"
+        className="h-8 w-8 rounded-md text-zinc-500 dark:text-zinc-400"
       >
         <Redo className="h-4 w-4" />
       </Button>

@@ -28,7 +28,7 @@ export default function PostPage({ params }: { params: Promise<{ id: string }> }
       )}
 
       {error && !isLoading && (
-        <div className="p-10 text-center text-zinc-500">This post couldn&apos;t be found.</div>
+        <div className="p-10 text-center text-zinc-500 dark:text-zinc-400">This post couldn&apos;t be found.</div>
       )}
 
       {post && (

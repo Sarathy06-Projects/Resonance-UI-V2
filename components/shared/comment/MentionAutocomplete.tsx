@@ -42,7 +42,7 @@ export function MentionAutocomplete({ results, activeIndex, onSelect, onHover }:
           </Avatar>
           <span className="flex min-w-0 flex-col leading-tight">
             <span className="truncate font-medium dark:text-zinc-100">{author.name}</span>
-            <span className="truncate text-xs text-zinc-500">@{author.username}</span>
+            {author.username && <span className="truncate text-xs text-zinc-500 dark:text-zinc-400">@{author.username}</span>}
           </span>
         </button>
       ))}

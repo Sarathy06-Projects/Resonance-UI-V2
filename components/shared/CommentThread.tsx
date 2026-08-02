@@ -99,7 +99,7 @@ export function CommentThread({ targetType, targetId, targetAuthorId }: CommentT
             <AvatarFallback className="bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">?</AvatarFallback>
           )}
         </Avatar>
-        <span className="text-sm text-zinc-500">{composerPlaceholder}</span>
+        <span className="text-sm text-zinc-500 dark:text-zinc-400">{composerPlaceholder}</span>
       </button>
 
       <Sheet open={mobileComposerOpen} onOpenChange={setMobileComposerOpen}>
@@ -142,7 +142,7 @@ export function CommentThread({ targetType, targetId, targetAuthorId }: CommentT
       )}
 
       {!isLoading && comments.length === 0 && (
-        <div className="p-8 text-center text-[15px] text-zinc-500">No comments yet. Be the first to share your thoughts!</div>
+        <div className="p-8 text-center text-[15px] text-zinc-500 dark:text-zinc-400">No comments yet. Be the first to share your thoughts!</div>
       )}
 
       {shouldVirtualize ? (

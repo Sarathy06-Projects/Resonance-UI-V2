@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { CommentThread } from "@/components/shared/CommentThread";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { RelatedArticles } from "@/components/seo/RelatedArticles";
+import { PostImageGrid } from "@/components/shared/ImageAttachments";
 import type { Article } from "@/lib/api/types";
 
 export default function ArticlePage({ params }: { params: Promise<{ id: string }> }) {
@@ -27,7 +28,7 @@ export default function ArticlePage({ params }: { params: Promise<{ id: string }
   }
 
   if (error || !article) {
-    return <div className="p-10 text-center text-zinc-500">This article couldn&apos;t be found.</div>;
+    return <div className="p-10 text-center text-zinc-500 dark:text-zinc-400">This article couldn&apos;t be found.</div>;
   }
 
   return <ArticleView article={article} />;
@@ -127,11 +128,8 @@ function ArticleView({ article }: { article: Article }) {
         />
 
         {article.images && article.images.length > 0 && (
-          <div className="flex flex-col gap-4 mt-12">
-            {article.images.map((src, idx) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img key={src + idx} src={src} alt="" loading="lazy" className="w-full h-auto rounded-2xl object-cover" />
-            ))}
+          <div className="mt-12">
+            <PostImageGrid images={article.images} />
           </div>
         )}
 

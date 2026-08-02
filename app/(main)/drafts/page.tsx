@@ -55,7 +55,7 @@ export default function DraftsPage() {
                   <span className="bg-zinc-100 dark:bg-zinc-900 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-600 dark:text-zinc-300">
                     {draft.status}
                   </span>
-                  <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+                  <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
                     <Clock className="w-3.5 h-3.5" />
                     <span className="capitalize">{draft.mode}</span>
                   </div>
@@ -66,7 +66,7 @@ export default function DraftsPage() {
                 </h3>
 
                 <div className="mt-auto flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                  <span className="text-sm text-zinc-500">
+                  <span className="text-sm text-zinc-500 dark:text-zinc-400">
                     Edited {timeAgo(draft.updatedAt)}
                   </span>
 
@@ -77,7 +77,7 @@ export default function DraftsPage() {
                     <DropdownMenu>
                       <DropdownMenuTrigger render={
                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full dark:hover:bg-zinc-800">
-                          <MoreVertical className="w-4 h-4 text-zinc-500" />
+                          <MoreVertical className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
                         </Button>
                       } />
                       <DropdownMenuContent align="end" className="w-40 rounded-xl dark:bg-zinc-900 dark:border-zinc-800">

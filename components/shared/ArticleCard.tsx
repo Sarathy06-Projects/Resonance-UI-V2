@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bookmark, Layers } from "lucide-react";
+import { Bookmark, Layers, ImageOff } from "lucide-react";
 import type { Article } from "@/lib/api/types";
 import { timeAgo } from "@/lib/formatTime";
 
@@ -14,13 +14,17 @@ export function ArticleCard({ article }: ArticleCardProps) {
       <div className="flex flex-col h-full bg-white dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 rounded-3xl overflow-hidden hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all duration-300">
 
         <div className="w-full h-[200px] overflow-hidden bg-zinc-100 dark:bg-zinc-900 relative">
-          {article.coverImage && (
+          {article.coverImage ? (
             <img
               src={article.coverImage}
               alt={article.title}
               loading="lazy"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
             />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <ImageOff className="w-8 h-8 text-zinc-300 dark:text-zinc-700" />
+            </div>
           )}
           {article.readTime && (
             <div className="absolute top-3 right-3 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-semibold text-zinc-900 dark:text-zinc-100 shadow-sm">

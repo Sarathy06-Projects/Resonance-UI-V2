@@ -37,7 +37,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const { data: profile, isLoading, error, mutate } = useSWR(`profile-${resolvedParams.username}`, () => getProfile(resolvedParams.username));
 
   if (isLoading) return <div className="p-10 text-center text-zinc-400">Loading profile…</div>;
-  if (error || !profile) return <div className="p-10 text-center text-zinc-500">This profile couldn&apos;t be found.</div>;
+  if (error || !profile) return <div className="p-10 text-center text-zinc-500 dark:text-zinc-400">This profile couldn&apos;t be found.</div>;
 
   return <ProfileView profile={profile} onProfileChanged={() => mutate()} />;
 }
@@ -357,7 +357,7 @@ function EmptyTab({ label, name }: { label: string; name: string }) {
         <Eye className="w-8 h-8 text-zinc-300 dark:text-zinc-600" />
       </div>
       <h3 className="text-lg font-bold dark:text-white mb-2">Nothing to show yet</h3>
-      <p className="text-zinc-500 max-w-sm">When {name.split(' ')[0]} adds {label}, it will appear on this tab.</p>
+      <p className="text-zinc-500 dark:text-zinc-400 max-w-sm">When {name.split(' ')[0]} adds {label}, it will appear on this tab.</p>
     </div>
   );
 }

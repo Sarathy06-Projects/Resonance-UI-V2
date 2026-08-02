@@ -163,7 +163,7 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
   return (
     <div role="article" aria-label={`Comment by ${comment.author.name}`} className={cn("flex flex-col", isDeleting && "opacity-50 pointer-events-none")}>
       {isPinned && (
-        <div className="ml-12 flex items-center gap-2 px-4 pt-3 pb-1 text-xs font-semibold text-zinc-500">
+        <div className="ml-12 flex items-center gap-2 px-4 pt-3 pb-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
           <Pin className="h-3.5 w-3.5" />
           Pinned by author
         </div>
@@ -197,9 +197,11 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
                     Author
                   </span>
                 )}
-                <span className="truncate text-sm text-zinc-500">@{comment.author.username}</span>
-                <span className="ml-1 text-sm text-zinc-500">· {timeAgo(comment.createdAt)}</span>
-                {editedAt && <span className="ml-1 text-xs text-zinc-400">(edited)</span>}
+                {comment.author.username && (
+                  <span className="truncate text-sm text-zinc-500 dark:text-zinc-400">@{comment.author.username}</span>
+                )}
+                <span className="ml-1 text-sm text-zinc-500 dark:text-zinc-400">· {timeAgo(comment.createdAt)}</span>
+                {editedAt && <span className="ml-1 text-xs text-zinc-400 dark:text-zinc-500">(edited)</span>}
               </div>
 
               <CommentActionsMenu
@@ -295,7 +297,7 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
                 {comment.likedByCreator && (
                   <div className="ml-auto flex items-center">
                     <div className="group relative flex cursor-pointer items-center">
-                      <div className="absolute -right-1 -bottom-1 z-20 rounded-full bg-white p-[2px] shadow-sm">
+                      <div className="absolute -right-1 -bottom-1 z-20 rounded-full bg-white dark:bg-zinc-900 p-[2px] shadow-sm">
                         <Heart className="h-2.5 w-2.5 fill-pink-500 text-pink-500" />
                       </div>
                       <div className="pointer-events-none absolute -top-7 right-0 rounded-md bg-zinc-800 px-2 py-1 text-[10px] font-semibold whitespace-nowrap text-white opacity-0 transition-opacity group-hover:opacity-100">

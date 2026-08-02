@@ -53,7 +53,7 @@ export default function HashtagPage({ params }: { params: Promise<{ tag: string 
               <Hash className="w-8 h-8 text-blue-500" />
             </div>
             <h2 className="text-xl font-bold mb-2 dark:text-white">No posts found</h2>
-            <p className="text-zinc-500 max-w-sm">There are currently no discussions using the #{tagName} hashtag.</p>
+            <p className="text-zinc-500 dark:text-zinc-400 max-w-sm">There are currently no discussions using the #{tagName} hashtag.</p>
           </div>
         ) : (
           <div className="space-y-4 px-0 sm:px-4">
