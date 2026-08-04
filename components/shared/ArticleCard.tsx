@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bookmark, Layers, ImageOff } from "lucide-react";
 import type { Article } from "@/lib/api/types";
@@ -15,11 +16,13 @@ export function ArticleCard({ article }: ArticleCardProps) {
 
         <div className="w-full h-[200px] overflow-hidden bg-zinc-100 dark:bg-zinc-900 relative">
           {article.coverImage ? (
-            <img
+            <Image
               src={article.coverImage}
               alt={article.title}
+              fill
+              sizes="(max-width: 640px) 300px, 380px"
               loading="lazy"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+              className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -46,7 +49,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
               </div>
             </div>
 
-            <button className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800" onClick={(e) => { e.preventDefault(); }}>
+            <button className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800" onClick={(e) => { e.preventDefault(); }} aria-label="Bookmark">
               <Bookmark className="w-5 h-5" />
             </button>
           </div>

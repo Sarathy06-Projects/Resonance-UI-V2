@@ -2,6 +2,7 @@
 
 import { use, useRef, useState } from "react";
 import useSWR from "swr";
+import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/shared/PostCard";
@@ -118,7 +119,7 @@ function ProfileView({ profile, onProfileChanged }: { profile: Profile; onProfil
 
       {/* Cover Banner */}
       <div className="h-48 sm:h-72 w-full relative group bg-zinc-100 dark:bg-zinc-900">
-        {profile.coverImage && <img src={profile.coverImage} alt="Cover" className="w-full h-full object-cover" />}
+        {profile.coverImage && <Image src={profile.coverImage} alt="Cover" fill sizes="100vw" priority className="object-cover" />}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
         {profile.isSelf && (
           <>
@@ -294,8 +295,8 @@ function ProfileView({ profile, onProfileChanged }: { profile: Profile; onProfil
                 ) : articlesData?.articles.length ? (
                   articlesData.articles.map((article) => (
                     <div key={article.id} className="group flex flex-col sm:flex-row gap-4 sm:gap-6 p-4 sm:p-5 border border-zinc-100 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 rounded-3xl transition-all hover:shadow-sm bg-white dark:bg-zinc-950">
-                      <Link href={`/article/${article.id}`} className="w-full sm:w-[240px] h-48 sm:h-[160px] shrink-0 rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 block">
-                        {article.coverImage && <img src={article.coverImage} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />}
+                      <Link href={`/article/${article.id}`} className="relative w-full sm:w-[240px] h-48 sm:h-[160px] shrink-0 rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 block">
+                        {article.coverImage && <Image src={article.coverImage} alt="" fill sizes="(max-width: 640px) 100vw, 240px" loading="lazy" className="object-cover group-hover:scale-105 transition-transform duration-500" />}
                       </Link>
                       <div className="flex flex-col flex-1 min-w-0 py-1">
                         <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 dark:text-zinc-400 mb-2 uppercase tracking-wide">

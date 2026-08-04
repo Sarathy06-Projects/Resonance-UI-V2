@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
+import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -327,7 +328,7 @@ function CreatePageInner() {
           <div className="max-w-[700px] w-full mx-auto space-y-8 pb-20">
 
             {mode !== "discussion" && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+              <div className="space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <input
                   type="text"
                   placeholder={
@@ -342,15 +343,15 @@ function CreatePageInner() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                 />
-              </motion.div>
+              </div>
             )}
 
             {mode === "article" && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div className="animate-in fade-in duration-300">
                 <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
                 {coverImage ? (
                   <div className="relative w-full h-48 sm:h-64 rounded-3xl overflow-hidden group cursor-pointer" onClick={() => coverInputRef.current?.click()}>
-                    <img src={coverImage} alt="" className="w-full h-full object-cover" />
+                    <Image src={coverImage} alt="" fill sizes="(max-width: 640px) 100vw, 700px" className="object-cover" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-sm font-semibold">
                       Change cover
                     </div>
@@ -368,11 +369,11 @@ function CreatePageInner() {
                     <span className="text-xs mt-1 opacity-70">Click to upload</span>
                   </button>
                 )}
-              </motion.div>
+              </div>
             )}
 
             {(mode === "showcase" || mode === "feedback") && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid sm:grid-cols-2 gap-4">
+              <div className="grid sm:grid-cols-2 gap-4 animate-in fade-in duration-300">
                 {mode === "feedback" && (
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Feedback Type</label>
@@ -405,7 +406,7 @@ function CreatePageInner() {
                     />
                   </div>
                 )}
-              </motion.div>
+              </div>
             )}
 
             {mode === "article" ? (

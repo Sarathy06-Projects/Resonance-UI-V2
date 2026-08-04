@@ -3,6 +3,21 @@ import type { NextConfig } from "next";
 const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || "http://localhost:4000";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Turbopack's persistent on-disk dev cache is known to corrupt on
+    // long-running sessions (Windows especially) - symptom is every route
+    // except "/" silently 404ing at the framework level while the server
+    // still prints "Ready". Disabling it trades a little rebuild speed for
+    // not needing a `rm -rf .next` + restart to recover mid-session.
+    turbopackFileSystemCacheForDev: false,
+  },
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "cdn.resonance.org.in" },
+      { protocol: "https", hostname: "api.dicebear.com" },
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
+    ],
+  },
   // Proxies backend calls through this app's own domain. The backend lives
   // on a different domain (Render) than the frontend (Vercel), and browsers
   // never send a cookie scoped to one domain to a fetch() targeting another

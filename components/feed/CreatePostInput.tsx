@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,10 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { createPost } from "@/lib/api/posts";
 import { ImageAttachButton, ImageAttachmentsGrid } from "@/components/shared/ImageAttachments";
-import { ThreadComposer } from "@/components/shared/ThreadComposer";
+
+// Only needed once the "start a thread" button is clicked - keep it out of
+// the composer's initial bundle, which every visitor to the feed loads.
+const ThreadComposer = dynamic(() => import("@/components/shared/ThreadComposer").then((m) => m.ThreadComposer), { ssr: false });
 
 const placeholders = [
   "Share an idea...",
@@ -112,7 +116,7 @@ export function CreatePostInput({ onPosted }: CreatePostInputProps) {
             {isAuthenticated ? (
               <ImageAttachButton images={images} onChange={setImages} />
             ) : (
-              <button className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors dark:hover:text-zinc-200" onClick={handleInteraction}>
+              <button className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors dark:hover:text-zinc-200" onClick={handleInteraction} aria-label="Add image">
                 <ImageIcon className="w-[18px] h-[18px]" />
               </button>
             )}
@@ -124,10 +128,10 @@ export function CreatePostInput({ onPosted }: CreatePostInputProps) {
             >
               <Layers className="w-[18px] h-[18px]" />
             </button>
-            <button className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors dark:hover:text-zinc-200" onClick={handleInteraction}>
+            <button className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors dark:hover:text-zinc-200" onClick={handleInteraction} aria-label="Add poll">
               <List className="w-[18px] h-[18px]" />
             </button>
-            <button className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors dark:hover:text-zinc-200" onClick={handleInteraction}>
+            <button className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors dark:hover:text-zinc-200" onClick={handleInteraction} aria-label="Add emoji">
               <Smile className="w-[18px] h-[18px]" />
             </button>
           </div>
@@ -141,14 +145,16 @@ export function CreatePostInput({ onPosted }: CreatePostInputProps) {
           </Button>
         </div>
 
-        <ThreadComposer
-          open={isThreadOpen}
-          onClose={() => setIsThreadOpen(false)}
-          onPosted={() => {
-            setIsThreadOpen(false);
-            onPosted?.();
-          }}
-        />
+        {isThreadOpen && (
+          <ThreadComposer
+            open={isThreadOpen}
+            onClose={() => setIsThreadOpen(false)}
+            onPosted={() => {
+              setIsThreadOpen(false);
+              onPosted?.();
+            }}
+          />
+        )}
       </div>
     </div>
   );

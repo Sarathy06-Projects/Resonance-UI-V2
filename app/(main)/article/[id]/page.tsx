@@ -2,6 +2,7 @@
 
 import { use, useEffect } from "react";
 import useSWR from "swr";
+import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Bookmark, Heart, MessageCircle, Share, Layers } from "lucide-react";
 import Link from "next/link";
@@ -77,7 +78,7 @@ function ArticleView({ article }: { article: Article }) {
       <JsonLd data={articleJsonLd} />
       <header className="sticky top-0 sm:top-16 z-10 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/" className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors dark:text-zinc-100">
+          <Link href="/" className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors dark:text-zinc-100" aria-label="Back to feed">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <Link href={`/profile/${article.author.username}`} className="flex items-center gap-2">
@@ -119,7 +120,9 @@ function ArticleView({ article }: { article: Article }) {
         </header>
 
         {article.coverImage && (
-          <img src={article.coverImage} alt={article.title} className="w-full aspect-video object-cover rounded-2xl mb-12" />
+          <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-12">
+            <Image src={article.coverImage} alt={article.title} fill sizes="(max-width: 768px) 100vw, 768px" priority className="object-cover" />
+          </div>
         )}
 
         <div
@@ -184,10 +187,11 @@ function ArticleView({ article }: { article: Article }) {
             <button
               onClick={() => handleInteraction(toggleBookmark)}
               className={cn("transition-colors", isBookmarked ? "text-zinc-900 dark:text-white" : "hover:text-blue-500")}
+              aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
             >
               <Bookmark className={cn("w-6 h-6", isBookmarked && "fill-current")} />
             </button>
-            <button className="hover:text-blue-500 transition-colors"><Share className="w-6 h-6" /></button>
+            <button className="hover:text-blue-500 transition-colors" aria-label="Share"><Share className="w-6 h-6" /></button>
           </div>
         </div>
 

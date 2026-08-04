@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { X, ImagePlus, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { uploadPostImage } from "@/lib/api/uploads";
@@ -67,9 +68,8 @@ export function ImageAttachmentsGrid({ images, onChange }: ImageAttachmentsProps
 
   if (images.length === 1) {
     return (
-      <div className="relative rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 group">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={images[0]} alt="" className="w-full h-auto max-h-[400px] object-cover" />
+      <div className="relative aspect-[4/5] max-h-[400px] rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 group">
+        <Image src={images[0]} alt="" fill sizes="(max-width: 640px) 100vw, 560px" className="object-cover" />
         <button
           type="button"
           onClick={() => remove(0)}
@@ -89,8 +89,7 @@ export function ImageAttachmentsGrid({ images, onChange }: ImageAttachmentsProps
           key={src + idx}
           className="relative shrink-0 w-32 aspect-square rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 group"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={src} alt="" className="w-full h-full object-cover" />
+          <Image src={src} alt="" fill sizes="128px" className="object-cover" />
           <button
             type="button"
             onClick={() => remove(idx)}
@@ -110,7 +109,7 @@ export function ImageAttachmentsGrid({ images, onChange }: ImageAttachmentsProps
 // horizontally-swipeable, scroll-snapped carousel (one image per screen at a
 // time) with dot indicators tracking the current slide - instead of a photo
 // grid, which forces every image into a small, cramped tile.
-export function PostImageGrid({ images }: { images: string[] }) {
+export function PostImageGrid({ images, priority = false }: { images: string[]; priority?: boolean }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -118,9 +117,16 @@ export function PostImageGrid({ images }: { images: string[] }) {
 
   if (images.length === 1) {
     return (
-      <div className="rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800/60">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={images[0]} alt="" loading="lazy" className="w-full h-auto object-cover max-h-[400px]" />
+      <div className="relative aspect-[4/5] max-h-[400px] rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800/60">
+        <Image
+          src={images[0]}
+          alt=""
+          fill
+          sizes="(max-width: 640px) 100vw, 640px"
+          className="object-cover"
+          priority={priority}
+          loading={priority ? undefined : "lazy"}
+        />
       </div>
     );
   }
@@ -143,8 +149,15 @@ export function PostImageGrid({ images }: { images: string[] }) {
             key={src + idx}
             className="relative shrink-0 basis-full snap-center aspect-[4/5] max-h-[550px] bg-zinc-100 dark:bg-zinc-900"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={src} alt="" loading="lazy" className="w-full h-full object-cover" />
+            <Image
+              src={src}
+              alt=""
+              fill
+              sizes="(max-width: 640px) 100vw, 640px"
+              className="object-cover"
+              priority={priority && idx === 0}
+              loading={priority && idx === 0 ? undefined : "lazy"}
+            />
           </div>
         ))}
       </div>

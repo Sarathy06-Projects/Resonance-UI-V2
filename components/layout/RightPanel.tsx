@@ -1,6 +1,7 @@
 "use client";
 
 import useSWR from "swr";
+import Image from "next/image";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useFollowState } from "@/lib/hooks/useFollowState";
 import { getRecommendedUsers } from "@/lib/api/users";
@@ -38,7 +39,7 @@ export function RightPanel({ className }: RightPanelProps) {
         <div className="bg-zinc-50/50 dark:bg-zinc-900/50 rounded-3xl border border-zinc-100 dark:border-zinc-800 overflow-hidden group">
           <div className="h-32 bg-zinc-200 dark:bg-zinc-800 overflow-hidden relative">
             {featuredArticle.coverImage && (
-              <img src={featuredArticle.coverImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <Image src={featuredArticle.coverImage} alt="" fill sizes="320px" loading="lazy" className="object-cover group-hover:scale-105 transition-transform duration-500" />
             )}
             <div className="absolute top-4 right-4 bg-white/90 dark:bg-zinc-950/90 backdrop-blur text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">
               Featured

@@ -4,7 +4,6 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SessionSync } from "@/components/providers/SessionSync";
 import { InstallPrompt } from "@/components/providers/InstallPrompt";
-import { AuthModal } from "@/components/shared/AuthModal";
 import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
@@ -41,7 +40,6 @@ export default function RootLayout({
         >
           <SessionSync />
           {children}
-          <AuthModal />
           <InstallPrompt />
         </ThemeProvider>
         <Analytics />

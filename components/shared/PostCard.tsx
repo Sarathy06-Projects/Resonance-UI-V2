@@ -1,6 +1,7 @@
 "use client";
 
 import useSWR from "swr";
+import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageCircle, Heart, Repeat2, Bookmark, Share, FileText, Clock, Layers } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -16,9 +17,10 @@ import { cn } from "@/lib/utils";
 interface PostCardProps {
   post: Post;
   isDetailed?: boolean;
+  priority?: boolean;
 }
 
-export function PostCard({ post, isDetailed = false }: PostCardProps) {
+export function PostCard({ post, isDetailed = false, priority = false }: PostCardProps) {
   const { isAuthenticated, openAuthModal } = useAuthStore();
   const { isLiked, likesCount, isBookmarked, bookmarksCount, sharesCount, toggleLike, toggleBookmark, toggleRepost } =
     usePostInteractions(post);
@@ -85,7 +87,7 @@ export function PostCard({ post, isDetailed = false }: PostCardProps) {
 
           {post.images && post.images.length > 0 && (
             <div className="mt-4 mb-4 shadow-sm">
-              <PostImageGrid images={post.images} />
+              <PostImageGrid images={post.images} priority={priority} />
             </div>
           )}
 
@@ -103,7 +105,7 @@ export function PostCard({ post, isDetailed = false }: PostCardProps) {
             >
               <div className="sm:w-1/3 h-[140px] sm:h-auto shrink-0 relative overflow-hidden bg-zinc-100 dark:bg-zinc-900">
                 {linkedArticle.coverImage ? (
-                  <img src={linkedArticle.coverImage} alt={linkedArticle.title} loading="lazy" className="w-full h-full object-cover group-hover/article:scale-105 transition-transform duration-500" />
+                  <Image src={linkedArticle.coverImage} alt={linkedArticle.title} fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover group-hover/article:scale-105 transition-transform duration-500" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <FileText className="w-6 h-6 text-zinc-300 dark:text-zinc-700" />
@@ -144,13 +146,13 @@ export function PostCard({ post, isDetailed = false }: PostCardProps) {
           )}
 
           <div className="flex items-center justify-between max-w-[400px] text-zinc-400 dark:text-zinc-500 mt-2">
-            <button onClick={(e) => handleInteraction(e)} className="flex items-center gap-1.5 group transition-colors hover:text-zinc-700 dark:hover:text-zinc-300" title="Comment">
+            <button onClick={(e) => handleInteraction(e)} className="flex items-center gap-1.5 group transition-colors hover:text-zinc-700 dark:hover:text-zinc-300" title="Comment" aria-label="Comment">
               <div className="p-2 rounded-full group-hover:bg-zinc-100 dark:group-hover:bg-zinc-800 transition-colors -ml-2">
                 <MessageCircle className="w-5 h-5" />
               </div>
               <span className="text-[13px] font-medium">{post.commentsCount}</span>
             </button>
-            <button onClick={(e) => handleInteraction(e, toggleRepost)} className="flex items-center gap-1.5 group transition-colors hover:text-zinc-700 dark:hover:text-zinc-300" title="Repost">
+            <button onClick={(e) => handleInteraction(e, toggleRepost)} className="flex items-center gap-1.5 group transition-colors hover:text-zinc-700 dark:hover:text-zinc-300" title="Repost" aria-label="Repost">
               <div className="p-2 rounded-full group-hover:bg-zinc-100 dark:group-hover:bg-zinc-800 transition-colors -ml-2">
                 <Repeat2 className="w-5 h-5" />
               </div>
@@ -159,7 +161,8 @@ export function PostCard({ post, isDetailed = false }: PostCardProps) {
             <button
               onClick={(e) => handleInteraction(e, toggleLike)}
               className={cn("flex items-center gap-1.5 group transition-colors", isLiked ? "text-pink-600 dark:text-pink-500" : "hover:text-zinc-700 dark:hover:text-zinc-300")}
-              title="Like"
+              title={isLiked ? "Unlike" : "Like"}
+              aria-label={isLiked ? "Unlike" : "Like"}
             >
               <div className={cn("p-2 rounded-full transition-colors -ml-2", isLiked ? "bg-pink-50 dark:bg-pink-500/10" : "group-hover:bg-zinc-100 dark:group-hover:bg-zinc-800")}>
                 <Heart className={cn("w-5 h-5", isLiked && "fill-current scale-110")} />
@@ -169,14 +172,15 @@ export function PostCard({ post, isDetailed = false }: PostCardProps) {
             <button
               onClick={(e) => handleInteraction(e, toggleBookmark)}
               className={cn("flex items-center gap-1.5 group transition-colors", isBookmarked ? "text-zinc-900 dark:text-white" : "hover:text-zinc-700 dark:hover:text-zinc-300")}
-              title="Bookmark"
+              title={isBookmarked ? "Remove bookmark" : "Bookmark"}
+              aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
             >
               <div className={cn("p-2 rounded-full transition-colors -ml-2", isBookmarked ? "bg-zinc-100 dark:bg-zinc-800" : "group-hover:bg-zinc-100 dark:group-hover:bg-zinc-800")}>
                 <Bookmark className={cn("w-5 h-5", isBookmarked && "fill-current scale-110")} />
               </div>
               <span className="text-[13px] font-medium">{bookmarksCount}</span>
             </button>
-            <button onClick={(e) => handleInteraction(e)} className="flex items-center gap-1.5 group transition-colors hover:text-zinc-700 dark:hover:text-zinc-300" title="Share">
+            <button onClick={(e) => handleInteraction(e)} className="flex items-center gap-1.5 group transition-colors hover:text-zinc-700 dark:hover:text-zinc-300" title="Share" aria-label="Share">
               <div className="p-2 rounded-full group-hover:bg-zinc-100 dark:group-hover:bg-zinc-800 transition-colors -ml-2">
                 <Share className="w-5 h-5" />
               </div>

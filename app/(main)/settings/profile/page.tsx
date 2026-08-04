@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { ArrowLeft, CheckCircle2, X } from "lucide-react";
@@ -226,7 +227,7 @@ function EditProfileForm({ username }: { username: string }) {
         {/* Cover + Avatar */}
         <section>
           <div className="h-36 sm:h-44 w-full relative rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-900">
-            {profile.coverImage && <img src={profile.coverImage} alt="" className="w-full h-full object-cover" />}
+            {profile.coverImage && <Image src={profile.coverImage} alt="" fill sizes="(max-width: 768px) 100vw, 672px" className="object-cover" />}
             <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
             <Button
               variant="secondary"

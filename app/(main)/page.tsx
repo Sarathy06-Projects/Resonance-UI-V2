@@ -29,7 +29,7 @@ export default function Home() {
   posts.forEach((post, index) => {
     feedWithModules.push(
       <div key={post.id} className="p-4 sm:p-6 border-b border-zinc-100 dark:border-zinc-800/60">
-        <PostCard post={post} />
+        <PostCard post={post} priority={index === 0} />
       </div>
     );
 

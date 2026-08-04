@@ -1,6 +1,7 @@
 "use client";
 
 import useSWR from "swr";
+import Image from "next/image";
 import { PenSquare, Image as ImageIcon, Clock, MoreVertical, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -45,9 +46,9 @@ export default function DraftsPage() {
           {drafts.map(draft => (
             <div key={draft.id} className="group flex flex-col bg-white dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 rounded-3xl overflow-hidden hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all duration-300">
 
-              <div className={`w-full h-40 flex items-center justify-center border-b border-zinc-100 dark:border-zinc-800/50 ${draft.coverImage ? "" : "bg-zinc-50 dark:bg-zinc-900"}`}>
+              <div className={`relative w-full h-40 flex items-center justify-center border-b border-zinc-100 dark:border-zinc-800/50 ${draft.coverImage ? "" : "bg-zinc-50 dark:bg-zinc-900"}`}>
                 {draft.coverImage ? (
-                  <img src={draft.coverImage} alt="" className="w-full h-full object-cover" />
+                  <Image src={draft.coverImage} alt="" fill sizes="(max-width: 768px) 100vw, 50vw" loading="lazy" className="object-cover" />
                 ) : (
                   <ImageIcon className="w-8 h-8 text-zinc-300 dark:text-zinc-700" />
                 )}

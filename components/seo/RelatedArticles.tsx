@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import useSWR from "swr";
 import { ImageOff } from "lucide-react";
 import { getPopularArticles } from "@/lib/api/articles";
@@ -22,12 +23,14 @@ export function RelatedArticles({ currentArticleId, tags }: { currentArticleId: 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {related.map((article) => (
           <article key={article.id} className="group flex flex-col gap-3">
-            <Link href={`/article/${article.id}`} className="block h-40 rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+            <Link href={`/article/${article.id}`} className="relative block h-40 rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-900">
               {article.coverImage ? (
-                <img
+                <Image
                   src={article.coverImage}
                   alt={`Cover image for ${article.title}`}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
                 />
               ) : (
