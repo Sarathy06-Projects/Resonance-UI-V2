@@ -194,6 +194,7 @@ export interface NotificationItem {
 export interface HashtagStat {
   tag: string;
   postsCount: number;
+  articlesCount: number;
   windowCount: number;
   previousWindowCount: number;
   growthPct: number;

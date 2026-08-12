@@ -10,6 +10,7 @@ export default function robots(): MetadataRoute.Robots {
         "/",
         "/explore",
         "/@*",
+        "/topics/*",
         // Legacy URLs - all permanently redirect (308) to /@username/...
         // now, but must stay crawlable so Googlebot can actually follow
         // the redirect and consolidate its index, rather than orphaning

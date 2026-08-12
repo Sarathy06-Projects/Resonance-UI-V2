@@ -40,7 +40,12 @@ const nextConfig: NextConfig = {
   // paths instead, since redirects() only supports static/pattern
   // destinations.)
   async redirects() {
-    return [{ source: "/profile/:username", destination: "/@:username", permanent: true }];
+    return [
+      { source: "/profile/:username", destination: "/@:username", permanent: true },
+      // Routes to the exact content the old page showed (least surprise) -
+      // /topics/:tag itself is the new, broader hub page, not an alias.
+      { source: "/hashtag/:tag", destination: "/topics/:tag/discussions", permanent: true },
+    ];
   },
   async headers() {
     return [
