@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Compass, Bell, User } from "lucide-react";
@@ -14,6 +15,23 @@ interface BottomNavProps {
 export function BottomNav({ className }: BottomNavProps) {
   const pathname = usePathname();
   const { user, isAuthenticated, openAuthModal } = useAuthStore();
+  const navRef = useRef<HTMLDivElement>(null);
+
+  // Publishes the real rendered height (content + the actual per-device
+  // safe-area inset, since offsetHeight includes padding) as --bottom-nav-
+  // height, so anything else fixed to the bottom on mobile - e.g.
+  // CommentThread's composer trigger bar - can sit exactly above this nav
+  // instead of guessing a pixel offset that drifts out of sync whenever
+  // this component's own padding/icon size changes.
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const publish = () => document.documentElement.style.setProperty("--bottom-nav-height", `${el.offsetHeight}px`);
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const navItems = [
     { name: "Home", href: "/", icon: Home },
@@ -31,7 +49,7 @@ export function BottomNav({ className }: BottomNavProps) {
   };
 
   return (
-    <div className={cn("flex items-center justify-around px-2 py-3 pb-safe", className)}>
+    <div ref={navRef} className={cn("flex items-center justify-around px-2 py-3 pb-safe", className)}>
       {navItems.filter(item => isAuthenticated || !item.protected).map((item) => {
         const isActive = pathname === item.href;
         return (

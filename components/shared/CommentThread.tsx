@@ -91,7 +91,13 @@ export function CommentThread({ targetType, targetId, targetAuthorId }: CommentT
         type="button"
         onClick={handleMobileTrigger}
         aria-label={composerPlaceholder}
-        className="fixed inset-x-0 bottom-16 z-40 flex items-center gap-3 border-t border-zinc-100 bg-white/95 px-4 py-3 text-left backdrop-blur-sm sm:hidden dark:border-zinc-800 dark:bg-zinc-950/95"
+        // bottom-16 (a hardcoded 64px) used to undershoot BottomNav's real
+        // rendered height (~90px, including per-device safe-area inset),
+        // so this sat partially behind the nav instead of above it -
+        // --bottom-nav-height (BottomNav.tsx) is the nav's actual measured
+        // height, kept in sync automatically instead of two magic numbers
+        // that can silently drift apart.
+        className="fixed inset-x-0 bottom-[var(--bottom-nav-height)] z-40 flex items-center gap-3 border-t border-zinc-100 bg-white/95 px-4 py-3 text-left backdrop-blur-sm sm:hidden dark:border-zinc-800 dark:bg-zinc-950/95"
       >
         <Avatar className="h-8 w-8 border border-zinc-100 dark:border-zinc-800">
           {isAuthenticated && user ? (

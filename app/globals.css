@@ -5,6 +5,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Not a Tailwind v4 built-in - "safe" isn't a registered spacing token, so
+   without this rule pb-safe silently generates no CSS at all (confirmed:
+   BottomNav has used this class with zero effect). Real rule, so devices
+   with a bottom gesture bar / home indicator actually get the nav content
+   clear of it instead of sitting flush underneath. */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -51,6 +60,16 @@
 }
 
 :root {
+  /* Real, measured height of the fixed mobile BottomNav (see
+     components/layout/BottomNav.tsx's ResizeObserver), including the
+     device safe-area inset. Anything else fixed-positioned on mobile that
+     needs to sit directly above the nav - e.g. CommentThread's mobile
+     composer trigger - reads this instead of a hand-copied magic number,
+     which is exactly what silently drifted out of sync and let the
+     composer bar render partially behind the (higher z-index, taller than
+     assumed) nav. The px fallback is only what's shown before the
+     ResizeObserver's first measurement on mount. */
+  --bottom-nav-height: 90px;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
