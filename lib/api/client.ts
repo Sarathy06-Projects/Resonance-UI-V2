@@ -25,11 +25,28 @@ interface ApiFetchOptions extends RequestInit {
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const { json, headers, ...rest } = options;
 
+  // `credentials: "include"` (below) only does anything in a real browser -
+  // there's no cookie jar for a server-side fetch, so without this, every
+  // Server Component call was silently "logged out" to the backend (fine
+  // for generateMetadata, which never needed viewer state; wrong for a
+  // page body rendering isLiked/isFollowing/isSelf for a real signed-in
+  // visitor). Dynamic import, not a top-level one - this file is also
+  // imported by Client Components, and next/headers can only be referenced
+  // on a code path that's actually server-only.
+  let forwardedCookie: string | undefined;
+  if (typeof window === "undefined") {
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
+    if (cookieHeader) forwardedCookie = cookieHeader;
+  }
+
   const res = await fetch(`${API_URL}${path}`, {
     ...rest,
     credentials: "include",
     headers: {
       ...(json !== undefined ? { "Content-Type": "application/json" } : {}),
+      ...(forwardedCookie ? { cookie: forwardedCookie } : {}),
       ...headers,
     },
     body: json !== undefined ? JSON.stringify(json) : rest.body,

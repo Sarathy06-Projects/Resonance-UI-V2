@@ -7,11 +7,17 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: [
-        "/", 
-        "/explore", 
-        "/article/*", 
-        "/profile/*", 
-        "/post/*", 
+        "/",
+        "/explore",
+        "/@*",
+        // Legacy URLs - all permanently redirect (308) to /@username/...
+        // now, but must stay crawlable so Googlebot can actually follow
+        // the redirect and consolidate its index, rather than orphaning
+        // whatever already points at the old URL.
+        "/article/*",
+        "/profile/*",
+        "/post/*",
+        "/series/*",
         "/hashtag/*"
       ],
       disallow: [

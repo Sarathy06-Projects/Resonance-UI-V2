@@ -18,3 +18,16 @@ export function getUserSeries(authorId: string) {
 export function getSeries(id: string) {
   return apiFetch<SeriesWithArticles>(`/api/series/${id}`);
 }
+
+// For the legacy /series/:id route.ts redirect handler only.
+export function getSeriesRedirectTarget(id: string) {
+  return apiFetch<{ username: string | null; slug: string }>(`/api/series/${id}/redirect-target`);
+}
+
+// Unlike getSeries() above, this joins author info and each article's
+// slug - see GET /api/series/by-slug/:username/:slug on the backend.
+export function getSeriesBySlug(username: string, slug: string) {
+  return apiFetch<Required<Pick<SeriesWithArticles, "author">> & SeriesWithArticles>(
+    `/api/series/by-slug/${encodeURIComponent(username)}/${encodeURIComponent(slug)}`
+  );
+}

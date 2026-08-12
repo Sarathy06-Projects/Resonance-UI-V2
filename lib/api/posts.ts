@@ -37,6 +37,12 @@ export function getPost(id: string) {
   return apiFetch<Post & { linkedArticle: import("./types").ArticlePreview | null }>(`/api/posts/${id}`);
 }
 
+// For the legacy /post/:id route.ts redirect handler only. slug is null
+// for showcase/feedback posts - those keep their /post/:id URL forever.
+export function getPostRedirectTarget(id: string) {
+  return apiFetch<{ username: string | null; slug: string | null }>(`/api/posts/${id}/redirect-target`);
+}
+
 export function deletePost(id: string) {
   return apiFetch<{ deleted: boolean }>(`/api/posts/${id}`, { method: "DELETE" });
 }

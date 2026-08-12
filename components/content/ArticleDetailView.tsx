@@ -1,47 +1,40 @@
 "use client";
 
-import { use, useEffect } from "react";
-import useSWR from "swr";
+import { useEffect } from "react";
 import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Bookmark, Heart, MessageCircle, Share, Layers } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { getArticle, recordArticleView } from "@/lib/api/articles";
-import { getSeries } from "@/lib/api/series";
+import { recordArticleView } from "@/lib/api/articles";
 import { useArticleInteractions } from "@/lib/hooks/useArticleInteractions";
 import { useFollowState } from "@/lib/hooks/useFollowState";
 import { useAuthStore } from "@/store/useAuthStore";
 import { timeAgo } from "@/lib/formatTime";
 import { cn } from "@/lib/utils";
 import { CommentThread } from "@/components/shared/CommentThread";
-import { JsonLd } from "@/components/seo/JsonLd";
 import { RelatedArticles } from "@/components/seo/RelatedArticles";
 import { PostImageGrid } from "@/components/shared/ImageAttachments";
-import type { Article } from "@/lib/api/types";
+import { profileUrl, articleUrl, seriesUrl } from "@/lib/urls";
+import type { Article, SeriesWithArticles } from "@/lib/api/types";
 
-export default function ArticlePage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  const { data: article, isLoading, error } = useSWR(`article-${resolvedParams.id}`, () => getArticle(resolvedParams.id));
-
-  if (isLoading) {
-    return <div className="p-10 text-center text-zinc-400">Loading article…</div>;
-  }
-
-  if (error || !article) {
-    return <div className="p-10 text-center text-zinc-500 dark:text-zinc-400">This article couldn&apos;t be found.</div>;
-  }
-
-  return <ArticleView article={article} />;
+interface ArticleDetailViewProps {
+  article: Article;
+  // Fetched server-side via the article's seriesId (an opaque id, not a
+  // slug - the series itself may not be the one this whole page resolved
+  // through). Series has no author join on this endpoint, but a series can
+  // only ever contain its own author's articles (enforced server-side at
+  // publish time), so article.author doubles as the series' author for
+  // link-building purposes here.
+  series: SeriesWithArticles | null;
 }
 
-function ArticleView({ article }: { article: Article }) {
+export function ArticleDetailView({ article, series }: ArticleDetailViewProps) {
   const { user, isAuthenticated, openAuthModal } = useAuthStore();
   const { isLiked, likesCount, isBookmarked, bookmarksCount, toggleLike, toggleBookmark } = useArticleInteractions(article);
   const { isFollowing, toggleFollow } = useFollowState(article.authorId, false);
   const isSelf = user?.id === article.authorId;
 
-  const { data: series } = useSWR(article.seriesId ? `series-${article.seriesId}` : null, () => getSeries(article.seriesId!));
   const seriesIndex = series?.articles.findIndex((a) => a.id === article.id) ?? -1;
   const prevInSeries = series && seriesIndex > 0 ? series.articles[seriesIndex - 1] : null;
   const nextInSeries = series && seriesIndex >= 0 && seriesIndex < series.articles.length - 1 ? series.articles[seriesIndex + 1] : null;
@@ -60,28 +53,14 @@ function ArticleView({ article }: { article: Article }) {
     action();
   };
 
-  const articleJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    "headline": article.title,
-    "image": article.coverImage ? [article.coverImage] : [],
-    "datePublished": article.publishedAt || article.createdAt,
-    "author": [{
-      "@type": "Person",
-      "name": article.author.name,
-      "url": `https://resonance.design/profile/${article.author.username}`
-    }]
-  };
-
   return (
     <main className="flex flex-col min-h-screen bg-white dark:bg-zinc-950 pb-20 md:pb-0">
-      <JsonLd data={articleJsonLd} />
       <header className="sticky top-0 sm:top-16 z-10 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/" className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors dark:text-zinc-100" aria-label="Back to feed">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <Link href={`/profile/${article.author.username}`} className="flex items-center gap-2">
+          <Link href={profileUrl(article.author)} className="flex items-center gap-2">
             <Avatar className="w-8 h-8">
               <AvatarImage src={article.author.image ?? undefined} />
               <AvatarFallback>{article.author.name.charAt(0)}</AvatarFallback>
@@ -104,7 +83,7 @@ function ArticleView({ article }: { article: Article }) {
       <article className="max-w-3xl mx-auto w-full px-4 sm:px-8 py-8 sm:py-12">
         {series && (
           <Link
-            href={`/series/${series.id}`}
+            href={seriesUrl({ slug: series.slug, author: article.author })}
             className="flex items-center gap-2 mb-4 text-xs font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
           >
             <Layers className="w-3.5 h-3.5" />
@@ -140,7 +119,7 @@ function ArticleView({ article }: { article: Article }) {
           <div className="grid sm:grid-cols-2 gap-4 mt-12">
             {prevInSeries && (
               <Link
-                href={`/article/${prevInSeries.id}`}
+                href={articleUrl({ slug: prevInSeries.slug, author: article.author })}
                 className="p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
               >
                 <div className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">← Previous in series</div>
@@ -149,7 +128,7 @@ function ArticleView({ article }: { article: Article }) {
             )}
             {nextInSeries && (
               <Link
-                href={`/article/${nextInSeries.id}`}
+                href={articleUrl({ slug: nextInSeries.slug, author: article.author })}
                 className="p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors sm:text-right sm:col-start-2"
               >
                 <div className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1">Next in series →</div>

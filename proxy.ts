@@ -31,8 +31,39 @@ const AUTH_PAGES = ["/login", "/signup"];
 // of bug. The trade-off is a possible one-frame flash of a protected page
 // before the client-side redirect fires - acceptable here since, unlike
 // PROTECTED_PREFIXES above, this isn't a real access-control boundary.
+// /@username/... is the public-facing URL scheme; internally it's served by
+// app/(main)/u/[username]/... - a literal "@[username]" folder is not
+// possible, Next.js reserves the "@" prefix for parallel-route slots and
+// would silently strip it from the URL instead of matching it as a path
+// segment. Pure pathname string-splitting, no DB call - middleware runs on
+// nearly every request, so this has to stay O(1).
+function rewriteAtUsername(request: NextRequest, pathname: string): NextResponse | null {
+  if (!pathname.startsWith("/@")) return null;
+
+  const segments = pathname.slice(1).split("/"); // "/@alex/slug" -> ["@alex", "slug"]
+  const username = segments[0].slice(1);
+  if (!username) return null;
+
+  if (segments.length === 1) {
+    return NextResponse.rewrite(new URL(`/u/${username}`, request.url));
+  }
+  if (segments.length === 3 && segments[1] === "series" && segments[2]) {
+    return NextResponse.rewrite(new URL(`/u/${username}/series/${segments[2]}`, request.url));
+  }
+  if (segments.length === 2 && segments[1]) {
+    return NextResponse.rewrite(new URL(`/u/${username}/${segments[1]}`, request.url));
+  }
+
+  // Malformed shape (e.g. /@alex/a/b/c) - fall through to normal 404
+  // handling rather than guessing.
+  return null;
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  const atUsernameRewrite = rewriteAtUsername(request, pathname);
+  if (atUsernameRewrite) return atUsernameRewrite;
 
   // Cheap presence/signature check only - no DB round trip. This is
   // sufficient to gate navigation; every actual data request still goes

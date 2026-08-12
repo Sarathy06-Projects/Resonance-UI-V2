@@ -21,6 +21,11 @@ export function getUserArticles(authorId: string, cursor?: string | null) {
   return apiFetch<{ articles: Article[]; nextCursor: string | null }>(`/api/articles?${params.toString()}`);
 }
 
+// For the legacy /article/:id route.ts redirect handler only.
+export function getArticleRedirectTarget(id: string) {
+  return apiFetch<{ username: string | null; slug: string }>(`/api/articles/${id}/redirect-target`);
+}
+
 export function getArticle(id: string) {
   return apiFetch<Article>(`/api/articles/${id}`);
 }

@@ -111,6 +111,11 @@ export interface SeriesWithArticles extends Series {
   articles: SeriesArticle[];
 }
 
+// GET /api/content/by-slug/:username/:slug - articles and discussion-posts
+// share the /@username/[slug] namespace (see backend lib/slug.ts), so the
+// resolver route needs one call that disambiguates which this is.
+export type ResolvedContent = { type: "article"; article: Article } | { type: "post"; post: Post };
+
 export type CommentSort = "relevant" | "newest" | "oldest" | "liked";
 export type CommentReportReason = "spam" | "harassment" | "hate_speech" | "misinformation" | "other";
 

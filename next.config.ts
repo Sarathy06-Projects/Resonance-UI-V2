@@ -32,6 +32,16 @@ const nextConfig: NextConfig = {
       { source: "/proxy/uploads/:path*", destination: `${BACKEND_ORIGIN}/uploads/:path*` },
     ];
   },
+  // Permanent - real external backlinks and search-engine-cached URLs point
+  // at /profile/:username indefinitely. Not a temporary migration shim, so
+  // never remove this even once nothing internal links here anymore.
+  // (/article/:id, /post/:id, /series/:id redirect too, but those need a DB
+  // lookup to resolve to a slug - handled by route.ts handlers at those
+  // paths instead, since redirects() only supports static/pattern
+  // destinations.)
+  async redirects() {
+    return [{ source: "/profile/:username", destination: "/@:username", permanent: true }];
+  },
   async headers() {
     return [
       {
