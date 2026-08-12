@@ -11,6 +11,9 @@ export interface Post {
   id: string;
   authorId: string;
   type: "discussion" | "showcase" | "feedback";
+  // Only set for type="discussion" - showcase/feedback posts have no slug
+  // and keep their /post/:id URL forever. See lib/urls.ts's postUrl().
+  slug: string | null;
   content: string;
   images: string[];
   visibility: "public" | "followers" | "private";
@@ -39,6 +42,11 @@ export interface Post {
 
 export interface ArticlePreview {
   id: string;
+  slug: string;
+  // Needed to build the /@username/slug link - see lib/urls.ts's
+  // articleUrl(). Null only in the pathological case of a deleted-username
+  // author; articleUrl() falls back to the legacy /article/:id route then.
+  authorUsername: string | null;
   title: string;
   preview: string | null;
   coverImage: string | null;
@@ -49,6 +57,7 @@ export interface Article {
   id: string;
   authorId: string;
   title: string;
+  slug: string;
   preview: string | null;
   content: string;
   coverImage: string | null;
@@ -74,15 +83,22 @@ export interface Series {
   id: string;
   authorId: string;
   title: string;
+  slug: string;
   description: string | null;
   coverImage: string | null;
   articlesCount: number;
   createdAt: string;
   updatedAt: string;
+  // Only present on GET /api/series/by-slug/:username/:slug - the plain
+  // GET /api/series/:id and GET /api/series?authorId= list don't join it
+  // (both are only ever called with the author already known from
+  // context), so it's optional rather than required.
+  author?: Author;
 }
 
 export interface SeriesArticle {
   id: string;
+  slug: string;
   title: string;
   preview: string | null;
   coverImage: string | null;
