@@ -15,6 +15,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { getProfile, updateProfile, uploadAvatar, uploadCover, checkUsername } from "@/lib/api/users";
 import { allTopics } from "@/lib/topics";
 import { cn } from "@/lib/utils";
+import { profileUrl } from "@/lib/urls";
 
 const MAX_TAGS = 20;
 const MAX_TAG_LENGTH = 40;
@@ -188,7 +189,7 @@ function EditProfileForm({ username }: { username: string }) {
         // forward rather than guessing.
         hasOnboarded: user?.hasOnboarded ?? true,
       });
-      router.push(`/profile/${updated.username}`);
+      router.push(profileUrl(updated));
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Couldn't save your profile.");
       setIsSaving(false);
@@ -217,7 +218,7 @@ function EditProfileForm({ username }: { username: string }) {
   return (
     <div className="flex flex-col min-h-screen pb-20 md:pb-0">
       <div className="sticky top-0 sm:top-16 z-10 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 px-4 py-4 sm:py-5 flex items-center gap-4">
-        <Link href={`/profile/${profile.username}`} className="p-2 -ml-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
+        <Link href={profileUrl(profile)} className="p-2 -ml-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <h1 className="text-xl font-bold tracking-tight">Edit Profile</h1>

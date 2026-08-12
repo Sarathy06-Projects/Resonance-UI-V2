@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { formatCount } from "@/lib/formatCount";
 import { CheckCircle2, Calendar, Zap, LayoutTemplate, Palette, Type } from "lucide-react";
 import Link from "next/link";
+import { articleUrl, profileUrl, topicUrl } from "@/lib/urls";
 
 interface RightPanelProps {
   className?: string;
@@ -51,7 +52,7 @@ export function RightPanel({ className }: RightPanelProps) {
               <span>{featuredArticle.author.name}</span>
               {featuredArticle.readTime && <span>{featuredArticle.readTime}</span>}
             </div>
-            <Button variant="secondary" size="sm" nativeButton={false} className="w-full mt-5 rounded-xl font-semibold bg-white dark:bg-zinc-800 text-zinc-950 dark:text-white shadow-sm border border-zinc-100 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors" render={<Link href={`/article/${featuredArticle.id}`} />}>
+            <Button variant="secondary" size="sm" nativeButton={false} className="w-full mt-5 rounded-xl font-semibold bg-white dark:bg-zinc-800 text-zinc-950 dark:text-white shadow-sm border border-zinc-100 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors" render={<Link href={articleUrl(featuredArticle)} />}>
               Read Article
             </Button>
           </div>
@@ -74,7 +75,7 @@ export function RightPanel({ className }: RightPanelProps) {
           <h3 className="font-bold text-[16px] text-zinc-950 mb-5 dark:text-zinc-100">Trending Topics</h3>
           <div className="space-y-5">
             {trending.hashtags.map((trend) => (
-              <Link href={`/hashtag/${trend.tag.replace('#', '')}`} key={trend.tag} className="flex items-center justify-between cursor-pointer group">
+              <Link href={topicUrl(trend.tag)} key={trend.tag} className="flex items-center justify-between cursor-pointer group">
                 <div className="flex flex-col">
                   <span className="font-bold text-sm text-zinc-950 group-hover:underline dark:text-zinc-100">{trend.tag}</span>
                   <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mt-1">{trend.postsCount} posts</span>
@@ -167,7 +168,7 @@ function WhoToFollowRow({ user }: { user: { id: string; name: string; username: 
 
   return (
     <div className="flex items-center justify-between gap-3 group/user">
-      <Link href={`/profile/${user.username}`} className="flex items-center gap-3 min-w-0">
+      <Link href={profileUrl(user)} className="flex items-center gap-3 min-w-0">
         <Avatar className="w-10 h-10 border border-zinc-100 dark:border-zinc-700 shrink-0 shadow-sm">
           <AvatarImage src={user.image ?? undefined} />
           <AvatarFallback className="dark:bg-zinc-800 dark:text-zinc-300">{user.name.charAt(0)}</AvatarFallback>

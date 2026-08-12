@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Home, Compass, Bell, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/useAuthStore";
+import { profileUrl } from "@/lib/urls";
 
 interface BottomNavProps {
   className?: string;
@@ -18,7 +19,8 @@ export function BottomNav({ className }: BottomNavProps) {
     { name: "Home", href: "/", icon: Home },
     { name: "Explore", href: "/explore", icon: Compass },
     { name: "Notifications", href: "/notifications", icon: Bell, protected: true },
-    { name: "Profile", href: user ? `/profile/${user.username}` : "/profile", icon: User, protected: true },
+    // "#" when logged out is inert - see Sidebar.tsx's identical comment.
+    { name: "Profile", href: user ? profileUrl(user) : "#", icon: User, protected: true },
   ];
 
   const handleProtectedAction = (e: React.MouseEvent, isProtected?: boolean) => {

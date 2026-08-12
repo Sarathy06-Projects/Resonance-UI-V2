@@ -21,6 +21,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { Logo } from "@/components/shared/Logo";
 import { motion } from "framer-motion";
+import { profileUrl } from "@/lib/urls";
 
 interface TopNavProps {
   className?: string;
@@ -179,7 +180,7 @@ export function TopNav({ className }: TopNavProps) {
                     </div>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push(`/profile/${user.username}`)}>
+                  <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push(profileUrl(user))}>
                     <UserIcon className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
                     <span>Profile</span>
                   </DropdownMenuItem>

@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bookmark, Layers, ImageOff } from "lucide-react";
 import type { Article } from "@/lib/api/types";
 import { timeAgo } from "@/lib/formatTime";
+import { articleUrl } from "@/lib/urls";
 
 interface ArticleCardProps {
   article: Article;
@@ -13,7 +14,7 @@ interface ArticleCardProps {
 
 export function ArticleCard({ article }: ArticleCardProps) {
   return (
-    <Link href={`/article/${article.id}`} className="block group h-full w-[300px] sm:w-[380px] shrink-0">
+    <Link href={articleUrl(article)} className="block group h-full w-[300px] sm:w-[380px] shrink-0">
       <div className="flex flex-col h-full bg-white dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 rounded-3xl overflow-hidden hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all duration-300">
 
         <div className="w-full h-[200px] overflow-hidden bg-zinc-100 dark:bg-zinc-900 relative">

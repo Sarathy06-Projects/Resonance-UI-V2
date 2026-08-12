@@ -18,6 +18,7 @@ import { getDraft, createDraft, updateDraft, publishDraft } from "@/lib/api/draf
 import { uploadArticleCover } from "@/lib/api/uploads";
 import { ImageAttachButton, ImageAttachmentsGrid } from "@/components/shared/ImageAttachments";
 import { createSeries, getUserSeries } from "@/lib/api/series";
+import { articleUrl, postUrl } from "@/lib/urls";
 import type { Series } from "@/lib/api/types";
 
 const TOPICS = [
@@ -211,7 +212,7 @@ function CreatePageInner() {
       const result = await publishDraft(draftId.current);
       setPublishSuccess(true);
       setTimeout(() => {
-        router.push(result.resultType === "article" ? `/article/${result.id}` : `/post/${result.id}`);
+        router.push(result.resultType === "article" ? articleUrl(result) : postUrl(result));
       }, 1200);
     } catch {
       setIsPublishing(false);

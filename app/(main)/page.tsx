@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { profileUrl } from "@/lib/urls";
 import { ArrowRight, Inbox } from "lucide-react";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { ErrorState } from "@/components/shared/ErrorState";
@@ -78,14 +79,15 @@ export default function Home() {
     }
   });
 
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://resonance.design";
   const websiteJsonLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "Resonance - Design Community",
-    "url": "https://resonance.design",
+    "url": siteUrl,
     "potentialAction": {
       "@type": "SearchAction",
-      "target": "https://resonance.design/explore?q={search_term_string}",
+      "target": `${siteUrl}/explore?q={search_term_string}`,
       "query-input": "required name=search_term_string"
     }
   };
@@ -183,7 +185,7 @@ function FeaturedDesignerCard({ user }: { user: { id: string; name: string; user
 
   return (
     <div className="snap-start shrink-0 w-[240px] p-6 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl flex flex-col hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-0.5 transition-all duration-300">
-      <Link href={`/profile/${user.username}`}>
+      <Link href={profileUrl(user)}>
         <Avatar className="w-14 h-14 mb-4 shadow-sm border border-zinc-100 dark:border-zinc-800">
           <AvatarImage src={user.image ?? undefined} />
           <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>

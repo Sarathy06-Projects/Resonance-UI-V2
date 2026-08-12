@@ -3,6 +3,7 @@
 import Link from "next/link";
 import useSWR from "swr";
 import { getUserArticles } from "@/lib/api/articles";
+import { articleUrl } from "@/lib/urls";
 
 export function MoreFromAuthor({ authorId, currentArticleId }: { authorId: string; currentArticleId?: string }) {
   const { data } = useSWR(`author-articles-${authorId}`, () => getUserArticles(authorId));
@@ -21,7 +22,7 @@ export function MoreFromAuthor({ authorId, currentArticleId }: { authorId: strin
       <div className="space-y-4">
         {authorArticles.map((article) => (
           <article key={article.id} className="group">
-            <Link href={`/article/${article.id}`}>
+            <Link href={articleUrl(article)}>
               <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
                 {article.title}
               </h4>

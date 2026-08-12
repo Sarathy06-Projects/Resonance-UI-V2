@@ -13,6 +13,7 @@ import { PostImageGrid } from "@/components/shared/ImageAttachments";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { profileUrl, postUrl, articleUrl, topicUrl } from "@/lib/urls";
 
 interface PostCardProps {
   post: Post;
@@ -46,7 +47,7 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
 
   const handleCardClick = () => {
     if (!isDetailed) {
-      router.push(`/post/${post.id}`);
+      router.push(postUrl(post));
     }
   };
 
@@ -63,7 +64,7 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
       )}
 
       <div className="flex gap-4">
-        <Link href={post.author.username ? `/profile/${post.author.username}` : "#"} className="shrink-0 pt-1" onClick={(e) => { e.stopPropagation(); if (!post.author.username) e.preventDefault(); }}>
+        <Link href={profileUrl(post.author)} className="shrink-0 pt-1" onClick={(e) => { e.stopPropagation(); if (!post.author.username) e.preventDefault(); }}>
           <Avatar className="w-11 h-11 border border-zinc-100 dark:border-zinc-800 shadow-sm">
             <AvatarImage src={post.author.image ?? undefined} />
             <AvatarFallback className="dark:bg-zinc-800 dark:text-zinc-300">{post.author.name.charAt(0)}</AvatarFallback>
@@ -72,7 +73,7 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
-            <Link href={post.author.username ? `/profile/${post.author.username}` : "#"} className="flex items-center gap-1.5 truncate hover:underline" onClick={(e) => { e.stopPropagation(); if (!post.author.username) e.preventDefault(); }}>
+            <Link href={profileUrl(post.author)} className="flex items-center gap-1.5 truncate hover:underline" onClick={(e) => { e.stopPropagation(); if (!post.author.username) e.preventDefault(); }}>
               <span className="font-bold text-[16px] text-zinc-950 dark:text-zinc-100 truncate tracking-tight">{post.author.name}</span>
               {post.author.username && (
                 <span className="text-[14px] text-zinc-500 dark:text-zinc-400 font-medium truncate">@{post.author.username}</span>
@@ -101,7 +102,15 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
           {linkedArticle && (
             <div
               className="mt-4 mb-4 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800/60 shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors bg-white dark:bg-zinc-900 flex flex-col sm:flex-row group/article"
-              onClick={(e) => { e.stopPropagation(); router.push(`/article/${linkedArticle.id}`); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                // linkedArticle is either the embedded ArticlePreview (flat
+                // authorUsername) or the SWR-fetched full Article (nested
+                // author.username) - two different response shapes for the
+                // same underlying article, see the useSWR call above.
+                const authorUsername = "authorUsername" in linkedArticle ? linkedArticle.authorUsername : linkedArticle.author.username;
+                router.push(articleUrl({ slug: linkedArticle.slug, author: { username: authorUsername } }));
+              }}
             >
               <div className="sm:w-1/3 h-[140px] sm:h-auto shrink-0 relative overflow-hidden bg-zinc-100 dark:bg-zinc-900">
                 {linkedArticle.coverImage ? (
@@ -135,7 +144,7 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
               {post.hashtags.map((tag: string) => (
                 <Link
                   key={tag}
-                  href={`/hashtag/${tag.replace('#', '')}`}
+                  href={topicUrl(tag)}
                   className="text-sm text-blue-600 hover:underline"
                   onClick={(e) => e.stopPropagation()}
                 >

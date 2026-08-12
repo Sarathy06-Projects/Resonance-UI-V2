@@ -20,6 +20,7 @@ import { formatCount } from "@/lib/formatCount";
 import Link from "next/link";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { ErrorState } from "@/components/shared/ErrorState";
+import { profileUrl, topicUrl } from "@/lib/urls";
 import type { Author } from "@/lib/api/types";
 
 const SectionHeader = ({ title, subtitle, action }: { title: string, subtitle?: string, action?: React.ReactNode }) => (
@@ -38,7 +39,7 @@ function DesignerCard({ user }: { user: Author & { followersCount?: number } }) 
 
   return (
     <div className="w-[280px] shrink-0 p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl flex flex-col hover:shadow-sm transition-all duration-300 group">
-      <Link href={`/profile/${user.username}`} className="flex items-center gap-3 mb-4">
+      <Link href={profileUrl(user)} className="flex items-center gap-3 mb-4">
         <Avatar className="w-12 h-12 border border-zinc-200 dark:border-zinc-700">
           <AvatarImage src={user.image ?? undefined} />
           <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
@@ -115,7 +116,7 @@ export default function ExplorePage() {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     "name": "Explore - Resonance",
-    "url": "https://resonance.design/explore"
+    "url": `${process.env.NEXT_PUBLIC_APP_URL || "https://resonance.design"}/explore`
   };
 
   return (
@@ -232,7 +233,7 @@ export default function ExplorePage() {
                 <SectionHeader title="Trending Today" subtitle="The most discussed topics right now." />
                 <div className="flex gap-4 overflow-x-auto px-4 sm:px-6 pb-4 no-scrollbar snap-x snap-mandatory">
                   {trending.hashtags.map((tag) => (
-                    <Link href={`/hashtag/${tag.tag.replace('#', '')}`} key={tag.tag} className="snap-start shrink-0 min-w-[200px] p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl hover:border-zinc-200 dark:hover:border-zinc-700 transition-colors cursor-pointer group">
+                    <Link href={topicUrl(tag.tag)} key={tag.tag} className="snap-start shrink-0 min-w-[200px] p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl hover:border-zinc-200 dark:hover:border-zinc-700 transition-colors cursor-pointer group">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl group-hover:scale-110 transition-transform">
                           <Hash className="w-5 h-5" />
@@ -250,7 +251,7 @@ export default function ExplorePage() {
                 <SectionHeader title="Hashtags" />
                 <div className="flex gap-4 overflow-x-auto px-4 sm:px-6 pb-4 no-scrollbar">
                   {searchResults.hashtags.map((tag) => (
-                    <Link href={`/hashtag/${tag.tag.replace('#', '')}`} key={tag.tag} className="snap-start shrink-0 min-w-[200px] p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl">
+                    <Link href={topicUrl(tag.tag)} key={tag.tag} className="snap-start shrink-0 min-w-[200px] p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl">
                       <span className="font-bold text-lg dark:text-white">{tag.tag}</span>
                       <div className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">{tag.postsCount} posts</div>
                     </Link>

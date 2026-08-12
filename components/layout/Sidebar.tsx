@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Logo } from "@/components/shared/Logo";
+import { profileUrl } from "@/lib/urls";
 
 interface SidebarProps {
   className?: string;
@@ -20,7 +21,10 @@ export function Sidebar({ className }: SidebarProps) {
     { name: "Home", href: "/", icon: Home },
     { name: "Explore", href: "/explore", icon: Compass },
     { name: "Notifications", href: "/notifications", icon: Bell, protected: true },
-    { name: "Profile", href: user ? `/profile/${user.username}` : "/profile", icon: User, protected: true },
+    // "#" when logged out is inert - clicking a protected item while
+    // unauthenticated opens the auth modal instead of navigating (see
+    // handleProtectedAction below), so this href is never actually used then.
+    { name: "Profile", href: user ? profileUrl(user) : "#", icon: User, protected: true },
     { name: "Settings", href: "/settings", icon: Settings, protected: true },
   ];
 

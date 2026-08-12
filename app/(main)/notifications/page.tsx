@@ -12,6 +12,7 @@ import Link from "next/link";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "@/lib/api/notifications";
 import { timeAgo } from "@/lib/formatTime";
+import { profileUrl } from "@/lib/urls";
 import type { NotificationItem } from "@/lib/api/types";
 
 type Category = "all" | "unread" | "mentions" | "replies" | "likes" | "follows" | "articles" | "system";
@@ -51,9 +52,18 @@ function groupByRecency(items: NotificationItem[]) {
 }
 
 function targetHref(n: NotificationItem): string | null {
+  // These two are the one deliberate exception left in the /@username/slug
+  // migration: the notification payload only carries targetId, not the
+  // target content's author/slug (and the notification's own `actor` isn't
+  // necessarily that author - e.g. a "like" notification's actor liked
+  // *your* content, they didn't write it). Enriching this is a real but
+  // separate fast-follow (touches every notification-creation call site in
+  // the backend's notify.ts). The permanent /article/:id and /post/:id
+  // redirect layer handles these correctly either way - one extra redirect
+  // hop, no SEO cost since this page is behind auth and noindex already.
   if (n.targetType === "post" && n.targetId) return `/post/${n.targetId}`;
   if (n.targetType === "article" && n.targetId) return `/article/${n.targetId}`;
-  if (n.targetType === "user" && n.actor?.username) return `/profile/${n.actor.username}`;
+  if (n.targetType === "user" && n.actor?.username) return profileUrl(n.actor);
   return null;
 }
 
@@ -209,7 +219,7 @@ export default function NotificationsPage() {
                               {notif.type === "system" ? (
                                 <span className="font-bold text-[15px] dark:text-white">Resonance</span>
                               ) : (
-                                <Link href={`/profile/${notif.actor?.username}`} className="font-bold text-[15px] dark:text-white hover:underline truncate max-w-[200px]" onClick={e => e.stopPropagation()}>
+                                <Link href={profileUrl({ username: notif.actor?.username ?? null })} className="font-bold text-[15px] dark:text-white hover:underline truncate max-w-[200px]" onClick={e => e.stopPropagation()}>
                                   {notif.actor?.name ?? "Someone"}
                                 </Link>
                               )}

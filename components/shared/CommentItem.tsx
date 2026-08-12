@@ -17,6 +17,7 @@ import { useCommentReplies } from "@/lib/hooks/useCommentReplies";
 import { useLongPress } from "@/lib/hooks/useLongPress";
 import { useSwipeReply } from "@/lib/hooks/useSwipeReply";
 import type { Comment, CommentReportReason } from "@/lib/api/types";
+import { profileUrl, topicUrl } from "@/lib/urls";
 
 interface CommentItemProps {
   comment: Comment;
@@ -241,8 +242,8 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
             ) : (
               <p className="mb-2 text-[15px] leading-normal whitespace-pre-wrap text-zinc-900 dark:text-zinc-200">
                 {renderCommentContent(content, {
-                  onMentionClick: (username) => router.push(`/profile/${username}`),
-                  onHashtagClick: (tag) => router.push(`/hashtag/${tag}`),
+                  onMentionClick: (username) => router.push(profileUrl({ username })),
+                  onHashtagClick: (tag) => router.push(topicUrl(tag)),
                 })}
               </p>
             )}

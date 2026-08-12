@@ -5,6 +5,7 @@ import Image from "next/image";
 import useSWR from "swr";
 import { ImageOff } from "lucide-react";
 import { getPopularArticles } from "@/lib/api/articles";
+import { articleUrl } from "@/lib/urls";
 
 export function RelatedArticles({ currentArticleId, tags }: { currentArticleId: string; tags: string[] }) {
   const { data } = useSWR("popular-articles-related", () => getPopularArticles(4));
@@ -23,7 +24,7 @@ export function RelatedArticles({ currentArticleId, tags }: { currentArticleId: 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {related.map((article) => (
           <article key={article.id} className="group flex flex-col gap-3">
-            <Link href={`/article/${article.id}`} className="relative block h-40 rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+            <Link href={articleUrl(article)} className="relative block h-40 rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-900">
               {article.coverImage ? (
                 <Image
                   src={article.coverImage}
@@ -49,7 +50,7 @@ export function RelatedArticles({ currentArticleId, tags }: { currentArticleId: 
                   </>
                 )}
               </div>
-              <Link href={`/article/${article.id}`}>
+              <Link href={articleUrl(article)}>
                 <h4 className="text-lg font-bold dark:text-white mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                   {article.title}
                 </h4>
