@@ -1,5 +1,14 @@
 import Link from "next/link";
+import { Metadata } from "next";
 import { Logo } from "@/components/shared/Logo";
+import { constructMetadata } from "@/lib/seo";
+
+// Applies to every route in this group (login, signup, reset-password,
+// create-password) in one place - none of them have unique per-visitor
+// content worth indexing, and reset/create-password additionally carry
+// sensitive one-time tokens in the query string that should never end up
+// in a search index regardless of crawl access.
+export const metadata: Metadata = constructMetadata({ noIndex: true });
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (

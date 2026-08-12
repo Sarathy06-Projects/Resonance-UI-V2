@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { ArticleCard } from "@/components/shared/ArticleCard";
 import { PostCard } from "@/components/shared/PostCard";
 import { getHashtagArticles, getHashtagPosts } from "@/lib/api/hashtags";
-import { topicUrl } from "@/lib/urls";
+import { articleUrl, postUrl, topicUrl } from "@/lib/urls";
+import { getSiteUrl } from "@/lib/siteUrl";
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://resonance.design";
+const siteUrl = getSiteUrl();
 
 // Hub landing - a preview of both content types with links through to the
 // full listings. Real content aggregation (the point of a "topic hub" page
@@ -27,11 +28,33 @@ export default async function TopicPage({ params }: { params: Promise<{ tag: str
 
   if (articles.length === 0 && posts.length === 0) notFound();
 
+  // Mirrors exactly what's rendered below (same slice(0,6)/slice(0,5)) -
+  // the ItemList should describe the real page content, not a superset
+  // the visitor never sees.
+  const visibleArticles = articles.slice(0, 6);
+  const visiblePosts = posts.slice(0, 5);
   const collectionJsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     name: `#${tag} - Resonance`,
     url: `${siteUrl}${topicUrl(tag)}`,
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: [
+        ...visibleArticles.map((article, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          url: `${siteUrl}${articleUrl(article)}`,
+          name: article.title,
+        })),
+        ...visiblePosts.map((post, i) => ({
+          "@type": "ListItem",
+          position: visibleArticles.length + i + 1,
+          url: `${siteUrl}${postUrl(post)}`,
+          name: post.content.length > 80 ? `${post.content.slice(0, 80)}...` : post.content,
+        })),
+      ],
+    },
   };
 
   return (

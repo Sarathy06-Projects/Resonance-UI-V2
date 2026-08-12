@@ -4,8 +4,9 @@ import { getUserPosts } from "@/lib/api/posts";
 import { ApiError } from "@/lib/api/client";
 import { profileUrl } from "@/lib/urls";
 import { ProfileView } from "@/components/profile/ProfileView";
+import { getSiteUrl } from "@/lib/siteUrl";
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://resonance.design";
+const siteUrl = getSiteUrl();
 
 export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;

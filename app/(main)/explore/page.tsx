@@ -21,6 +21,7 @@ import Link from "next/link";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { profileUrl, topicUrl } from "@/lib/urls";
+import { getSiteUrl } from "@/lib/siteUrl";
 import type { Author } from "@/lib/api/types";
 
 const SectionHeader = ({ title, subtitle, action }: { title: string, subtitle?: string, action?: React.ReactNode }) => (
@@ -116,12 +117,12 @@ export default function ExplorePage() {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     "name": "Explore - Resonance",
-    "url": `${process.env.NEXT_PUBLIC_APP_URL || "https://resonance.design"}/explore`
+    "url": `${getSiteUrl()}/explore`
   };
 
   return (
     <main className="flex flex-col min-h-screen w-full bg-white dark:bg-zinc-950 pb-20 overflow-x-hidden">
-      <JsonLd data={exploreJsonLd} />
+      <JsonLd id="explore-json-ld" data={exploreJsonLd} />
 
       <div className="sticky top-0 sm:top-16 z-30 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800">
 

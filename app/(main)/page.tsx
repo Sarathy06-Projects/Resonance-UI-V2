@@ -17,6 +17,7 @@ import { profileUrl } from "@/lib/urls";
 import { ArrowRight, Inbox } from "lucide-react";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { ErrorState } from "@/components/shared/ErrorState";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"foryou" | "following">("foryou");
@@ -79,7 +80,7 @@ export default function Home() {
     }
   });
 
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://resonance.design";
+  const siteUrl = getSiteUrl();
   const websiteJsonLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -94,7 +95,7 @@ export default function Home() {
 
   return (
     <main className="flex flex-col min-h-screen">
-      <JsonLd data={websiteJsonLd} />
+      <JsonLd id="website-json-ld" data={websiteJsonLd} />
 
       {/* Header & Tabs */}
       <div className="sticky top-0 sm:top-14 z-30 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 transition-all duration-300">

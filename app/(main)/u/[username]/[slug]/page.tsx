@@ -6,8 +6,9 @@ import { profileUrl, articleUrl, topicUrl } from "@/lib/urls";
 import { breadcrumbJsonLd } from "@/components/shared/Breadcrumbs";
 import { ArticleDetailView } from "@/components/content/ArticleDetailView";
 import { PostDetailView } from "@/components/content/PostDetailView";
+import { getSiteUrl } from "@/lib/siteUrl";
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://resonance.design";
+const siteUrl = getSiteUrl();
 
 export default async function ContentPage({ params }: { params: Promise<{ username: string; slug: string }> }) {
   const { username, slug } = await params;

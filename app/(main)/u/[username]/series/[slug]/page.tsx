@@ -6,8 +6,9 @@ import { ApiError } from "@/lib/api/client";
 import { timeAgo } from "@/lib/formatTime";
 import { articleUrl, profileUrl, seriesUrl } from "@/lib/urls";
 import { Breadcrumbs, breadcrumbJsonLd } from "@/components/shared/Breadcrumbs";
+import { getSiteUrl } from "@/lib/siteUrl";
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://resonance.design";
+const siteUrl = getSiteUrl();
 
 // No client interactivity at all here (just navigation links), so unlike
 // the profile/article/post routes this needs no client sub-component -

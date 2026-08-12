@@ -1,15 +1,39 @@
+import { Metadata } from "next";
 import Link from "next/link";
-import { FileText, ArrowLeft } from "lucide-react";
+import { FileText, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ArticleCard } from "@/components/shared/ArticleCard";
 import { getHashtagArticles } from "@/lib/api/hashtags";
 import { topicUrl } from "@/lib/urls";
+import { constructMetadata } from "@/lib/seo";
 
-export default async function TopicArticlesPage({ params }: { params: Promise<{ tag: string }> }) {
+type Props = {
+  params: Promise<{ tag: string }>;
+  searchParams: Promise<{ cursor?: string }>;
+};
+
+// Own generateMetadata (rather than inheriting the parent hub layout's)
+// because canonical must vary per page - this is real, distinct listing
+// content, not an alternate view of the hub at /topics/:tag.
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { tag: rawTag } = await params;
+  const { cursor } = await searchParams;
+  const tag = decodeURIComponent(rawTag);
+  const canonical = `${topicUrl(tag)}/articles${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`;
+
+  return constructMetadata({
+    title: `#${tag} Articles - Resonance`,
+    description: `Browse articles tagged #${tag} on Resonance.`,
+    canonical,
+  });
+}
+
+export default async function TopicArticlesPage({ params, searchParams }: Props) {
+  const { tag: rawTag } = await params;
+  const { cursor } = await searchParams;
   const tag = decodeURIComponent(rawTag);
 
-  const { articles } = await getHashtagArticles(tag).catch(() => ({ articles: [] }));
+  const { articles, nextCursor } = await getHashtagArticles(tag, cursor ?? null).catch(() => ({ articles: [], nextCursor: null }));
 
   return (
     <main className="flex flex-col min-h-screen bg-white dark:bg-zinc-950 pb-20 md:pb-0">
@@ -25,7 +49,7 @@ export default async function TopicArticlesPage({ params }: { params: Promise<{ 
               <span className="text-zinc-400 font-medium">#</span>
               {tag} — Articles
             </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">{articles.length} {articles.length === 1 ? "article" : "articles"}</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">{articles.length} {articles.length === 1 ? "article" : "articles"}{cursor ? " on this page" : ""}</p>
           </div>
         </div>
       </div>
@@ -42,6 +66,18 @@ export default async function TopicArticlesPage({ params }: { params: Promise<{ 
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {articles.map((article) => <ArticleCard key={article.id} article={article} />)}
+          </div>
+        )}
+
+        {/* Real <a href> pagination, not a client-side "load more" button -
+            a crawler needs an actual link to reach page 2+. */}
+        {nextCursor && (
+          <div className="flex justify-center pt-8">
+            <Link href={`${topicUrl(tag)}/articles?cursor=${encodeURIComponent(nextCursor)}`}>
+              <Button variant="outline" className="rounded-full">
+                Next page <ArrowRight className="w-4 h-4 ml-1.5" />
+              </Button>
+            </Link>
           </div>
         )}
       </div>

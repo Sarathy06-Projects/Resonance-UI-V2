@@ -13,6 +13,10 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
       description: user.bio || `Profile of ${user.name} on Resonance.`,
       image: user.image || "/og-image.png",
       canonical: profileUrl(user),
+      // Matches the sitemap-feed eligibility rule in the backend
+      // (postsCount + articlesCount > 0) - an empty profile shouldn't be
+      // indexable even if it's linked to from somewhere and crawled directly.
+      noIndex: user.postsCount === 0 && user.articlesCount === 0,
     });
   } catch {
     return constructMetadata({ title: "Profile Not Found - Resonance", noIndex: true });

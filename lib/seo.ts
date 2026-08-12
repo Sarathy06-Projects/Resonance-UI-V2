@@ -1,6 +1,7 @@
 import { Metadata } from "next";
+import { getSiteUrl } from "./siteUrl";
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://resonance.design";
+const siteUrl = getSiteUrl();
 
 export function constructMetadata({
   title = "Resonance - Design Community",
