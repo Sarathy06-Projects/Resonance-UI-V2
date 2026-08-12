@@ -18,17 +18,19 @@ const PROTECTED_PREFIXES = ["/settings", "/create", "/notifications", "/drafts",
 const AUTH_PAGES = ["/login", "/signup"];
 
 // Onboarding completion is deliberately *not* gated here too. A middleware
-// fast-path would need to read the session-cache cookie without a DB
-// round trip, but /api/onboarding/complete updates the user via a raw DB
-// write on the backend (bypassing better-auth's own update path), so that
-// cookie never gets refreshed on completion - the middleware would keep
-// seeing the stale pre-onboarding snapshot and redirect the user straight
-// back to /onboarding the instant after they finish it. OnboardingGuard
+// fast-path would need to read the session-cache cookie without a DB round
+// trip, but /api/onboarding/complete updates the user via a raw DB write on
+// the backend (bypassing better-auth's own update path) - the onboarding
+// page forces a disableCookieCache session refetch right after that write
+// succeeds (see app/onboarding/page.tsx's handleFinish) specifically so the
+// cache cookie itself ends up correct, not just this tab's in-memory state,
+// but that's still one extra request the middleware would otherwise need to
+// duplicate on every navigation just to be sure. OnboardingGuard
 // (components/providers/OnboardingGuard.tsx, mounted in
-// app/(main)/layout.tsx) is the single source of truth for this instead:
-// it reads live zustand state that the onboarding page explicitly updates
-// the moment completion succeeds, so it doesn't have this staleness class
-// of bug. The trade-off is a possible one-frame flash of a protected page
+// app/(main)/layout.tsx) stays the single source of truth here instead: it
+// reads live zustand state that the onboarding page updates the moment
+// completion succeeds, so it doesn't need a DB round trip in middleware at
+// all. The trade-off is a possible one-frame flash of a protected page
 // before the client-side redirect fires - acceptable here since, unlike
 // PROTECTED_PREFIXES above, this isn't a real access-control boundary.
 // /@username/... is the public-facing URL scheme; internally it's served by

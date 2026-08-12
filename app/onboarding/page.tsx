@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { completeOnboarding } from "@/lib/api/onboarding";
 import { checkUsername } from "@/lib/api/users";
+import { authClient } from "@/lib/auth-client";
 import { useAuthStore } from "@/store/useAuthStore";
 import { allTopics } from "@/lib/topics";
 
@@ -75,6 +76,18 @@ export default function OnboardingPage() {
         username: profile.username || undefined,
         bio: profile.bio || undefined,
       });
+      // completeOnboarding() is a raw DB write on the backend, bypassing
+      // better-auth's own update path entirely - it never touches the
+      // frontend's session cookie cache (lib/auth.ts's 5-minute
+      // cookieCache). Without this, the cache keeps serving the
+      // pre-onboarding snapshot (onboardedAt: null) on every request until
+      // it naturally expires, so a refresh right after finishing onboarding
+      // reads stale data and OnboardingGuard bounces the user straight back
+      // here. Force a cache-bypassing session fetch so the response sets a
+      // fresh cache cookie reflecting the real, now-onboarded state -
+      // best-effort: the local zustand state below is already correct for
+      // this tab regardless of whether this call succeeds.
+      await authClient.getSession({ query: { disableCookieCache: true } }).catch(() => {});
       syncSession({
         id: updated.id,
         name: updated.name,
