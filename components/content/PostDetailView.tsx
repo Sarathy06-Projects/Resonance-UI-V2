@@ -4,7 +4,6 @@ import { PostCard } from "@/components/shared/PostCard";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { CommentThread } from "@/components/shared/CommentThread";
-import { RelatedDiscussions } from "@/components/seo/RelatedDiscussions";
 import type { Post } from "@/lib/api/types";
 
 export function PostDetailView({ post }: { post: Post }) {
@@ -29,7 +28,6 @@ export function PostDetailView({ post }: { post: Post }) {
         </div>
 
         <CommentThread targetType="post" targetId={post.id} targetAuthorId={post.authorId} />
-        <RelatedDiscussions currentPostId={post.id} />
       </article>
     </main>
   );
