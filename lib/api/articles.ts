@@ -26,6 +26,16 @@ export function getArticleRedirectTarget(id: string) {
   return apiFetch<{ username: string | null; slug: string }>(`/api/articles/${id}/redirect-target`);
 }
 
+// For app/sitemap.ts only - unfiltered (no authorId scoping, unlike every
+// other list endpoint here), already filtered server-side to published.
+export function getArticlesSitemapFeed(cursor?: string | null) {
+  const params = new URLSearchParams({ limit: "100" });
+  if (cursor) params.set("cursor", cursor);
+  return apiFetch<{ articles: { slug: string; username: string; updatedAt: string; id: string }[]; nextCursor: string | null }>(
+    `/api/articles/sitemap-feed?${params.toString()}`
+  );
+}
+
 export function getArticle(id: string) {
   return apiFetch<Article>(`/api/articles/${id}`);
 }

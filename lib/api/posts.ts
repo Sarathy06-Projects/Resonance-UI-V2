@@ -43,6 +43,16 @@ export function getPostRedirectTarget(id: string) {
   return apiFetch<{ username: string | null; slug: string | null }>(`/api/posts/${id}/redirect-target`);
 }
 
+// For app/sitemap.ts only - already filtered server-side to indexable
+// discussion posts (type=discussion, >=200 chars).
+export function getPostsSitemapFeed(cursor?: string | null) {
+  const params = new URLSearchParams({ limit: "100" });
+  if (cursor) params.set("cursor", cursor);
+  return apiFetch<{ posts: { slug: string; username: string; updatedAt: string }[]; nextCursor: string | null }>(
+    `/api/posts/sitemap-feed?${params.toString()}`
+  );
+}
+
 export function deletePost(id: string) {
   return apiFetch<{ deleted: boolean }>(`/api/posts/${id}`, { method: "DELETE" });
 }

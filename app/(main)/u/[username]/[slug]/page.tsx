@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { getContentBySlug } from "@/lib/api/content";
 import { getSeries } from "@/lib/api/series";
 import { ApiError } from "@/lib/api/client";
-import { profileUrl } from "@/lib/urls";
+import { profileUrl, articleUrl, topicUrl } from "@/lib/urls";
+import { breadcrumbJsonLd } from "@/components/shared/Breadcrumbs";
 import { ArticleDetailView } from "@/components/content/ArticleDetailView";
 import { PostDetailView } from "@/components/content/PostDetailView";
 
@@ -33,9 +34,16 @@ export default async function ContentPage({ params }: { params: Promise<{ userna
       author: [{ "@type": "Person", name: article.author.name, url: `${siteUrl}${profileUrl(article.author)}` }],
     };
 
+    const breadcrumbs = breadcrumbJsonLd([
+      { label: "Home", url: siteUrl },
+      ...(article.tags?.[0] ? [{ label: `#${article.tags[0]}`, url: `${siteUrl}${topicUrl(article.tags[0])}` }] : []),
+      { label: article.title, url: `${siteUrl}${articleUrl(article)}` },
+    ]);
+
     return (
       <>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }} />
         <ArticleDetailView article={article} series={series} />
       </>
     );

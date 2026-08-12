@@ -24,6 +24,15 @@ export function getSeriesRedirectTarget(id: string) {
   return apiFetch<{ username: string | null; slug: string }>(`/api/series/${id}/redirect-target`);
 }
 
+// For app/sitemap.ts only.
+export function getSeriesSitemapFeed(cursor?: string | null) {
+  const params = new URLSearchParams({ limit: "100" });
+  if (cursor) params.set("cursor", cursor);
+  return apiFetch<{ series: { slug: string; username: string; updatedAt: string; id: string }[]; nextCursor: string | null }>(
+    `/api/series/sitemap-feed?${params.toString()}`
+  );
+}
+
 // Unlike getSeries() above, this joins author info and each article's
 // slug - see GET /api/series/by-slug/:username/:slug on the backend.
 export function getSeriesBySlug(username: string, slug: string) {

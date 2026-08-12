@@ -15,7 +15,8 @@ import { cn } from "@/lib/utils";
 import { CommentThread } from "@/components/shared/CommentThread";
 import { RelatedArticles } from "@/components/seo/RelatedArticles";
 import { PostImageGrid } from "@/components/shared/ImageAttachments";
-import { profileUrl, articleUrl, seriesUrl } from "@/lib/urls";
+import { profileUrl, articleUrl, seriesUrl, topicUrl } from "@/lib/urls";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import type { Article, SeriesWithArticles } from "@/lib/api/types";
 
 interface ArticleDetailViewProps {
@@ -81,6 +82,13 @@ export function ArticleDetailView({ article, series }: ArticleDetailViewProps) {
       </header>
 
       <article className="max-w-3xl mx-auto w-full px-4 sm:px-8 py-8 sm:py-12">
+        <Breadcrumbs
+          items={[
+            { label: "Home", href: "/" },
+            ...(article.tags?.[0] ? [{ label: `#${article.tags[0]}`, href: topicUrl(article.tags[0]) }] : []),
+            { label: article.title },
+          ]}
+        />
         {series && (
           <Link
             href={seriesUrl({ slug: series.slug, author: article.author })}

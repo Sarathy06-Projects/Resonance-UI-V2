@@ -4,7 +4,10 @@ import { ArrowLeft, Layers } from "lucide-react";
 import { getSeriesBySlug } from "@/lib/api/series";
 import { ApiError } from "@/lib/api/client";
 import { timeAgo } from "@/lib/formatTime";
-import { articleUrl } from "@/lib/urls";
+import { articleUrl, profileUrl, seriesUrl } from "@/lib/urls";
+import { Breadcrumbs, breadcrumbJsonLd } from "@/components/shared/Breadcrumbs";
+
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://resonance.design";
 
 // No client interactivity at all here (just navigation links), so unlike
 // the profile/article/post routes this needs no client sub-component -
@@ -17,8 +20,15 @@ export default async function SeriesPage({ params }: { params: Promise<{ usernam
     throw err;
   });
 
+  const breadcrumbs = breadcrumbJsonLd([
+    { label: "Home", url: siteUrl },
+    { label: series.author.name, url: `${siteUrl}${profileUrl(series.author)}` },
+    { label: series.title, url: `${siteUrl}${seriesUrl(series)}` },
+  ]);
+
   return (
     <main className="flex flex-col min-h-screen pb-20 md:pb-0">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }} />
       <div className="sticky top-0 sm:top-16 z-10 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 px-4 py-3 flex items-center gap-6">
         <Link href="/" className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors dark:text-zinc-100">
           <ArrowLeft className="w-5 h-5" />
@@ -27,6 +37,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ usernam
       </div>
 
       <div className="max-w-2xl mx-auto w-full px-4 sm:px-8 py-8">
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: series.author.name, href: profileUrl(series.author) }, { label: series.title }]} />
         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2">
           <Layers className="w-3.5 h-3.5" />
           <span>{series.articlesCount} part series</span>

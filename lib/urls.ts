@@ -29,6 +29,21 @@ export function seriesUrl(series: { slug: string; author: { username: string | n
   return series.author.username ? `/@${series.author.username}/series/${series.slug}` : "#";
 }
 
+// Mirrors the backend's normalizeTagToHashtag() (Resonancebackendv2's
+// lib/hashtags.ts) exactly - has to, since this is what turns a route
+// param back into the same token /topics/:tag pages actually match rows
+// against. Needed here (not just on already-clean hashtagStats.tag
+// values from the trending/sitemap endpoints) because article.tags is
+// freeform user-typed text ("Design Systems", spaces and mixed case) -
+// passing that straight into a URL would build a link nothing resolves.
+function normalizeTagToken(tag: string): string {
+  return tag
+    .replace(/^#/, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "")
+    .slice(0, 50);
+}
+
 export function topicUrl(tag: string): string {
-  return `/topics/${tag.startsWith("#") ? tag.slice(1) : tag}`;
+  return `/topics/${normalizeTagToken(tag)}`;
 }

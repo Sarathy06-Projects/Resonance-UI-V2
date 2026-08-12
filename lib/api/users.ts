@@ -5,6 +5,15 @@ export function getProfile(username: string) {
   return apiFetch<Profile>(`/api/users/${username}`);
 }
 
+// For app/sitemap.ts only.
+export function getUsersSitemapFeed(cursor?: string | null) {
+  const params = new URLSearchParams({ limit: "100" });
+  if (cursor) params.set("cursor", cursor);
+  return apiFetch<{ users: { username: string; updatedAt: string; id: string }[]; nextCursor: string | null }>(
+    `/api/users/sitemap-feed?${params.toString()}`
+  );
+}
+
 export interface UpdateProfileInput {
   name?: string;
   username?: string;

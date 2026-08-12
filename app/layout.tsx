@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 
 import { constructMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = constructMetadata();
+export const metadata: Metadata = constructMetadata({ canonical: "/" });
 
 export const viewport: Viewport = {
   themeColor: "#09090b",
