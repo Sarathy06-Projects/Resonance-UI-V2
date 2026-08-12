@@ -57,10 +57,14 @@ export default function SignupPage() {
 
   const onGoogleSignIn = async () => {
     setIsGoogleLoading(true);
-    // newUserCallbackURL: better-auth itself knows, server-side, whether this
-    // OAuth flow just created a brand-new account - a first-time Google
-    // sign-up lands on /create-password instead of going straight in.
-    await authClient.signIn.social({ provider: "google", callbackURL: "/onboarding", newUserCallbackURL: "/create-password" });
+    // Every Google sign-in - new account or returning - lands on
+    // /create-password first, which itself checks whether a password and
+    // onboarding are actually still needed and skips straight through if
+    // not (see that page + /api/auth/account-status). Same target for both
+    // callbackURL and newUserCallbackURL, and the same target /login's
+    // Google button uses - the button behaves identically no matter which
+    // page it was clicked from.
+    await authClient.signIn.social({ provider: "google", callbackURL: "/create-password", newUserCallbackURL: "/create-password" });
   };
 
   return (

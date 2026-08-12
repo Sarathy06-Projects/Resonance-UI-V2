@@ -44,6 +44,13 @@ export const auth = betterAuth({
           google: {
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            // Without this, Google silently reuses whichever account has an
+            // active browser session (or was last used here) and skips the
+            // account chooser entirely - fine the first time, confusing on
+            // every sign-in after that for anyone with multiple Google
+            // accounts who actually wants to pick. Forces the chooser every
+            // time instead of only on first consent.
+            prompt: "select_account",
           },
         }
       : undefined,
