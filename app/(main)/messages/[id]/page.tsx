@@ -33,7 +33,16 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
 
   const { data, error, isLoading, mutate } = useSWR(
     isAuthenticated ? ["chat-messages", conversationId] : null,
-    () => getMessages(conversationId)
+    () => getMessages(conversationId),
+    {
+      // Safety net, not the delivery mechanism - SSE is. But when the stream
+      // is down (proxy, corporate network, a middleware that buffers it) the
+      // thread previously never updated at all, because nothing else refetched
+      // it. A slow thread beats a silently dead one, and this costs one request
+      // a minute per open conversation.
+      refreshInterval: 60_000,
+      revalidateOnFocus: true,
+    }
   );
 
   // Newest-first from the API (cursor pages backwards); reversed once here so
