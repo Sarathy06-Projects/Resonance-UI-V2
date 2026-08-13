@@ -4,9 +4,21 @@ import { useEffect, useRef } from "react";
 import { notificationsStreamUrl } from "@/lib/api/notifications";
 import { useAuthStore } from "@/store/useAuthStore";
 
-type ChatEvent = "chat:message" | "chat:message-edited" | "chat:message-deleted" | "chat:reaction";
+type ChatEvent =
+  | "chat:message"
+  | "chat:message-edited"
+  | "chat:message-deleted"
+  | "chat:reaction"
+  // Ephemeral: never persisted, and expire on their own if the sender's
+  // "stopped"/disconnect is lost.
+  | "typing.started"
+  | "typing.stopped"
+  | "presence";
 
 const CHAT_EVENTS: ChatEvent[] = [
+  "typing.started",
+  "typing.stopped",
+  "presence",
   "chat:message",
   "chat:message-edited",
   "chat:message-deleted",
@@ -53,13 +65,27 @@ export function useChatStream(onEvent: (event: string, payload: unknown) => void
       return [name, listener];
     });
 
+    // Reconnection recovery. EventSource reconnects on its own, but events
+    // published while the socket was down are gone - SSE here has no replay
+    // buffer. So the *reopen* is treated as a signal to resync: callers
+    // refetch, which recovers anything missed and reconciles by server id, so
+    // a message that arrived both ways cannot be duplicated.
+    //
+    // `open` fires on the first connect too; that initial resync is harmless
+    // (the caller has just loaded) and it keeps the path exercised rather than
+    // only running in the rare failure case.
+    const onOpen = () => handlerRef.current("stream.reconnected", {});
+    source.addEventListener("open", onOpen);
+
     source.onerror = () => {
-      // EventSource reconnects on its own; the poll in useChatUnread and SWR's
-      // revalidation cover the gap in the meantime.
+      // Nothing to do: the browser retries with its own backoff, and `open`
+      // above triggers the catch-up when it succeeds. Closing the source here
+      // would defeat that automatic retry.
     };
 
     return () => {
       for (const [name, listener] of listeners) source.removeEventListener(name, listener);
+      source.removeEventListener("open", onOpen);
       source.close();
     };
   }, [isAuthenticated]);

@@ -97,3 +97,21 @@ export function reportMessage(id: string, reason: string, detail?: string) {
     json: { reason, ...(detail ? { detail } : {}) },
   });
 }
+
+/**
+ * Ephemeral typing signal. Fire-and-forget by design: a dropped typing ping is
+ * worth nothing to retry, and blocking the composer on it would be worse than
+ * the indicator being briefly wrong.
+ */
+export function setTyping(conversationId: string, typing: boolean) {
+  return apiFetch<{ ok: true }>(`/api/chat/conversations/${encodeURIComponent(conversationId)}/typing`, {
+    method: "POST",
+    json: { typing },
+  });
+}
+
+export function getPresence(conversationId: string) {
+  return apiFetch<{ online: string[] }>(
+    `/api/chat/conversations/${encodeURIComponent(conversationId)}/presence`
+  );
+}

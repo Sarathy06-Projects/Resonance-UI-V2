@@ -1,19 +1,11 @@
 "use client";
 
-import { use, useCallback, useEffect, useRef, useState } from "react";
-import useSWR from "swr";
-import { Send, Trash2 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { use, useEffect, useRef, useState } from "react";
+import { AlertCircle, Send, Trash2 } from "lucide-react";
 import { ErrorState } from "@/components/shared/ErrorState";
-import {
-  deleteMessage,
-  getMessages,
-  markConversationRead,
-  sendMessage,
-  type ChatMessage,
-} from "@/lib/api/chat";
+import { deleteMessage, markConversationRead, type ChatMessage } from "@/lib/api/chat";
+import { useConversation, type PendingMessage } from "@/lib/hooks/useConversation";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useChatStream } from "@/lib/hooks/useChatStream";
 import { timeAgo } from "@/lib/formatTime";
 import { cn } from "@/lib/utils";
 
@@ -21,74 +13,52 @@ import { cn } from "@/lib/utils";
 //
 // Message bodies render as JSX text children throughout - never through
 // dangerouslySetInnerHTML - so React escapes them. That is the XSS control on
-// this screen: a message containing markup is displayed as characters, not
-// parsed. Do not introduce a "rich text" renderer here without sanitising
-// server-side first.
+// this screen: markup in a message is displayed as characters, not parsed. Do
+// not add rich-text rendering here without sanitising server-side first.
 export default function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: conversationId } = use(params);
   const { user, isAuthenticated } = useAuthStore();
   const [draft, setDraft] = useState("");
-  const [isSending, setIsSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const { data, error, isLoading, mutate } = useSWR(
-    isAuthenticated ? ["chat-messages", conversationId] : null,
-    () => getMessages(conversationId),
-    {
-      // Safety net, not the delivery mechanism - SSE is. But when the stream
-      // is down (proxy, corporate network, a middleware that buffers it) the
-      // thread previously never updated at all, because nothing else refetched
-      // it. A slow thread beats a silently dead one, and this costs one request
-      // a minute per open conversation.
-      refreshInterval: 60_000,
-      revalidateOnFocus: true,
-    }
-  );
-
-  // Newest-first from the API (cursor pages backwards); reversed once here so
-  // the transcript reads top-to-bottom.
-  const messages = data ? [...data.messages].reverse() : [];
-
-  const onIncoming = useCallback(
-    (event: string, payload: unknown) => {
-      const msg = payload as { conversationId?: string };
-      // The stream carries every conversation this user belongs to, so drop
-      // anything for a different thread. This is a display filter, not an
-      // access control - the server already decided what to send.
-      if (msg.conversationId && msg.conversationId !== conversationId) return;
-      void mutate();
-    },
-    [conversationId, mutate]
-  );
-
-  useChatStream(onIncoming);
+  const {
+    messages,
+    pending,
+    isLoading,
+    error,
+    send,
+    retry,
+    discard,
+    mutate,
+    notifyTyping,
+    stopTyping,
+    isPeerTyping,
+  } = useConversation(conversationId);
 
   useEffect(() => {
     if (!isAuthenticated) return;
     markConversationRead(conversationId).catch(() => {});
-  }, [conversationId, isAuthenticated, data?.messages.length]);
+  }, [conversationId, isAuthenticated, messages.length]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [data?.messages.length]);
+  }, [messages.length, pending.length, isPeerTyping]);
 
   const handleSend = async () => {
     const body = draft.trim();
-    if (!body || isSending) return;
-    setIsSending(true);
-    try {
-      await sendMessage(conversationId, body);
-      setDraft("");
-      await mutate();
-    } catch {
-      // Keep the draft so a failed send doesn't lose what was typed.
-    } finally {
-      setIsSending(false);
-    }
+    if (!body) return;
+    // Cleared immediately: the optimistic bubble is already on screen, so
+    // leaving the text in the box would show it twice.
+    setDraft("");
+    await send(body);
   };
 
   if (!isAuthenticated) {
-    return <div className="p-8 text-center text-[15px] text-zinc-500 dark:text-zinc-400">Sign in to view this conversation.</div>;
+    return (
+      <div className="p-8 text-center text-[15px] text-zinc-500 dark:text-zinc-400">
+        Sign in to view this conversation.
+      </div>
+    );
   }
 
   // A 404 here is also what a non-member gets - the server does not
@@ -104,7 +74,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
               <div key={i} className="h-12 animate-pulse rounded-2xl bg-zinc-100 dark:bg-zinc-800" />
             ))}
           </div>
-        ) : messages.length === 0 ? (
+        ) : messages.length === 0 && pending.length === 0 ? (
           <p className="py-16 text-center text-[15px] text-zinc-500 dark:text-zinc-400">
             No messages yet. Say hello.
           </p>
@@ -113,8 +83,29 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
             {messages.map((m) => (
               <MessageBubble key={m.id} message={m} isMine={m.senderId === user?.id} onChanged={() => mutate()} />
             ))}
+            {/* Pending bubbles always sort last: they are, by definition, the
+                newest thing this client knows about. */}
+            {pending.map((p) => (
+              <PendingBubble key={p.clientId} pending={p} onRetry={() => retry(p.clientId)} onDiscard={() => discard(p.clientId)} />
+            ))}
           </ol>
         )}
+
+        {isPeerTyping && (
+          <div className="flex items-center gap-1.5 px-1 py-2 text-[13px] text-zinc-500 dark:text-zinc-400">
+            <span className="flex gap-1">
+              {[0, 150, 300].map((delay) => (
+                <span
+                  key={delay}
+                  className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 dark:bg-zinc-500"
+                  style={{ animationDelay: `${delay}ms` }}
+                />
+              ))}
+            </span>
+            typing
+          </div>
+        )}
+
         <div ref={bottomRef} />
       </div>
 
@@ -123,7 +114,12 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
       <div className="sticky bottom-0 flex items-end gap-2 border-t border-zinc-100 bg-white/95 px-3 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95">
         <textarea
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            if (e.target.value.trim()) notifyTyping();
+            else stopTyping();
+          }}
+          onBlur={stopTyping}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -134,18 +130,18 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
           maxLength={4000}
           placeholder="Message"
           aria-label="Message"
-          // text-base (16px): anything smaller and iOS Safari zooms the page
-          // in on focus and never zooms back out.
+          // text-base (16px): anything smaller and iOS Safari zooms the page in
+          // on focus and never zooms back out.
           className="max-h-32 flex-1 resize-none rounded-2xl bg-zinc-100 px-4 py-2.5 text-base outline-none placeholder:text-zinc-500 dark:bg-zinc-900 dark:text-zinc-100"
         />
         <button
           type="button"
           onClick={handleSend}
-          disabled={!draft.trim() || isSending}
+          disabled={!draft.trim()}
           aria-label="Send"
           className={cn(
             "flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform active:scale-90",
-            draft.trim() && !isSending
+            draft.trim()
               ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
               : "bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600"
           )}
@@ -156,6 +152,9 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
     </div>
   );
 }
+
+const BUBBLE = "max-w-[78%] rounded-2xl px-3.5 py-2";
+const MINE = "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950";
 
 function MessageBubble({
   message,
@@ -191,11 +190,11 @@ function MessageBubble({
 
       <div
         className={cn(
-          "max-w-[78%] rounded-2xl px-3.5 py-2",
+          BUBBLE,
           message.isDeleted
             ? "border border-dashed border-zinc-200 text-zinc-400 dark:border-zinc-700 dark:text-zinc-500"
             : isMine
-              ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
+              ? MINE
               : "bg-zinc-100 text-zinc-950 dark:bg-zinc-900 dark:text-zinc-100"
         )}
       >
@@ -213,6 +212,48 @@ function MessageBubble({
           {message.editedAt && !message.isDeleted ? " · edited" : ""}
         </div>
       </div>
+    </li>
+  );
+}
+
+/**
+ * A message this client has sent but the server has not confirmed.
+ *
+ * Rendered at reduced opacity while in flight, and kept on screen with a retry
+ * affordance if it fails - never silently dropped, which would lose text
+ * someone actually typed.
+ */
+function PendingBubble({
+  pending,
+  onRetry,
+  onDiscard,
+}: {
+  pending: PendingMessage;
+  onRetry: () => void;
+  onDiscard: () => void;
+}) {
+  const failed = pending.status === "failed";
+
+  return (
+    <li className="flex flex-col items-end gap-1">
+      <div className={cn(BUBBLE, MINE, failed ? "opacity-100 ring-1 ring-red-400" : "opacity-60")}>
+        <p className="whitespace-pre-wrap break-words text-[15px] leading-snug">{pending.body}</p>
+        <div className="mt-0.5 text-[11px] text-white/60 dark:text-zinc-950/60">
+          {failed ? "Not sent" : "Sending…"}
+        </div>
+      </div>
+
+      {failed && (
+        <div className="flex items-center gap-2 text-[12px]">
+          <AlertCircle className="h-3.5 w-3.5 text-red-500" />
+          <button type="button" onClick={onRetry} className="font-semibold text-blue-600 dark:text-blue-400">
+            Retry
+          </button>
+          <button type="button" onClick={onDiscard} className="text-zinc-500 dark:text-zinc-400">
+            Discard
+          </button>
+        </div>
+      )}
     </li>
   );
 }
