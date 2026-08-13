@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import useSWR from "swr";
-import { Search, Clock, TrendingUp, Hash, ArrowRight, Sparkles } from "lucide-react";
+import { Search, Clock, TrendingUp, Hash, Sparkles, X } from "lucide-react";
 import { PostCard } from "@/components/shared/PostCard";
 import { ArticleCard } from "@/components/shared/ArticleCard";
 import { Button } from "@/components/ui/button";
@@ -24,11 +24,13 @@ import { profileUrl, topicUrl } from "@/lib/urls";
 import { getSiteUrl } from "@/lib/siteUrl";
 import type { Author } from "@/lib/api/types";
 
+// Subtitles are desktop-only: on a phone they push the section's actual
+// content below the fold to restate what the title already said.
 const SectionHeader = ({ title, subtitle, action }: { title: string, subtitle?: string, action?: React.ReactNode }) => (
-  <div className="flex items-end justify-between mb-6 px-4 sm:px-6">
+  <div className="mb-3 flex items-end justify-between px-4 sm:mb-6 sm:px-6">
     <div>
-      <h2 className="text-xl font-bold tracking-tight dark:text-white">{title}</h2>
-      {subtitle && <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{subtitle}</p>}
+      <h2 className="text-[17px] font-bold tracking-tight sm:text-xl dark:text-white">{title}</h2>
+      {subtitle && <p className="mt-1 hidden text-sm text-zinc-500 sm:block dark:text-zinc-400">{subtitle}</p>}
     </div>
     {action && <div>{action}</div>}
   </div>
@@ -39,7 +41,7 @@ function DesignerCard({ user }: { user: Author & { followersCount?: number } }) 
   const { isAuthenticated, openAuthModal } = useAuthStore();
 
   return (
-    <div className="w-[280px] shrink-0 p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl flex flex-col hover:shadow-sm transition-all duration-300 group">
+    <div className="flex w-[220px] shrink-0 flex-col rounded-3xl border border-zinc-100 bg-white p-4 sm:w-[280px] sm:p-5 dark:border-zinc-800 dark:bg-zinc-900">
       <Link href={profileUrl(user)} className="flex items-center gap-3 mb-4">
         <Avatar className="w-12 h-12 border border-zinc-200 dark:border-zinc-700">
           <AvatarImage src={user.image ?? undefined} />
@@ -121,24 +123,51 @@ export default function ExplorePage() {
   };
 
   return (
-    <main className="flex flex-col min-h-screen w-full bg-white dark:bg-zinc-950 pb-20 overflow-x-hidden">
+    <main className="flex min-h-screen w-full flex-col overflow-x-hidden bg-white dark:bg-zinc-950">
       <JsonLd id="explore-json-ld" data={exploreJsonLd} />
 
-      <div className="sticky top-0 sm:top-16 z-30 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800">
+      {/* On mobile this bar *is* the screen's header - there's no separate
+          title row above it (see lib/mobile/nav.ts, which gives this route
+          header: "search"). A screen that exists to search doesn't need a
+          heading telling you it's the search screen. */}
+      <div className="sticky top-0 z-30 border-b border-zinc-100 bg-white/90 pt-safe backdrop-blur-xl sm:top-16 dark:border-zinc-800 dark:bg-zinc-950/90">
 
-        <div className="p-4 sm:px-6 pt-6" ref={searchContainerRef}>
-          <div className="relative max-w-2xl mx-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
+        <div className="p-3 sm:px-6 sm:pt-6" ref={searchContainerRef}>
+          <div className="relative mx-auto max-w-2xl">
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
             <input
-              type="text"
-              placeholder="Search designers, articles, posts or hashtags"
-              className="w-full pl-12 pr-4 py-3.5 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:bg-zinc-50 dark:focus:bg-zinc-950 border-2 border-transparent focus:border-blue-500 dark:focus:border-blue-500 focus:ring-0 rounded-2xl text-[15px] font-medium dark:text-zinc-100 transition-all outline-none shadow-sm placeholder:text-zinc-500 dark:placeholder:text-zinc-500"
+              type="search"
+              // "search" + these hints give mobile keyboards the right layout
+              // and a "Search" return key instead of a newline key.
+              enterKeyHint="search"
+              autoCapitalize="off"
+              autoCorrect="off"
+              placeholder="Search designers, posts, tags"
+              // text-base (16px) is deliberate: iOS Safari force-zooms the
+              // page on focus for anything smaller and never zooms back out.
+              className="w-full rounded-2xl border-2 border-transparent bg-zinc-100 py-3.5 pl-12 pr-10 text-base font-medium outline-none transition-all placeholder:text-zinc-500 focus:border-blue-500 focus:bg-zinc-50 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:bg-zinc-950"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
-              onKeyDown={(e) => { if (e.key === "Enter") commitSearch(searchQuery); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  commitSearch(searchQuery);
+                  // Drop the keyboard so results get the full screen.
+                  (e.target as HTMLInputElement).blur();
+                }
+              }}
               onBlur={() => commitSearch(searchQuery)}
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-zinc-400 active:bg-zinc-200 dark:active:bg-zinc-800"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
 
             {isSearchFocused && !searchQuery && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
@@ -185,17 +214,17 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        <div className="px-4 sm:px-6 pb-4 overflow-x-auto no-scrollbar">
-          <div className="flex items-center gap-2 max-w-5xl mx-auto min-w-max">
+        <div className="overflow-x-auto px-3 pb-3 no-scrollbar rail-x sm:px-6 sm:pb-4">
+          <div className="mx-auto flex min-w-max max-w-5xl items-center gap-2">
             {filters.map(filter => (
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
                 className={cn(
-                  "px-4 py-2 rounded-full text-sm font-semibold transition-all",
+                  "rounded-full px-4 py-2 text-sm font-semibold transition-colors active:scale-95",
                   activeFilter === filter
-                    ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950 shadow-sm"
-                    : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                    ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
+                    : "bg-zinc-100 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400"
                 )}
               >
                 {filter}
@@ -205,7 +234,7 @@ export default function ExplorePage() {
         </div>
       </div>
 
-      <div className="flex-1 w-full max-w-5xl mx-auto py-8 space-y-12 sm:space-y-16">
+      <div className="mx-auto w-full max-w-5xl flex-1 space-y-8 py-5 sm:space-y-16 sm:py-8">
 
         {isSearching && (
           <div className="px-4 sm:px-6 space-y-8 animate-pulse">
@@ -232,7 +261,7 @@ export default function ExplorePage() {
             {(activeFilter === "All" || activeFilter === "Hashtags") && !debouncedQuery && trending && trending.hashtags.length > 0 && (
               <section>
                 <SectionHeader title="Trending Today" subtitle="The most discussed topics right now." />
-                <div className="flex gap-4 overflow-x-auto px-4 sm:px-6 pb-4 no-scrollbar snap-x snap-mandatory">
+                <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 no-scrollbar rail-x sm:gap-4 sm:px-6 sm:pb-4">
                   {trending.hashtags.map((tag) => (
                     <Link href={topicUrl(tag.tag)} key={tag.tag} className="snap-start shrink-0 min-w-[200px] p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl hover:border-zinc-200 dark:hover:border-zinc-700 transition-colors cursor-pointer group">
                       <div className="flex items-center gap-3 mb-2">
@@ -250,7 +279,7 @@ export default function ExplorePage() {
             {debouncedQuery && (activeFilter === "All" || activeFilter === "Hashtags") && searchResults && searchResults.hashtags.length > 0 && (
               <section>
                 <SectionHeader title="Hashtags" />
-                <div className="flex gap-4 overflow-x-auto px-4 sm:px-6 pb-4 no-scrollbar">
+                <div className="flex gap-3 overflow-x-auto px-4 pb-3 no-scrollbar rail-x sm:gap-4 sm:px-6 sm:pb-4">
                   {searchResults.hashtags.map((tag) => (
                     <Link href={topicUrl(tag.tag)} key={tag.tag} className="snap-start shrink-0 min-w-[200px] p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl">
                       <span className="font-bold text-lg dark:text-white">{tag.tag}</span>
@@ -264,7 +293,7 @@ export default function ExplorePage() {
             {(activeFilter === "All" || activeFilter === "Designers") && (
               <section>
                 <SectionHeader title={debouncedQuery ? "Designers" : "Featured Designers"} subtitle={debouncedQuery ? undefined : "Creative minds making waves this week."} />
-                <div className="flex gap-4 overflow-x-auto px-4 sm:px-6 pb-4 no-scrollbar snap-x snap-mandatory">
+                <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 no-scrollbar rail-x sm:gap-4 sm:px-6 sm:pb-4">
                   {(debouncedQuery ? searchResults?.users : recommended?.users)?.map(user => (
                     <div key={user.id} className="snap-start">
                       <DesignerCard user={user} />
@@ -277,7 +306,7 @@ export default function ExplorePage() {
             {(activeFilter === "All" || activeFilter === "Articles") && (
               <section>
                 <SectionHeader title={debouncedQuery ? "Articles" : "Top Articles"} subtitle={debouncedQuery ? undefined : "In-depth thoughts from industry leaders."} />
-                <div className="flex gap-6 overflow-x-auto px-4 sm:px-6 pb-6 no-scrollbar snap-x snap-mandatory">
+                <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-3 no-scrollbar rail-x sm:gap-6 sm:px-6 sm:pb-6">
                   {(debouncedQuery ? searchResults?.articles : popularArticles?.articles)?.map(article => (
                     <div key={article.id} className="snap-start h-full">
                       <ArticleCard article={article} />
@@ -301,12 +330,16 @@ export default function ExplorePage() {
             )}
 
             {(activeFilter === "All" || activeFilter === "Posts") && (
-              <section className="px-4 sm:px-6">
+              <section>
                 <SectionHeader title={debouncedQuery ? "Posts" : "Popular Discussions"} subtitle={debouncedQuery ? undefined : "Join the conversation."} />
                 {!debouncedQuery && feedError ? (
                   <ErrorState title="Couldn't load discussions" error={feedError} onRetry={() => mutateFeed()} className="min-h-0 py-10" />
                 ) : (
-                  <div className="max-w-2xl mx-auto space-y-4">
+                  // Edge-to-edge divided list, not a stack of inset cards -
+                  // PostCard brings its own padding, and on a 360px screen
+                  // the card gutters were eating content width for a border
+                  // that a hairline divider communicates just as well.
+                  <div className="mx-auto max-w-2xl divide-y divide-zinc-100 border-y border-zinc-100 dark:divide-zinc-800/60 dark:border-zinc-800/60">
                     {(debouncedQuery ? searchResults?.posts : feedPosts.slice(0, 5))?.map(post => (
                       <PostCard key={post.id} post={post} />
                     ))}

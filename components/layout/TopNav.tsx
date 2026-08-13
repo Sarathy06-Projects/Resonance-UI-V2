@@ -58,10 +58,14 @@ export function TopNav({ className }: TopNavProps) {
   return (
       <div
         className={cn(
-          "px-4 md:px-6 flex items-center justify-center border-b sticky top-0 z-50 w-full transition-all duration-300",
-          isScrolled 
+          // Desktop-only chrome. Mobile has its own tab-rooted shell
+          // (components/layout/mobile/), not a narrowed version of this bar -
+          // so this hides outright below `md` rather than shedding items.
+          "hidden md:flex px-4 md:px-6 items-center justify-center border-b sticky top-0 z-50 w-full transition-all duration-300",
+          isScrolled
             ? "h-14 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-xl border-zinc-200/50 dark:border-zinc-800/50 shadow-[0_4px_24px_-12px_rgba(0,0,0,0.1)] dark:shadow-none"
-            : "h-16 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-lg border-zinc-100 dark:border-zinc-800 shadow-none"
+            : "h-16 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-lg border-zinc-100 dark:border-zinc-800 shadow-none",
+          className
         )}
       >
         <div className="flex items-center justify-between max-w-5xl w-full gap-4">
@@ -119,12 +123,6 @@ export function TopNav({ className }: TopNavProps) {
 
           {/* Auth / Profile Actions */}
           <div className="flex items-center gap-3 shrink-0">
-            
-            {/* Mobile Search Icon */}
-            <button className="md:hidden p-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50 transition-colors rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
-              <Search className="w-5 h-5" />
-            </button>
-
             <ThemeToggle />
 
             {isAuthenticated && (

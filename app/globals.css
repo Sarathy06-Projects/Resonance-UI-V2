@@ -6,12 +6,55 @@
 @custom-variant dark (&:is(.dark *));
 
 /* Not a Tailwind v4 built-in - "safe" isn't a registered spacing token, so
-   without this rule pb-safe silently generates no CSS at all (confirmed:
-   BottomNav has used this class with zero effect). Real rule, so devices
-   with a bottom gesture bar / home indicator actually get the nav content
-   clear of it instead of sitting flush underneath. */
+   without these rules the classes silently generate no CSS at all. Real
+   rules, so devices with a notch / bottom gesture bar actually get content
+   clear of them instead of sitting flush underneath. These only resolve to
+   non-zero values because the root viewport sets viewport-fit=cover (see
+   app/layout.tsx). */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom);
+}
+.inset-b-safe {
+  bottom: env(safe-area-inset-bottom);
+}
+
+/* Native-app touch feel on the mobile shell: no blue flash on tap, no
+   rubber-band chaining from an inner scroller to the document, and no
+   accidental text selection when dragging chrome (tab bar, headers, chip
+   rails). Text content itself opts back in via .select-text below. */
+@media (max-width: 767px) {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior-y: none;
+  }
+  body {
+    overscroll-behavior-y: none;
+  }
+  /* Horizontal chip/card rails inside a vertically scrolling page: keep the
+     gesture on one axis so a slightly-off swipe doesn't jitter both. */
+  .rail-x {
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+  }
+}
+
+/* Mobile chrome geometry. Both are republished at runtime from the real
+   rendered elements (MobileTabBar / MobileHeader publish their measured
+   offsetHeight, which already includes the per-device safe-area inset), so
+   anything that has to sit exactly above the tab bar or below the header
+   reads these instead of hardcoding a pixel guess that drifts whenever the
+   chrome's own padding or icon size changes. The values here are only the
+   pre-measurement fallback used on first paint. */
+:root {
+  --mobile-tabbar-height: 64px;
+  --mobile-header-height: 56px;
 }
 
 @theme inline {
@@ -60,16 +103,6 @@
 }
 
 :root {
-  /* Real, measured height of the fixed mobile BottomNav (see
-     components/layout/BottomNav.tsx's ResizeObserver), including the
-     device safe-area inset. Anything else fixed-positioned on mobile that
-     needs to sit directly above the nav - e.g. CommentThread's mobile
-     composer trigger - reads this instead of a hand-copied magic number,
-     which is exactly what silently drifted out of sync and let the
-     composer bar render partially behind the (higher z-index, taller than
-     assumed) nav. The px fallback is only what's shown before the
-     ResizeObserver's first measurement on mount. */
-  --bottom-nav-height: 90px;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);

@@ -82,26 +82,27 @@ export function CommentThread({ targetType, targetId, targetAuthorId }: CommentT
   });
 
   return (
-    <div>
+    // Bottom padding clears the fixed mobile composer bar so the last comment
+    // in a thread is fully readable rather than sitting behind it.
+    <div className="pb-20 sm:pb-0">
       <div className="hidden border-b border-zinc-100 sm:block dark:border-zinc-800">
         <CommentInput targetType={targetType} targetId={targetId} onSubmit={handleTopLevelSubmit} placeholder={composerPlaceholder} />
       </div>
 
+      {/* A thread view is a pushed screen, so the tab bar steps aside and
+          this composer owns the bottom edge outright (see lib/mobile/nav.ts).
+          --mobile-tabbar-height is published as 0 on pushed routes, so this
+          sits flush to the bottom here and still stacks correctly above the
+          bar on any root route that ever renders a thread inline. */}
       <button
         type="button"
         onClick={handleMobileTrigger}
         aria-label={composerPlaceholder}
-        // bottom-16 (a hardcoded 64px) used to undershoot BottomNav's real
-        // rendered height (~90px, including per-device safe-area inset),
-        // so this sat partially behind the nav instead of above it -
-        // --bottom-nav-height (BottomNav.tsx) is the nav's actual measured
-        // height, kept in sync automatically instead of two magic numbers
-        // that can silently drift apart.
-        className="fixed inset-x-0 bottom-[var(--bottom-nav-height)] z-40 flex items-center gap-3 border-t border-zinc-100 bg-white/95 px-4 py-3 text-left backdrop-blur-sm sm:hidden dark:border-zinc-800 dark:bg-zinc-950/95"
+        className="fixed inset-x-0 bottom-[var(--mobile-tabbar-height)] z-40 flex items-center gap-3 border-t border-zinc-100 bg-white/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-left backdrop-blur-xl sm:hidden dark:border-zinc-800 dark:bg-zinc-950/95"
       >
         <Avatar className="h-8 w-8 border border-zinc-100 dark:border-zinc-800">
           {isAuthenticated && user ? (
-            <AvatarImage src={user.avatar} />
+            <AvatarImage src={user.avatar} alt="" />
           ) : (
             <AvatarFallback className="bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">?</AvatarFallback>
           )}

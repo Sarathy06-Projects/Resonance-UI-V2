@@ -22,8 +22,15 @@ import { constructMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = constructMetadata({ canonical: "/" });
 
+// viewportFit: "cover" is what makes env(safe-area-inset-*) resolve to real
+// non-zero values on notched/gesture-bar devices. Without it those insets are
+// always 0, so the mobile tab bar and compose sheet render flush under the
+// home indicator no matter what padding they ask for.
 export const viewport: Viewport = {
   themeColor: "#09090b",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 // Site-wide brand entity signal - present on every page (not just the

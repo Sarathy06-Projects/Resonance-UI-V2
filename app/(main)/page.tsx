@@ -29,25 +29,24 @@ export default function Home() {
   const feedWithModules: React.ReactNode[] = [];
 
   posts.forEach((post, index) => {
+    // PostCard owns its own padding now, so the row wrapper only draws the
+    // separator - wrapping it in padding again double-inset every post.
     feedWithModules.push(
-      <div key={post.id} className="p-4 sm:p-6 border-b border-zinc-100 dark:border-zinc-800/60">
+      <div key={post.id} className="border-b border-zinc-100 dark:border-zinc-800/60">
         <PostCard post={post} priority={index === 0} />
       </div>
     );
 
     if (index === 1 && activeTab === "foryou" && recommended && recommended.users.length > 0) {
       feedWithModules.push(
-        <div key="discovery-designers" className="py-8 border-b border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/50 dark:bg-zinc-900/20">
-          <div className="flex items-end justify-between mb-6 px-4 sm:px-6">
-            <div>
-              <h2 className="text-xl font-bold tracking-tight text-zinc-950 dark:text-white">Featured Designers</h2>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-1">Creative minds making waves this week.</p>
-            </div>
-            <Button variant="ghost" size="sm" nativeButton={false} className="text-blue-600 dark:text-blue-400 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20" render={<Link href="/explore" />}>
-              View All <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
-          </div>
-          <div className="flex gap-4 overflow-x-auto px-4 sm:px-6 pb-4 no-scrollbar snap-x snap-mandatory">
+        <div key="discovery-designers" className="border-b border-zinc-100 bg-zinc-50/60 py-5 sm:py-8 dark:border-zinc-800/60 dark:bg-zinc-900/20">
+          <ModuleHeader
+            title="Featured Designers"
+            subtitle="Creative minds making waves this week."
+            href="/explore"
+            action="View all"
+          />
+          <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 no-scrollbar rail-x sm:gap-4 sm:px-6">
             {recommended.users.map((user) => (
               <FeaturedDesignerCard key={user.id} user={user} />
             ))}
@@ -58,19 +57,16 @@ export default function Home() {
 
     if (index === 3 && activeTab === "foryou" && popularArticles && popularArticles.articles.length > 0) {
       feedWithModules.push(
-        <div key="discovery-articles" className="py-8 border-b border-zinc-100 dark:border-zinc-800/60">
-          <div className="flex items-end justify-between mb-6 px-4 sm:px-6">
-            <div>
-              <h2 className="text-xl font-bold tracking-tight text-zinc-950 dark:text-white">Popular Articles</h2>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium mt-1">In-depth thoughts from industry leaders.</p>
-            </div>
-            <Button variant="ghost" size="sm" nativeButton={false} className="text-blue-600 dark:text-blue-400 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20" render={<Link href="/explore" />}>
-              Read More <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
-          </div>
-          <div className="flex gap-6 overflow-x-auto px-4 sm:px-6 pb-4 no-scrollbar snap-x snap-mandatory">
+        <div key="discovery-articles" className="border-b border-zinc-100 py-5 sm:py-8 dark:border-zinc-800/60">
+          <ModuleHeader
+            title="Popular Articles"
+            subtitle="In-depth thoughts from industry leaders."
+            href="/explore"
+            action="Read more"
+          />
+          <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 no-scrollbar rail-x sm:gap-6 sm:px-6">
             {popularArticles.articles.map((article) => (
-              <div key={article.id} className="snap-start h-full">
+              <div key={article.id} className="h-full snap-start">
                 <ArticleCard article={article} />
               </div>
             ))}
@@ -97,43 +93,49 @@ export default function Home() {
     <main className="flex flex-col min-h-screen">
       <JsonLd id="website-json-ld" data={websiteJsonLd} />
 
-      {/* Header & Tabs */}
-      <div className="sticky top-0 sm:top-14 z-30 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 transition-all duration-300">
-        <div className="px-4 py-2 sm:px-6">
-          <div className="flex items-center gap-1 p-1 bg-zinc-100/50 dark:bg-zinc-900/50 rounded-xl w-full sm:w-fit">
+      {/* Feed switcher. On mobile the brand header above it is *not* sticky
+          (see lib/mobile/nav.ts), so this pins to the very top and takes over
+          the top edge once the header has scrolled off - pt-safe so its own
+          background fills the notch area rather than letting posts show
+          through. At md+ it sits under the desktop top nav instead.
+          Underline tabs rather than a pill group: they read as "which feed am
+          I in" instead of as a control that might filter something. */}
+      <div className="sticky top-0 z-20 border-b border-zinc-100 bg-white/85 pt-safe backdrop-blur-xl md:top-14 dark:border-zinc-800 dark:bg-zinc-950/85">
+        <div className="flex px-2 sm:px-6">
+          {([
+            { id: "foryou", label: "For you" },
+            { id: "following", label: "Following" },
+          ] as const).map((tab) => (
             <button
-              onClick={() => setActiveTab("foryou")}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              aria-current={activeTab === tab.id ? "true" : undefined}
               className={cn(
-                "flex-1 sm:w-32 py-2 text-sm font-semibold rounded-lg transition-all duration-200",
-                activeTab === "foryou"
-                  ? "bg-white dark:bg-zinc-800 text-zinc-950 dark:text-white shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
+                "relative flex-1 py-3.5 text-[15px] font-semibold transition-colors sm:flex-none sm:px-8",
+                activeTab === tab.id
+                  ? "text-zinc-950 dark:text-white"
+                  : "text-zinc-400 dark:text-zinc-500"
               )}
             >
-              For you
-            </button>
-            <button
-              onClick={() => setActiveTab("following")}
-              className={cn(
-                "flex-1 sm:w-32 py-2 text-sm font-semibold rounded-lg transition-all duration-200",
-                activeTab === "following"
-                  ? "bg-white dark:bg-zinc-800 text-zinc-950 dark:text-white shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
+              {tab.label}
+              {activeTab === tab.id && (
+                <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-zinc-950 sm:inset-x-6 dark:bg-white" />
               )}
-            >
-              Following
             </button>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Composer */}
-      <div className="px-4 sm:px-6 py-6 border-b border-zinc-100 dark:border-zinc-800 hidden sm:block">
+      {/* Inline composer is desktop-only: on mobile the same job belongs to
+          the tab bar's centre button, which opens a full-screen sheet rather
+          than asking someone to type into a 2-line box wedged above a feed. */}
+      <div className="hidden border-b border-zinc-100 px-4 py-6 sm:px-6 md:block dark:border-zinc-800">
         <CreatePostInput onPosted={() => mutate()} />
       </div>
 
-      {/* Feed Content */}
-      <div className="flex-1 flex flex-col pb-20">
+      {/* Feed Content - bottom clearance for the mobile tab bar is applied
+          once by AppLayout, not per screen. */}
+      <div className="flex flex-1 flex-col">
         {error ? (
           <ErrorState title="Couldn't load your feed" error={error} onRetry={() => mutate()} />
         ) : isLoading ? (
@@ -181,21 +183,46 @@ export default function Home() {
   )
 }
 
+// Section heading for the discovery modules interleaved into the feed. The
+// subtitle is desktop-only - on a phone it pushes the actual cards below the
+// fold to explain a section whose own title already says the same thing.
+function ModuleHeader({ title, subtitle, href, action }: { title: string; subtitle: string; href: string; action: string }) {
+  return (
+    <div className="mb-3 flex items-end justify-between px-4 sm:mb-6 sm:px-6">
+      <div>
+        <h2 className="text-[17px] font-bold tracking-tight text-zinc-950 sm:text-xl dark:text-white">{title}</h2>
+        <p className="mt-1 hidden text-sm font-medium text-zinc-500 sm:block dark:text-zinc-400">{subtitle}</p>
+      </div>
+      <Link href={href} className="flex shrink-0 items-center gap-1 text-[14px] font-semibold text-blue-600 dark:text-blue-400">
+        {action}
+        <ArrowRight className="h-4 w-4" />
+      </Link>
+    </div>
+  );
+}
+
 function FeaturedDesignerCard({ user }: { user: { id: string; name: string; username: string | null; image: string | null; role: string | null } }) {
   const { isFollowing, toggleFollow } = useFollowState(user.id, false);
 
   return (
-    <div className="snap-start shrink-0 w-[240px] p-6 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl flex flex-col hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-0.5 transition-all duration-300">
+    // Narrower on mobile so the next card is partly visible at the right
+    // edge - that peek is what tells you the row scrolls sideways at all.
+    <div className="flex w-[172px] shrink-0 snap-start flex-col rounded-3xl border border-zinc-100 bg-white p-4 sm:w-[240px] sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
       <Link href={profileUrl(user)}>
-        <Avatar className="w-14 h-14 mb-4 shadow-sm border border-zinc-100 dark:border-zinc-800">
-          <AvatarImage src={user.image ?? undefined} />
+        <Avatar className="mb-3 h-12 w-12 border border-zinc-100 sm:mb-4 sm:h-14 sm:w-14 dark:border-zinc-800">
+          <AvatarImage src={user.image ?? undefined} alt="" />
           <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
         </Avatar>
       </Link>
-      <div className="font-bold text-[16px] text-zinc-950 dark:text-white truncate">{user.name}</div>
-      <div className="text-[13px] text-zinc-500 dark:text-zinc-400 font-medium truncate mb-1.5">@{user.username}</div>
-      <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-5">{user.role || "Designer"}</div>
-      <Button variant="outline" size="sm" className="w-full rounded-full dark:border-zinc-700 dark:text-zinc-300" onClick={toggleFollow}>
+      <div className="truncate text-[15px] font-bold text-zinc-950 sm:text-[16px] dark:text-white">{user.name}</div>
+      <div className="mb-1 truncate text-[13px] font-medium text-zinc-500 dark:text-zinc-400">@{user.username}</div>
+      <div className="mb-4 truncate text-xs font-semibold text-blue-600 dark:text-blue-400">{user.role || "Designer"}</div>
+      <Button
+        variant="outline"
+        size="sm"
+        className="mt-auto w-full rounded-full dark:border-zinc-700 dark:text-zinc-300"
+        onClick={toggleFollow}
+      >
         {isFollowing ? "Following" : "Follow"}
       </Button>
     </div>
