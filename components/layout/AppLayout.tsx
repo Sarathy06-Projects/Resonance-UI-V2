@@ -38,21 +38,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       <MobileShell />
 
-      <div className="relative mx-auto flex w-full max-w-5xl flex-1 gap-6 px-0 sm:px-4 md:px-6 lg:gap-8">
-        <div className="relative flex min-h-screen w-full max-w-5xl min-w-0 flex-1 flex-col bg-transparent md:bg-white dark:md:bg-zinc-950">
-          <main
-            className={cn(
-              "flex-1",
-              // Clear the fixed tab bar on mobile so the last item in any
-              // list is fully reachable. Pushed screens pin their own bottom
-              // bar (reply composer, publish action) and pad for it
-              // themselves, and /create owns the whole viewport.
-              !isFullBleed && chrome.isRoot && "pb-[calc(var(--mobile-tabbar-height)+0.5rem)] md:pb-0"
-            )}
-          >
-            {children}
-          </main>
-        </div>
+      {/* Desktop content column.
+          Narrowed from max-w-5xl to max-w-3xl: 1024px of running text is well
+          past a comfortable measure, and it was what made the desktop app read
+          as an unstyled page rather than a product. The side rules give the
+          column an edge so it sits *on* the page instead of floating in it -
+          the same job the mobile shell's chrome does.
+          Full-bleed below `md`, where the viewport is already the column. */}
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col md:border-x md:border-zinc-100 dark:md:border-zinc-800/80">
+        <main
+          className={cn(
+            "flex-1",
+            // Clear the fixed tab bar on mobile so the last item in any list is
+            // reachable. Pushed screens pin their own bottom bar (reply
+            // composer, publish action) and pad for it themselves, and /create
+            // owns the whole viewport.
+            !isFullBleed && chrome.isRoot && "pb-[calc(var(--mobile-tabbar-height)+0.5rem)] md:pb-0"
+          )}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

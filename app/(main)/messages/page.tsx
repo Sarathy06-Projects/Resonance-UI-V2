@@ -9,6 +9,7 @@ import { getConversations, type ChatConversation } from "@/lib/api/chat";
 import { useAuthStore } from "@/store/useAuthStore";
 import { timeAgo } from "@/lib/formatTime";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 // Inbox. The server only ever returns conversations this session is a member
 // of, so there is no ownership filtering to do here - and none is attempted,
@@ -42,6 +43,8 @@ export default function MessagesPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <PageHeader title="Messages" description="Private conversations. Only you and the other person can read them." />
+
       {isLoading && conversations.length === 0 ? (
         <div className="animate-pulse space-y-4 p-4">
           {[0, 1, 2].map((i) => (

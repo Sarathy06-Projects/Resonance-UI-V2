@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getLikedPosts, getCommentedPosts } from "@/lib/api/users";
 import { ErrorState } from "@/components/shared/ErrorState";
 import type { Post } from "@/lib/api/types";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface PostsPage {
   posts: Post[];
@@ -38,7 +39,7 @@ function useActivityPosts(kind: ActivityKind) {
 
 export default function ActivityPage() {
   return (
-    <Suspense fallback={<div className="max-w-4xl mx-auto py-10 px-4 md:px-6 min-h-[80vh]" />}>
+    <Suspense fallback={<div className="min-h-[80vh] px-4 py-6 md:px-6" />}>
       <ActivityPageInner />
     </Suspense>
   );
@@ -52,11 +53,12 @@ function ActivityPageInner() {
   const commented = useActivityPosts("commented");
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-4 md:px-6 min-h-[80vh]">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-950 dark:text-white mb-2">Your Activity</h1>
-        <p className="text-zinc-500 dark:text-zinc-400 text-[17px]">Posts you&apos;ve liked and commented on.</p>
-      </div>
+    <div className="min-h-[80vh] px-4 py-6 md:px-6">
+      <PageHeader
+        title="Your activity"
+        description="Posts you have liked and commented on."
+        className="-mx-4 mb-6 md:-mx-6"
+      />
 
       <Tabs
         value={tab}
@@ -148,9 +150,9 @@ function EmptyState({
   actionLabel: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center py-24 px-4 text-center bg-zinc-50/50 dark:bg-zinc-900/20 rounded-[32px] border border-dashed border-zinc-200 dark:border-zinc-800">
-      <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 text-blue-500 rounded-2xl flex items-center justify-center mb-6">{icon}</div>
-      <h3 className="text-xl font-bold text-zinc-950 dark:text-white mb-2">{title}</h3>
+    <div className="flex flex-col items-center justify-center py-24 px-4 text-center bg-zinc-50/50 dark:bg-zinc-900/20 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
+      <div className="w-14 h-14 bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 rounded-2xl flex items-center justify-center mb-6">{icon}</div>
+      <h3 className="text-lg font-bold text-zinc-950 dark:text-white mb-2">{title}</h3>
       <p className="text-zinc-500 dark:text-zinc-400 max-w-sm mb-8 leading-relaxed">{subtitle}</p>
       <Button onClick={onAction} className="rounded-full px-8 shadow-sm h-11 font-medium">
         {actionLabel}

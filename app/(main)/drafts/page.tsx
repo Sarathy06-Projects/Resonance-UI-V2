@@ -14,6 +14,7 @@ import {
 import { deleteDraft, getDrafts } from "@/lib/api/drafts";
 import { timeAgo } from "@/lib/formatTime";
 import { ErrorState } from "@/components/shared/ErrorState";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export default function DraftsPage() {
   const router = useRouter();
@@ -26,16 +27,17 @@ export default function DraftsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-4 md:px-6 min-h-[80vh]">
-      <div className="mb-10 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-950 dark:text-white mb-2">Drafts</h1>
-          <p className="text-zinc-500 dark:text-zinc-400 text-[17px]">Continue writing where you left off.</p>
-        </div>
-        <Button onClick={() => router.push("/create")} className="rounded-full h-10 px-6 font-medium shadow-sm hidden sm:flex">
-          New Article
-        </Button>
-      </div>
+    <div className="min-h-[80vh] px-4 py-6 md:px-6">
+      <PageHeader
+        title="Drafts"
+        description="Continue writing where you left off."
+        className="-mx-4 mb-6 md:-mx-6"
+        actions={
+          <Button onClick={() => router.push("/create")} className="h-9 rounded-full px-5 text-[14px] font-semibold">
+            New article
+          </Button>
+        }
+      />
 
       {isLoading ? (
         <div className="text-center py-20 text-zinc-400">Loading…</div>
@@ -112,11 +114,11 @@ export default function DraftsPage() {
 
 function EmptyState({ title, subtitle, onAction, actionLabel }: { title: string, subtitle: string, onAction: () => void, actionLabel: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-24 px-4 text-center bg-zinc-50/50 dark:bg-zinc-900/20 rounded-[32px] border border-dashed border-zinc-200 dark:border-zinc-800">
-      <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 text-blue-500 rounded-2xl flex items-center justify-center mb-6">
+    <div className="flex flex-col items-center justify-center py-24 px-4 text-center bg-zinc-50/50 dark:bg-zinc-900/20 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
+      <div className="w-14 h-14 bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 rounded-2xl flex items-center justify-center mb-6">
         <PenSquare className="w-8 h-8" />
       </div>
-      <h3 className="text-xl font-bold text-zinc-950 dark:text-white mb-2">{title}</h3>
+      <h3 className="text-lg font-bold text-zinc-950 dark:text-white mb-2">{title}</h3>
       <p className="text-zinc-500 dark:text-zinc-400 max-w-sm mb-8 leading-relaxed">{subtitle}</p>
       <Button onClick={onAction} className="rounded-full px-8 shadow-sm h-11 font-medium">
         {actionLabel}
