@@ -3,15 +3,14 @@ import { getContentBySlug } from "@/lib/api/content";
 
 // 9:16 story card for Instagram Stories / WhatsApp Status.
 //
-// Laid out as a *card floating on a gradient*, not a full-bleed poster. Two
-// reasons, both learned from what the first version got wrong:
+// Laid out as a *card floating on a gradient*, not a full-bleed poster:
 //
-//  1. Instagram overlays its own chrome on the story composer and viewer -
-//     a back arrow and audio chip across the top, caption field and "Your
-//     story" buttons across the bottom. Content spread edge to edge gets
-//     covered at both ends. Everything here stays inside SAFE_TOP/SAFE_BOTTOM.
+//  1. Instagram overlays its own chrome on the composer and the viewer - back
+//     arrow and audio chip across the top, caption field and "Your story"
+//     buttons across the bottom. Content spread edge to edge gets covered at
+//     both ends, so everything stays inside SAFE_TOP/SAFE_BOTTOM.
 //  2. A bordered card reads as "a post from somewhere else", which is the
-//     thing being shared. Loose text on a background just reads as a graphic.
+//     thing being shared. Loose text on a background reads as a graphic.
 //
 // The destination URL is printed under the card because a story shared from a
 // browser cannot carry a tappable link - only Instagram's link sticker can,
@@ -21,48 +20,85 @@ export const runtime = "edge";
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
-// Instagram's own UI occupies roughly the top 13% and bottom 18% of the
-// frame. Keeping the card between these is what stops the wordmark from
-// disappearing behind the audio chip.
+// Instagram's own UI occupies roughly the top 13% and bottom 18% of the frame.
 const SAFE_TOP = 260;
 const SAFE_BOTTOM = 340;
+
+const CARD_WIDTH = 880;
+const CARD_PADDING = 56;
+const INNER = CARD_WIDTH - CARD_PADDING * 2;
+const GRID_GAP = 16;
+// At most two thumbnails. More would push the card past the safe area, and
+// Threads' own shared cards cap it here too.
+const MAX_IMAGES = 2;
 
 function parseSlugPath(pathname: string): { username: string; slug: string } | null {
   const match = pathname.match(/^\/@([^/]+)\/([^/]+)$/);
   return match ? { username: match[1], slug: match[2] } : null;
 }
 
-// Satori - which is what next/og rasterises with - decodes PNG, JPEG and SVG
-// only. It has no WebP decoder, and hands back an empty box rather than an
-// error when given one, which renders as a blank gap where the avatar should
-// be. Uploaded avatars are currently all .webp (see the backend's upload
-// pipeline), so in practice this falls through to the initial-letter circle
-// until a PNG/JPEG variant is served alongside them.
-//
-// Fetching first also guards the other failure mode: Satori throws outright
-// on an unfetchable src, which would fail the entire image rather than just
-// the avatar.
-const SATORI_DECODABLE = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml"];
+function compactCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1)}K`;
+  return String(n);
+}
 
-async function resolveAvatar(url: string | null | undefined): Promise<string | null> {
+function toBase64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  // Chunked: spreading a multi-hundred-KB array into String.fromCharCode in
+  // one call blows the argument limit and throws.
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+/**
+ * Fetches a remote image and returns it as a data URI Satori can actually
+ * draw.
+ *
+ * Satori - which next/og rasterises with - decodes PNG, JPEG and SVG only. It
+ * has no WebP decoder and returns an *empty box* rather than an error, which
+ * is why avatars and attachments first rendered as blank gaps: every upload in
+ * this app is .webp, and the CDN won't transcode (neither ?format= nor an
+ * Accept header changes what it serves).
+ *
+ * Next's own image optimizer will, though - /_next/image re-encodes to JPEG
+ * when the request doesn't advertise WebP support. So the bytes are pulled
+ * through that and inlined, which also pins the format instead of trusting
+ * whatever Accept header Satori would have sent on its own.
+ */
+async function imageAsDataUri(origin: string, url: string | null | undefined, width: number): Promise<string | null> {
   if (!url || !/^https?:\/\//.test(url)) return null;
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(2500) });
+    const optimized = `${origin}/_next/image?url=${encodeURIComponent(url)}&w=${width}&q=70`;
+    const res = await fetch(optimized, {
+      headers: { Accept: "image/jpeg,image/png" },
+      signal: AbortSignal.timeout(4000),
+    });
     if (!res.ok) return null;
+
     const type = (res.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
-    return SATORI_DECODABLE.includes(type) ? url : null;
+    if (!["image/jpeg", "image/png"].includes(type)) return null;
+
+    return `data:${type};base64,${toBase64(await res.arrayBuffer())}`;
   } catch {
     return null;
   }
 }
 
 export async function GET(request: Request) {
+  const origin = new URL(request.url).origin;
   const raw = new URL(request.url).searchParams.get("url");
 
   let body = "";
   let author = "";
   let handle = "";
   let avatar: string | null = null;
+  let images: string[] = [];
+  let counts = { likes: 0, comments: 0, reposts: 0 };
   let displayUrl = "resonance.org.in";
 
   if (raw) {
@@ -79,10 +115,43 @@ export async function GET(request: Request) {
         const resolved = await getContentBySlug(parsed.username, parsed.slug).catch(() => null);
         if (resolved) {
           const who = resolved.type === "article" ? resolved.article.author : resolved.post.author;
-          body = resolved.type === "article" ? resolved.article.title : resolved.post.content;
           author = who.name;
           handle = who.username ? `@${who.username}` : "";
-          avatar = await resolveAvatar(who.image);
+
+          const sources =
+            resolved.type === "article"
+              ? resolved.article.coverImage
+                ? [resolved.article.coverImage]
+                : []
+              : (resolved.post.images ?? []);
+
+          if (resolved.type === "article") {
+            body = resolved.article.title;
+            counts = {
+              likes: resolved.article.likesCount ?? 0,
+              comments: resolved.article.commentsCount ?? 0,
+              reposts: 0,
+            };
+          } else {
+            body = resolved.post.content;
+            counts = {
+              likes: resolved.post.likesCount ?? 0,
+              comments: resolved.post.commentsCount ?? 0,
+              reposts: resolved.post.sharesCount ?? 0,
+            };
+          }
+
+          const picked = sources.slice(0, MAX_IMAGES);
+          const thumbWidth = picked.length > 1 ? 640 : 828;
+
+          // In parallel - these are the slowest part of the render, and a
+          // story share is a foreground action someone is waiting on.
+          const [resolvedAvatar, ...resolvedImages] = await Promise.all([
+            imageAsDataUri(origin, who.image, 128),
+            ...picked.map((src) => imageAsDataUri(origin, src, thumbWidth)),
+          ]);
+          avatar = resolvedAvatar;
+          images = resolvedImages.filter((x): x is string => Boolean(x));
         }
       }
     } catch {
@@ -91,13 +160,29 @@ export async function GET(request: Request) {
   }
 
   const text = body.trim() || "Join the conversation on Resonance.";
-  // Cut rather than shrink: past this the type gets too small to read at
-  // story size on a phone held at arm's length.
-  const excerpt = text.length > 260 ? `${text.slice(0, 260).trimEnd()}…` : text;
+  // Attachments take the room text would have used, so the excerpt tightens
+  // when there are any - otherwise the card grows past the safe area.
+  const limit = images.length > 0 ? 150 : 260;
+  const excerpt = text.length > limit ? `${text.slice(0, limit).trimEnd()}…` : text;
   const initial = (author || "R").charAt(0).toUpperCase();
-  // A long auto-generated handle (some are derived from an email address)
-  // would otherwise push the name row out of the card.
+  // Some handles are auto-derived from an email address and are long enough
+  // to push the name row out of the card on their own.
   const shownHandle = handle.length > 22 ? `${handle.slice(0, 22)}…` : handle;
+
+  const thumbSize = images.length > 1 ? (INNER - GRID_GAP) / 2 : INNER;
+  const thumbHeight = images.length > 1 ? thumbSize : 420;
+
+  const actions: { d: string; count: number }[] = [
+    {
+      d: "M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z",
+      count: counts.likes,
+    },
+    { d: "M7.9 20A9 9 0 1 0 4 16.1L2 22Z", count: counts.comments },
+    {
+      d: "M17 2l4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3",
+      count: counts.reposts,
+    },
+  ];
 
   return new ImageResponse(
     (
@@ -115,28 +200,20 @@ export async function GET(request: Request) {
           fontFamily: "sans-serif",
         }}
       >
-        {/* The card. White on a dark ground so it reads as a quoted object
-            rather than as the background itself. */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            width: 880,
+            width: CARD_WIDTH,
             borderRadius: 48,
             background: "#ffffff",
-            padding: 56,
+            padding: CARD_PADDING,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", marginBottom: 36 }}>
+          <div style={{ display: "flex", alignItems: "center", marginBottom: 32 }}>
             {avatar ? (
               // eslint-disable-next-line @next/next/no-img-element -- Satori renders to a static PNG; next/image has no meaning here
-              <img
-                src={avatar}
-                alt=""
-                width={84}
-                height={84}
-                style={{ width: 84, height: 84, borderRadius: 42, objectFit: "cover" }}
-              />
+              <img src={avatar} alt="" width={84} height={84} style={{ width: 84, height: 84, borderRadius: 42, objectFit: "cover" }} />
             ) : (
               <div
                 style={{
@@ -157,33 +234,42 @@ export async function GET(request: Request) {
             )}
 
             <div style={{ display: "flex", flexDirection: "column", marginLeft: 24, flex: 1 }}>
-              <div style={{ display: "flex", fontSize: 36, fontWeight: 700, color: "#09090b" }}>
-                {author || "Resonance"}
-              </div>
-              {shownHandle && (
-                <div style={{ display: "flex", fontSize: 30, color: "#71717a", marginTop: 6 }}>{shownHandle}</div>
-              )}
+              <div style={{ display: "flex", fontSize: 36, fontWeight: 700, color: "#09090b" }}>{author || "Resonance"}</div>
+              {shownHandle && <div style={{ display: "flex", fontSize: 30, color: "#71717a", marginTop: 6 }}>{shownHandle}</div>}
             </div>
 
-            <div style={{ display: "flex", fontSize: 26, fontWeight: 700, letterSpacing: 3, color: "#a1a1aa" }}>
-              RESONANCE
-            </div>
+            <div style={{ display: "flex", fontSize: 26, fontWeight: 700, letterSpacing: 3, color: "#a1a1aa" }}>RESONANCE</div>
           </div>
 
-          <div style={{ display: "flex", fontSize: 40, lineHeight: 1.42, color: "#18181b" }}>{excerpt}</div>
+          <div style={{ display: "flex", fontSize: 38, lineHeight: 1.42, color: "#18181b" }}>{excerpt}</div>
 
-          {/* Outlined action glyphs, as Threads' shared card has. They make
-              the block read as a post rather than a pull-quote. */}
-          <div style={{ display: "flex", alignItems: "center", marginTop: 44, gap: 36 }}>
-            {[
-              "M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z",
-              "M7.9 20A9 9 0 1 0 4 16.1L2 22Z",
-              "M17 2l4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3",
-              "M22 2 15 22l-4-9-9-4Z",
-            ].map((d) => (
-              <svg key={d} width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" strokeWidth={1.8}>
-                <path d={d} strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+          {images.length > 0 && (
+            <div style={{ display: "flex", gap: GRID_GAP, marginTop: 32 }}>
+              {images.map((src, i) => (
+                // eslint-disable-next-line @next/next/no-img-element -- see above
+                <img
+                  key={i}
+                  src={src}
+                  alt=""
+                  width={thumbSize}
+                  height={thumbHeight}
+                  style={{ width: thumbSize, height: thumbHeight, borderRadius: 24, objectFit: "cover" }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Outlined glyphs with their counts, as Threads' shared card has -
+              the numbers are what make it read as a post with a life of its
+              own rather than a pull-quote. */}
+          <div style={{ display: "flex", alignItems: "center", marginTop: 36, gap: 40 }}>
+            {actions.map(({ d, count }) => (
+              <div key={d} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <svg width={38} height={38} viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" strokeWidth={1.8}>
+                  <path d={d} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {count > 0 && <div style={{ display: "flex", fontSize: 28, color: "#71717a" }}>{compactCount(count)}</div>}
+              </div>
             ))}
           </div>
         </div>
