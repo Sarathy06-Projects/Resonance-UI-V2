@@ -18,6 +18,7 @@ const TAB_ROOTS: Record<Exclude<MobileTab, null>, string> = {
   home: "/",
   search: "/explore",
   activity: "/notifications",
+  messages: "/messages",
   profile: "/",
 };
 

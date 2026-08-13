@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Search, SquarePen, Heart, User, Menu, Bookmark, FileEdit, Settings, LogOut } from "lucide-react";
+import { Home, Search, SquarePen, Heart, MessageCircle, User, Menu, Bookmark, FileEdit, Settings, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -70,6 +70,7 @@ export function DesktopRail({ onCompose }: DesktopRailProps) {
       <nav className="flex flex-1 flex-col items-center justify-center gap-1">
         <RailLink {...go("home", "/", false)} label="Home" icon={Home} fillWhenActive />
         <RailLink {...go("search", "/explore", false)} label="Search" icon={Search} />
+        {/* Search keeps stroke-weight only - a filled magnifier is a blob. */}
 
         {/* Compose is an action, not a destination - it opens over whatever you
             were reading rather than navigating away from it. */}
@@ -90,6 +91,17 @@ export function DesktopRail({ onCompose }: DesktopRailProps) {
               label="Activity"
               icon={Heart}
               badge={unreadNotifications}
+              fillWhenActive
+            />
+            {/* Messages sits in the rail rather than behind the overflow menu.
+                It is a place you go, with unread state worth surfacing - the
+                menu is for settings-shaped destinations you visit rarely, and
+                burying an inbox there hides the one thing that changes. */}
+            <RailLink
+              {...go("messages", "/messages", true)}
+              label="Messages"
+              icon={MessageCircle}
+              badge={unreadMessages}
               fillWhenActive
             />
             <RailLink
@@ -116,10 +128,6 @@ export function DesktopRail({ onCompose }: DesktopRailProps) {
                 itself - they are visited occasionally, and five primary items
                 stay legible where nine would not. */}
             <DropdownMenuContent side="right" align="end" className="w-52 rounded-xl dark:border-zinc-800 dark:bg-zinc-900">
-              <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push("/messages")}>
-                <MessagesIcon count={unreadMessages} />
-                <span>Messages</span>
-              </DropdownMenuItem>
               <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push("/collections")}>
                 <Bookmark className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
                 <span>Saved</span>
@@ -161,18 +169,6 @@ export function DesktopRail({ onCompose }: DesktopRailProps) {
   );
 }
 
-function MessagesIcon({ count }: { count: number }) {
-  return (
-    <span className="relative flex h-4 w-4 items-center justify-center">
-      <Heart className="hidden" />
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 text-zinc-500 dark:text-zinc-400">
-        <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-      {count > 0 && <span className="absolute -right-1.5 -top-1 h-2 w-2 rounded-full bg-red-500" />}
-    </span>
-  );
-}
-
 interface RailLinkProps {
   href: string;
   onClick: (e: React.MouseEvent) => void;
@@ -195,11 +191,17 @@ function RailLink({ href, onClick, isActive, label, icon: Icon, badge, avatarSrc
       aria-label={label}
       title={label}
       aria-current={isActive ? "page" : undefined}
+      // Active state is weight and fill, never a filled box. The compose button
+      // is the one element in the rail with a background, so a box has exactly
+      // one meaning here: "this does something", not "you are here". They read
+      // as the same control otherwise, which is what the previous version did.
+      // Carrying the state on fill rather than colour also keeps it legible for
+      // colour-blind users and in both themes.
       className={cn(
         "relative flex h-11 w-11 items-center justify-center rounded-2xl transition-colors",
         isActive
-          ? "bg-zinc-100 text-zinc-950 dark:bg-zinc-800 dark:text-zinc-50"
-          : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+          ? "text-zinc-950 dark:text-zinc-50"
+          : "text-zinc-400 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-500 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
       )}
     >
       {avatarSrc !== undefined || avatarFallback ? (

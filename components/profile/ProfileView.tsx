@@ -108,7 +108,7 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
   };
 
   return (
-    <main className="flex min-h-screen w-full flex-col overflow-x-hidden bg-white dark:bg-zinc-950">
+    <main className="flex min-h-screen w-full flex-col overflow-x-clip bg-white dark:bg-zinc-950">
       {/* Cover banner. Short on mobile - a 192px hero on a 700px screen spent
           a quarter of the viewport on decoration before any content. */}
       <div className="group relative h-28 w-full bg-zinc-100 sm:h-72 dark:bg-zinc-900">
@@ -321,7 +321,13 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
 
           {/* Tab rail pins under the mobile header so you can switch tabs
               without scrolling back up past the whole profile header. */}
-          <div className="sticky top-[var(--mobile-header-height)] z-10 -mx-4 mb-5 border-b border-zinc-100 bg-white/90 px-4 backdrop-blur-xl sm:static sm:mx-0 sm:mb-6 sm:bg-transparent sm:px-0 sm:backdrop-blur-none dark:border-zinc-800 dark:bg-zinc-950/90 sm:dark:bg-transparent">
+          {/* Sticky on every breakpoint. It used to go `sm:static`, so on
+              desktop the tabs scrolled away and you had to return to the top of
+              a long profile to change them. --mobile-header-height resolves to
+              0 on desktop (MobileHeader is hidden there), so the same offset
+              pins it correctly under the mobile header and flush to the top on
+              desktop. */}
+          <div className="sticky top-[var(--mobile-header-height)] z-10 -mx-4 mb-5 border-b border-zinc-100 bg-white/90 px-4 backdrop-blur-xl sm:mb-6 dark:border-zinc-800 dark:bg-zinc-950/90">
             <div className="relative flex gap-5 overflow-x-auto no-scrollbar rail-x sm:gap-6">
               {TABS.map(tab => {
                 const isActive = activeTab === tab.id;

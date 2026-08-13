@@ -66,7 +66,7 @@ export default function ExplorePage() {
   };
 
   return (
-    <main className="flex min-h-screen w-full flex-col overflow-x-hidden bg-white dark:bg-zinc-950">
+    <main className="flex min-h-screen w-full flex-col overflow-x-clip bg-white dark:bg-zinc-950">
       <JsonLd id="explore-json-ld" data={exploreJsonLd} />
 
       {/* On mobile this bar *is* the screen's header - lib/mobile/nav.ts gives

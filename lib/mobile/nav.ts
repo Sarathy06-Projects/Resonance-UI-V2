@@ -24,7 +24,7 @@ export type MobileHeaderMode =
   // Screen paints its own header (profile does, over its cover image).
   | "none";
 
-export type MobileTab = "home" | "search" | "activity" | "profile" | null;
+export type MobileTab = "home" | "search" | "activity" | "messages" | "profile" | null;
 
 export interface MobileChrome {
   header: MobileHeaderMode;
@@ -74,8 +74,8 @@ const ROUTES: Array<[RegExp, MobileChrome]> = [
   // --- Messages -------------------------------------------------------------
   // A thread is a pushed screen so the tab bar yields the bottom edge to the
   // composer, exactly as a post thread does.
-  [/^\/messages\/[^/]+$/, { header: "title", title: "Message", tab: "home", ...PUSHED_DEFAULTS }],
-  [/^\/messages$/, { header: "large-title", title: "Messages", tab: "home", ...PUSHED_DEFAULTS }],
+  [/^\/messages\/[^/]+$/, { header: "title", title: "Message", tab: "messages", ...PUSHED_DEFAULTS }],
+  [/^\/messages$/, { header: "large-title", title: "Messages", tab: "messages", ...PUSHED_DEFAULTS }],
 
   // --- Pushed inside the Profile tab --------------------------------------
   [/^\/settings\/profile$/, { header: "title", title: "Edit profile", tab: "profile", ...PUSHED_DEFAULTS }],
