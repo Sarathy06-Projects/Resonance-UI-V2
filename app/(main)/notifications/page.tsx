@@ -170,7 +170,7 @@ export default function NotificationsPage() {
       {/* The page title lives in the mobile header (lib/mobile/nav.ts gives
           this route header: "large-title"), so this bar only carries the
           filters and the mark-all action below `md`. */}
-      <div className="sticky top-[var(--mobile-header-height)] z-20 border-b border-zinc-100 bg-white/90 backdrop-blur-xl md:top-16 md:px-6 md:pt-6 dark:border-zinc-800 dark:bg-zinc-950/90">
+      <div className="sticky top-[var(--mobile-header-height)] z-20 border-b border-zinc-100 bg-white/90 backdrop-blur-xl md:px-6 md:pt-6 dark:border-zinc-800 dark:bg-zinc-950/90">
         <div className="mb-6 hidden flex-col justify-between gap-4 sm:flex-row sm:items-end md:flex">
           <div>
             <h1 className="mb-1 text-2xl font-bold tracking-tight dark:text-white">Notifications</h1>

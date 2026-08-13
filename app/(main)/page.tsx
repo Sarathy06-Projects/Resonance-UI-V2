@@ -100,7 +100,7 @@ export default function Home() {
           through. At md+ it sits under the desktop top nav instead.
           Underline tabs rather than a pill group: they read as "which feed am
           I in" instead of as a control that might filter something. */}
-      <div className="sticky top-0 z-20 border-b border-zinc-100 bg-white/85 pt-safe backdrop-blur-xl md:top-14 dark:border-zinc-800 dark:bg-zinc-950/85">
+      <div className="sticky top-0 z-20 border-b border-zinc-100 bg-white/85 pt-safe backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/85">
         <div className="flex px-2 sm:px-6">
           {([
             { id: "foryou", label: "For you" },

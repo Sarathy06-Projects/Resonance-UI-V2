@@ -73,7 +73,7 @@ export default function ExplorePage() {
           this route header: "search", so nothing is rendered above it. A
           screen whose only purpose is searching doesn't need a title saying
           so. */}
-      <div className="sticky top-0 z-30 border-b border-zinc-100 bg-white/90 pt-safe backdrop-blur-xl md:top-16 dark:border-zinc-800 dark:bg-zinc-950/90">
+      <div className="sticky top-0 z-30 border-b border-zinc-100 bg-white/90 pt-safe backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/90">
         <div className="p-3 sm:px-6 sm:pt-6">
           <div className="relative mx-auto max-w-2xl">
             <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />

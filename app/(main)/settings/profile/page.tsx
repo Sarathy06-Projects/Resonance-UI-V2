@@ -217,7 +217,7 @@ function EditProfileForm({ username }: { username: string }) {
 
   return (
     <div className="flex flex-col min-h-screen pb-20 md:pb-0">
-      <div className="sticky top-0 sm:top-16 z-10 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 px-4 py-4 sm:py-5 flex items-center gap-4">
+      <div className="sticky top-0 z-10 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 px-4 py-4 sm:py-5 flex items-center gap-4">
         <Link href={profileUrl(profile)} className="p-2 -ml-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </Link>
