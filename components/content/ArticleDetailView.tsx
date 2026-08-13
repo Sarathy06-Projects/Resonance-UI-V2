@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Bookmark, Heart, MessageCircle, Share, Layers } from "lucide-react";
@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import { CommentThread } from "@/components/shared/CommentThread";
 import { RelatedArticles } from "@/components/seo/RelatedArticles";
 import { PostImageGrid } from "@/components/shared/ImageAttachments";
+import { ShareSheet } from "@/components/shared/ShareSheet";
+import { absoluteUrl } from "@/lib/share";
 import { profileUrl, articleUrl, seriesUrl, topicUrl } from "@/lib/urls";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import type { Article, SeriesWithArticles } from "@/lib/api/types";
@@ -35,6 +37,7 @@ export function ArticleDetailView({ article, series }: ArticleDetailViewProps) {
   const { isLiked, likesCount, isBookmarked, bookmarksCount, toggleLike, toggleBookmark } = useArticleInteractions(article);
   const { isFollowing, toggleFollow } = useFollowState(article.authorId, false);
   const isSelf = user?.id === article.authorId;
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   const seriesIndex = series?.articles.findIndex((a) => a.id === article.id) ?? -1;
   const prevInSeries = series && seriesIndex > 0 ? series.articles[seriesIndex - 1] : null;
@@ -178,9 +181,27 @@ export function ArticleDetailView({ article, series }: ArticleDetailViewProps) {
             >
               <Bookmark className={cn("w-6 h-6", isBookmarked && "fill-current")} />
             </button>
-            <button className="hover:text-blue-500 transition-colors" aria-label="Share"><Share className="w-6 h-6" /></button>
+            <button
+              onClick={() => setIsShareOpen(true)}
+              className="transition-colors hover:text-blue-500"
+              aria-label="Share"
+            >
+              <Share className="h-6 w-6" />
+            </button>
           </div>
         </div>
+
+        {isShareOpen && (
+          <ShareSheet
+            open={isShareOpen}
+            onOpenChange={setIsShareOpen}
+            content={{
+              url: absoluteUrl(articleUrl(article)),
+              title: article.title,
+              text: article.preview ?? article.title,
+            }}
+          />
+        )}
 
         <div className="border-t border-zinc-100 dark:border-zinc-800 -mx-4 sm:-mx-8">
           <CommentThread targetType="article" targetId={article.id} targetAuthorId={article.authorId} />

@@ -10,6 +10,8 @@ import { usePostInteractions } from "@/lib/hooks/usePostInteractions";
 import { getArticle } from "@/lib/api/articles";
 import { updatePost, deletePost } from "@/lib/api/posts";
 import { PostActionsMenu } from "@/components/shared/PostActionsMenu";
+import { ShareSheet } from "@/components/shared/ShareSheet";
+import { absoluteUrl } from "@/lib/share";
 import { Button } from "@/components/ui/button";
 import { timeAgo } from "@/lib/formatTime";
 import type { Post } from "@/lib/api/types";
@@ -54,6 +56,7 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
   // after the feed revalidates. The server round-trip still runs underneath.
   const [editedContent, setEditedContent] = useState<string | null>(null);
   const [isRemoved, setIsRemoved] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   const content = editedContent ?? post.content;
 
@@ -344,7 +347,18 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
               activeClass="text-zinc-900 dark:text-white"
               onClick={(e) => handleInteraction(e, toggleBookmark)}
             />
-            <ActionButton label="Share" icon={Share} onClick={(e) => handleInteraction(e)} />
+            {/* Sharing is public - no auth gate. Requiring an account to
+                pass a link on would block the one action that brings new
+                people to the post. */}
+            <ActionButton
+              label="Share"
+              icon={Share}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                setIsShareOpen(true);
+              }}
+            />
           </div>
 
           {summary.length > 0 && (
@@ -352,6 +366,20 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
           )}
         </div>
       </div>
+
+      {/* Only mounted once opened - the sheet pulls in the Dialog primitive,
+          and a feed renders dozens of these cards. */}
+      {isShareOpen && (
+        <ShareSheet
+          open={isShareOpen}
+          onOpenChange={setIsShareOpen}
+          content={{
+            url: absoluteUrl(postUrl(post)),
+            title: `${post.author.name} on Resonance`,
+            text: content.slice(0, 200),
+          }}
+        />
+      )}
     </article>
   );
 }
