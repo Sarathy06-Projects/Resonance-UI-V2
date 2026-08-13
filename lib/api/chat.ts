@@ -115,3 +115,23 @@ export function getPresence(conversationId: string) {
     `/api/chat/conversations/${encodeURIComponent(conversationId)}/presence`
   );
 }
+
+export interface ConversationDetail {
+  id: string;
+  /** Everyone except you. A direct thread has exactly one. */
+  participants: Author[];
+  /**
+   * How far the other side has read, or null if never.
+   *
+   * Read state is one timestamp per member rather than a receipt per message:
+   * the UI only ever renders one "Seen" marker on the newest message you sent,
+   * so a row per message per member would store far more than it shows.
+   */
+  otherLastReadAt: string | null;
+  /** Participant ids currently holding a live connection. */
+  online: string[];
+}
+
+export function getConversation(id: string) {
+  return apiFetch<ConversationDetail>(`/api/chat/conversations/${encodeURIComponent(id)}`);
+}

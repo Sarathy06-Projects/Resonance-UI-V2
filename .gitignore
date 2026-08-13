@@ -3,5 +3,10 @@ node_modules
 .DS_Store
 .env
 .env*.local
+# `.env*.local` only matches names *ending* in .local, so a copy like
+# .env.local.bak slipped through and was caught by GitHub's push protection
+# rather than by us. Anything starting with .env is secret regardless of what
+# is appended to it.
+.env*
 
 .vercel

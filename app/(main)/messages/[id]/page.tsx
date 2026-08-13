@@ -2,6 +2,9 @@
 
 import { use, useEffect, useRef, useState } from "react";
 import { AlertCircle, Send, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { profileUrl } from "@/lib/urls";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { deleteMessage, markConversationRead, type ChatMessage } from "@/lib/api/chat";
 import { useConversation, type PendingMessage } from "@/lib/hooks/useConversation";
@@ -33,7 +36,18 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
     notifyTyping,
     stopTyping,
     isPeerTyping,
+    participant,
+    otherLastReadAt,
+    onlineUsers,
   } = useConversation(conversationId);
+
+  // Only the newest message you sent carries a status. Instagram does the same,
+  // and for the same reason: repeating "Seen" down the column says nothing
+  // extra once the marker has passed, and reads as clutter.
+  const lastOwnMessage = [...messages].reverse().find((m) => m.senderId === user?.id && !m.isDeleted);
+  const isSeen =
+    !!lastOwnMessage && !!otherLastReadAt && new Date(otherLastReadAt) >= new Date(lastOwnMessage.createdAt);
+  const isPeerOnline = !!participant && onlineUsers.includes(participant.id);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -67,6 +81,36 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Who you are talking to. The thread previously showed only a generic
+          "Message" title on mobile and nothing at all on desktop, so an open
+          conversation never named its other side. */}
+      {participant && (
+        <div className="sticky top-[var(--mobile-header-height)] z-10 flex items-center gap-3 border-b border-zinc-100 bg-white/90 px-4 py-3 backdrop-blur-xl sm:px-6 dark:border-zinc-800 dark:bg-zinc-950/90">
+          <Link href={profileUrl(participant)} className="flex min-w-0 items-center gap-3">
+            <span className="relative shrink-0">
+              <Avatar className="h-9 w-9 border border-zinc-100 dark:border-zinc-800">
+                <AvatarImage src={participant.image ?? undefined} alt="" />
+                <AvatarFallback className="text-sm dark:bg-zinc-800">{participant.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              {isPeerOnline && (
+                <span
+                  aria-hidden
+                  className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-500 ring-2 ring-white dark:ring-zinc-950"
+                />
+              )}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-[15px] font-semibold text-zinc-950 dark:text-white">
+                {participant.name}
+              </span>
+              <span className="block truncate text-[12px] text-zinc-500 dark:text-zinc-400">
+                {isPeerTyping ? "typing…" : isPeerOnline ? "Active now" : `@${participant.username ?? ""}`}
+              </span>
+            </span>
+          </Link>
+        </div>
+      )}
+
       <div className="flex-1 px-4 pb-4 pt-2 sm:px-6">
         {isLoading && messages.length === 0 ? (
           <div className="space-y-3 py-4">
@@ -88,6 +132,17 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
             {pending.map((p) => (
               <PendingBubble key={p.clientId} pending={p} onRetry={() => retry(p.clientId)} onDiscard={() => discard(p.clientId)} />
             ))}
+
+            {/* Delivery status, on the newest sent message only. "Sent" means
+                the server stored it; "Seen" means the other side's read marker
+                has passed it. Suppressed while something is still in flight,
+                since the newest thing on screen is then the pending bubble,
+                which carries its own state. */}
+            {lastOwnMessage && pending.length === 0 && (
+              <li className="pr-1 text-right text-[11px] text-zinc-400 dark:text-zinc-500">
+                {isSeen ? "Seen" : "Sent"}
+              </li>
+            )}
           </ol>
         )}
 

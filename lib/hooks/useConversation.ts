@@ -6,7 +6,7 @@ import {
   getMessages,
   sendMessage,
   setTyping,
-  getPresence,
+  getConversation,
   type ChatMessage,
 } from "@/lib/api/chat";
 import { useChatStream } from "@/lib/hooks/useChatStream";
@@ -48,6 +48,10 @@ export function useConversation(conversationId: string) {
   // are merged at render, so there is no effect copying server data into state
   // and no window where the snapshot overwrites a newer live event.
   const [presenceDeltas, setPresenceDeltas] = useState<Record<string, boolean>>({});
+  // Live read marker. Merged with the fetched one at render, same pattern as
+  // presence: the event is faster, the fetch is the backstop, and whichever is
+  // later wins rather than the older value clobbering the newer.
+  const [liveReadAt, setLiveReadAt] = useState<string | null>(null);
 
   const { data, error, isLoading, mutate } = useSWR(
     isAuthenticated ? ["chat-messages", conversationId] : null,
@@ -61,19 +65,22 @@ export function useConversation(conversationId: string) {
     }
   );
 
-  const { data: presence } = useSWR(
-    isAuthenticated ? ["chat-presence", conversationId] : null,
-    () => getPresence(conversationId)
+  // Who the thread is with, plus how far they have read. Polled slowly as a
+  // backstop; the chat:read event below is what makes "Seen" feel immediate.
+  const { data: detail, mutate: mutateDetail } = useSWR(
+    isAuthenticated ? ["chat-detail", conversationId] : null,
+    () => getConversation(conversationId),
+    { refreshInterval: 30_000 }
   );
 
   const onlineUsers = useMemo(() => {
-    const set = new Set(presence?.online ?? []);
+    const set = new Set(detail?.online ?? []);
     for (const [id, online] of Object.entries(presenceDeltas)) {
       if (online) set.add(id);
       else set.delete(id);
     }
     return [...set];
-  }, [presence, presenceDeltas]);
+  }, [detail, presenceDeltas]);
 
   const handleEvent = useCallback(
     (event: string, payload: unknown) => {
@@ -89,6 +96,12 @@ export function useConversation(conversationId: string) {
       // thread this user belongs to, so filter by id. This is a display
       // filter, not access control - the server already decided what to send.
       if (p.conversationId !== conversationId) return;
+
+      if (event === "chat:read") {
+        const at = (payload as { readAt?: string }).readAt;
+        if (at) setLiveReadAt((prev) => (!prev || at > prev ? at : prev));
+        return;
+      }
 
       if (event === "typing.started" && p.userId) {
         setTypingUsers((prev) => ({ ...prev, [p.userId!]: Date.now() }));
@@ -200,7 +213,16 @@ export function useConversation(conversationId: string) {
     setPending((prev) => prev.filter((p) => p.clientId !== clientId));
   }, []);
 
+  // Whichever marker is later. A slow poll landing after a live event must not
+  // drag "Seen" back to "Sent".
+  const fetchedReadAt = detail?.otherLastReadAt ?? null;
+  const otherLastReadAt =
+    liveReadAt && fetchedReadAt ? (liveReadAt > fetchedReadAt ? liveReadAt : fetchedReadAt) : liveReadAt ?? fetchedReadAt;
+
   return {
+    participant: detail?.participants[0] ?? null,
+    otherLastReadAt,
+    mutateDetail,
     messages,
     pending,
     isLoading,

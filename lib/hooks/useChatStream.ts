@@ -13,12 +13,14 @@ type ChatEvent =
   // "stopped"/disconnect is lost.
   | "typing.started"
   | "typing.stopped"
-  | "presence";
+  | "presence"
+  | "chat:read";
 
 const CHAT_EVENTS: ChatEvent[] = [
   "typing.started",
   "typing.stopped",
   "presence",
+  "chat:read",
   "chat:message",
   "chat:message-edited",
   "chat:message-deleted",
