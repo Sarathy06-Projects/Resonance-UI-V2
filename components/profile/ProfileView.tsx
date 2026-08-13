@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/shared/PostCard";
 import { ProfileMenuSheet } from "@/components/profile/ProfileMenuSheet";
+import { openConversation } from "@/lib/api/chat";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useFollowState } from "@/lib/hooks/useFollowState";
 import { uploadAvatar, uploadCover } from "@/lib/api/users";
@@ -51,6 +52,27 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isOpeningChat, setIsOpeningChat] = useState(false);
+
+  // Opening a DM is a server-side operation: it creates membership for both
+  // parties and is idempotent on the pair, so tapping twice lands in the same
+  // thread rather than creating a second. A block on either side is refused by
+  // the API - this button is not what enforces it.
+  const handleMessage = async () => {
+    if (!isAuthenticated) {
+      openAuthModal();
+      return;
+    }
+    setIsOpeningChat(true);
+    try {
+      const { id } = await openConversation(profile.id);
+      router.push(`/messages/${id}`);
+    } catch {
+      window.alert("Couldn't open a conversation with this person.");
+    } finally {
+      setIsOpeningChat(false);
+    }
+  };
 
   const { data: postsData, error: postsError, mutate: mutatePosts } = useSWR(
     activeTab === "posts" ? `profile-posts-${profile.id}` : null,
@@ -169,7 +191,14 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
                 </Button>
               ) : (
                 <>
-                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-full dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Message"
+                    disabled={isOpeningChat}
+                    onClick={handleMessage}
+                    className="h-10 w-10 rounded-full dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                  >
                     <MessageCircle className="h-4 w-4" />
                   </Button>
                   <Button
@@ -243,7 +272,14 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
                   >
                     {isFollowing ? "Following" : "Follow"}
                   </Button>
-                  <Button variant="outline" size="icon" aria-label="Message" className="h-11 w-11 shrink-0 rounded-full dark:border-zinc-700 dark:text-zinc-100">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Message"
+                    disabled={isOpeningChat}
+                    onClick={handleMessage}
+                    className="h-11 w-11 shrink-0 rounded-full dark:border-zinc-700 dark:text-zinc-100"
+                  >
                     <MessageCircle className="h-4 w-4" />
                   </Button>
                 </>

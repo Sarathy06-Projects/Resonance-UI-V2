@@ -1,0 +1,209 @@
+"use client";
+
+import { use, useCallback, useEffect, useRef, useState } from "react";
+import useSWR from "swr";
+import { Send, Trash2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ErrorState } from "@/components/shared/ErrorState";
+import {
+  deleteMessage,
+  getMessages,
+  markConversationRead,
+  sendMessage,
+  type ChatMessage,
+} from "@/lib/api/chat";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useChatStream } from "@/lib/hooks/useChatStream";
+import { timeAgo } from "@/lib/formatTime";
+import { cn } from "@/lib/utils";
+
+// A single thread.
+//
+// Message bodies render as JSX text children throughout - never through
+// dangerouslySetInnerHTML - so React escapes them. That is the XSS control on
+// this screen: a message containing markup is displayed as characters, not
+// parsed. Do not introduce a "rich text" renderer here without sanitising
+// server-side first.
+export default function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: conversationId } = use(params);
+  const { user, isAuthenticated } = useAuthStore();
+  const [draft, setDraft] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const { data, error, isLoading, mutate } = useSWR(
+    isAuthenticated ? ["chat-messages", conversationId] : null,
+    () => getMessages(conversationId)
+  );
+
+  // Newest-first from the API (cursor pages backwards); reversed once here so
+  // the transcript reads top-to-bottom.
+  const messages = data ? [...data.messages].reverse() : [];
+
+  const onIncoming = useCallback(
+    (event: string, payload: unknown) => {
+      const msg = payload as { conversationId?: string };
+      // The stream carries every conversation this user belongs to, so drop
+      // anything for a different thread. This is a display filter, not an
+      // access control - the server already decided what to send.
+      if (msg.conversationId && msg.conversationId !== conversationId) return;
+      void mutate();
+    },
+    [conversationId, mutate]
+  );
+
+  useChatStream(onIncoming);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    markConversationRead(conversationId).catch(() => {});
+  }, [conversationId, isAuthenticated, data?.messages.length]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: "end" });
+  }, [data?.messages.length]);
+
+  const handleSend = async () => {
+    const body = draft.trim();
+    if (!body || isSending) return;
+    setIsSending(true);
+    try {
+      await sendMessage(conversationId, body);
+      setDraft("");
+      await mutate();
+    } catch {
+      // Keep the draft so a failed send doesn't lose what was typed.
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  if (!isAuthenticated) {
+    return <div className="p-8 text-center text-[15px] text-zinc-500 dark:text-zinc-400">Sign in to view this conversation.</div>;
+  }
+
+  // A 404 here is also what a non-member gets - the server does not
+  // distinguish "no such thread" from "not yours", so neither does this.
+  if (error) return <ErrorState title="Conversation unavailable" error={error} onRetry={() => mutate()} />;
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <div className="flex-1 px-4 pb-4 pt-2 sm:px-6">
+        {isLoading && messages.length === 0 ? (
+          <div className="space-y-3 py-4">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-12 animate-pulse rounded-2xl bg-zinc-100 dark:bg-zinc-800" />
+            ))}
+          </div>
+        ) : messages.length === 0 ? (
+          <p className="py-16 text-center text-[15px] text-zinc-500 dark:text-zinc-400">
+            No messages yet. Say hello.
+          </p>
+        ) : (
+          <ol className="flex flex-col gap-2 py-2">
+            {messages.map((m) => (
+              <MessageBubble key={m.id} message={m} isMine={m.senderId === user?.id} onChanged={() => mutate()} />
+            ))}
+          </ol>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Composer owns the bottom edge - this is a pushed screen, so the tab
+          bar steps aside (lib/mobile/nav.ts). */}
+      <div className="sticky bottom-0 flex items-end gap-2 border-t border-zinc-100 bg-white/95 px-3 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95">
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              void handleSend();
+            }
+          }}
+          rows={1}
+          maxLength={4000}
+          placeholder="Message"
+          aria-label="Message"
+          // text-base (16px): anything smaller and iOS Safari zooms the page
+          // in on focus and never zooms back out.
+          className="max-h-32 flex-1 resize-none rounded-2xl bg-zinc-100 px-4 py-2.5 text-base outline-none placeholder:text-zinc-500 dark:bg-zinc-900 dark:text-zinc-100"
+        />
+        <button
+          type="button"
+          onClick={handleSend}
+          disabled={!draft.trim() || isSending}
+          aria-label="Send"
+          className={cn(
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform active:scale-90",
+            draft.trim() && !isSending
+              ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
+              : "bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600"
+          )}
+        >
+          <Send className="h-5 w-5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MessageBubble({
+  message,
+  isMine,
+  onChanged,
+}: {
+  message: ChatMessage;
+  isMine: boolean;
+  onChanged: () => void;
+}) {
+  const handleDelete = async () => {
+    if (!window.confirm("Delete this message? This can't be undone.")) return;
+    try {
+      await deleteMessage(message.id);
+      onChanged();
+    } catch {
+      window.alert("Couldn't delete that message.");
+    }
+  };
+
+  return (
+    <li className={cn("group/msg flex items-end gap-2", isMine ? "justify-end" : "justify-start")}>
+      {isMine && !message.isDeleted && (
+        <button
+          type="button"
+          onClick={handleDelete}
+          aria-label="Delete message"
+          className="mb-1 hidden h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-400 md:group-hover/msg:flex md:hover:bg-zinc-100 dark:md:hover:bg-zinc-800"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
+
+      <div
+        className={cn(
+          "max-w-[78%] rounded-2xl px-3.5 py-2",
+          message.isDeleted
+            ? "border border-dashed border-zinc-200 text-zinc-400 dark:border-zinc-700 dark:text-zinc-500"
+            : isMine
+              ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
+              : "bg-zinc-100 text-zinc-950 dark:bg-zinc-900 dark:text-zinc-100"
+        )}
+      >
+        {/* Plain text child: React escapes it. */}
+        <p className="whitespace-pre-wrap break-words text-[15px] leading-snug">
+          {message.isDeleted ? "This message was deleted" : message.body}
+        </p>
+        <div
+          className={cn(
+            "mt-0.5 text-[11px]",
+            isMine && !message.isDeleted ? "text-white/60 dark:text-zinc-950/60" : "text-zinc-400 dark:text-zinc-500"
+          )}
+        >
+          {timeAgo(message.createdAt)}
+          {message.editedAt && !message.isDeleted ? " · edited" : ""}
+        </div>
+      </div>
+    </li>
+  );
+}

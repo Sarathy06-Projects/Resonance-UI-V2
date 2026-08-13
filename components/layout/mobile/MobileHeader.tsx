@@ -3,7 +3,8 @@
 import { useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, MessageCircle } from "lucide-react";
+import { useChatUnread } from "@/lib/hooks/useChatUnread";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/shared/Logo";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
@@ -124,6 +125,11 @@ function HomeHeader({ isAuthenticated }: { isAuthenticated: boolean }) {
       </Link>
 
       <div className="flex items-center gap-1">
+        {/* Messages sits beside the theme toggle rather than in the tab bar:
+            the bar is five destinations wide already, and an inbox is a
+            personal side-channel rather than one of the app's main surfaces.
+            Signed out it's hidden entirely - there is no inbox to show. */}
+        {isAuthenticated && <InboxButton />}
         <ThemeToggle />
         {!isAuthenticated && (
           <Button size="sm" nativeButton={false} className="h-8 rounded-full px-4 text-[13px] font-semibold" render={<Link href="/signup" />}>
@@ -132,6 +138,25 @@ function HomeHeader({ isAuthenticated }: { isAuthenticated: boolean }) {
         )}
       </div>
     </div>
+  );
+}
+
+function InboxButton() {
+  const unread = useChatUnread();
+
+  return (
+    <Link
+      href="/messages"
+      aria-label={unread > 0 ? `Messages, ${unread} unread` : "Messages"}
+      className="relative flex h-9 w-9 items-center justify-center rounded-full border border-zinc-100 text-zinc-700 transition-transform active:scale-90 dark:border-zinc-800 dark:text-zinc-200"
+    >
+      <MessageCircle className="h-[18px] w-[18px]" />
+      {unread > 0 && (
+        <span className="absolute -right-0.5 -top-0.5 min-w-[16px] rounded-full bg-red-500 px-1 text-center text-[10px] font-bold leading-4 text-white ring-2 ring-white dark:ring-zinc-950">
+          {unread > 99 ? "99+" : unread}
+        </span>
+      )}
+    </Link>
   );
 }
 

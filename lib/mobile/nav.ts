@@ -71,6 +71,12 @@ const ROUTES: Array<[RegExp, MobileChrome]> = [
   // /topics/:tag also has /articles and /discussions sub-tabs.
   [/^\/topics\/[^/]+(\/(articles|discussions))?$/, { header: "title", title: "Topic", tab: "search", ...PUSHED_DEFAULTS }],
 
+  // --- Messages -------------------------------------------------------------
+  // A thread is a pushed screen so the tab bar yields the bottom edge to the
+  // composer, exactly as a post thread does.
+  [/^\/messages\/[^/]+$/, { header: "title", title: "Message", tab: "home", ...PUSHED_DEFAULTS }],
+  [/^\/messages$/, { header: "large-title", title: "Messages", tab: "home", ...PUSHED_DEFAULTS }],
+
   // --- Pushed inside the Profile tab --------------------------------------
   [/^\/settings\/profile$/, { header: "title", title: "Edit profile", tab: "profile", ...PUSHED_DEFAULTS }],
   [/^\/settings$/, { header: "large-title", title: "Settings", tab: "profile", ...PUSHED_DEFAULTS }],
