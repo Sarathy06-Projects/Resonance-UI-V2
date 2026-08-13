@@ -53,6 +53,20 @@ export function getPostsSitemapFeed(cursor?: string | null) {
   );
 }
 
+export interface UpdatePostInput {
+  content: string;
+  images?: string[];
+  visibility?: "public" | "followers" | "private";
+}
+
+// Author-only. Narrower than CreatePostInput on purpose: the backend refuses
+// to change a post's `type`, and never rewrites its `slug` - by the time a
+// post is editable its URL is public and possibly indexed, so re-deriving the
+// slug from edited text would break existing links.
+export function updatePost(id: string, input: UpdatePostInput) {
+  return apiFetch<Post>(`/api/posts/${id}`, { method: "PATCH", json: input });
+}
+
 export function deletePost(id: string) {
   return apiFetch<{ deleted: boolean }>(`/api/posts/${id}`, { method: "DELETE" });
 }

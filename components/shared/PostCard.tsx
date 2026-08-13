@@ -1,12 +1,16 @@
 "use client";
 
-import useSWR from "swr";
+import { useState } from "react";
+import useSWR, { useSWRConfig } from "swr";
 import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageCircle, Heart, Repeat2, Bookmark, Share, FileText, Clock, Layers } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { usePostInteractions } from "@/lib/hooks/usePostInteractions";
 import { getArticle } from "@/lib/api/articles";
+import { updatePost, deletePost } from "@/lib/api/posts";
+import { PostActionsMenu } from "@/components/shared/PostActionsMenu";
+import { Button } from "@/components/ui/button";
 import { timeAgo } from "@/lib/formatTime";
 import type { Post } from "@/lib/api/types";
 import { PostImageGrid } from "@/components/shared/ImageAttachments";
@@ -34,10 +38,69 @@ interface PostCardProps {
 //  - No hover affordances (there is no hover); feedback is active:scale
 //    instead, which is what a touch device can actually show.
 export function PostCard({ post, isDetailed = false, priority = false }: PostCardProps) {
-  const { isAuthenticated, openAuthModal } = useAuthStore();
+  const { user, isAuthenticated, openAuthModal } = useAuthStore();
   const { isLiked, likesCount, isBookmarked, sharesCount, toggleLike, toggleBookmark, toggleRepost } =
     usePostInteractions(post);
   const router = useRouter();
+  const { mutate } = useSWRConfig();
+
+  const isOwner = Boolean(user && user.id === post.authorId);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(post.content);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  // Local overrides so an edit or delete shows immediately, rather than only
+  // after the feed revalidates. The server round-trip still runs underneath.
+  const [editedContent, setEditedContent] = useState<string | null>(null);
+  const [isRemoved, setIsRemoved] = useState(false);
+
+  const content = editedContent ?? post.content;
+
+  // Every cached feed variant, not one key: the same post can be on screen in
+  // "For you", "Following", a profile tab or search at the time it's changed.
+  // useFeed keys are the tuple [`feed-${tab}`, cursor] (lib/hooks/useFeed.ts).
+  const revalidateLists = () =>
+    mutate(
+      (key) =>
+        (Array.isArray(key) && typeof key[0] === "string" && key[0].startsWith("feed-")) ||
+        (typeof key === "string" && (key.startsWith("profile-posts-") || key.startsWith("explore-search-")))
+    );
+
+  const handleSaveEdit = async () => {
+    const trimmed = draft.trim();
+    if (!trimmed || trimmed === content) {
+      setIsEditing(false);
+      return;
+    }
+    setIsSaving(true);
+    setEditError(null);
+    try {
+      const updated = await updatePost(post.id, { content: trimmed });
+      setEditedContent(updated.content);
+      setIsEditing(false);
+      void revalidateLists();
+    } catch (err) {
+      // Keep the draft on screen so nothing typed is lost to a failed save.
+      setEditError(err instanceof Error ? err.message : "Couldn't save your changes.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm("Delete this post? This can't be undone.")) return;
+    try {
+      await deletePost(post.id);
+      setIsRemoved(true);
+      void revalidateLists();
+      // A detail page is *about* the post that just stopped existing, so
+      // there's nothing left to show - step back to the feed instead.
+      if (isDetailed) router.push("/");
+    } catch {
+      window.alert("Couldn't delete this post. Please try again.");
+    }
+  };
 
   // Feed/list responses don't embed the linked article preview (only the
   // single-post GET does) - fetch it lazily and let SWR cache it by id.
@@ -58,7 +121,9 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
   };
 
   const handleCardClick = () => {
-    if (!isDetailed) router.push(postUrl(post));
+    // Not while the editor is open - a stray tap on the card's padding
+    // would otherwise navigate away from a half-written edit.
+    if (!isDetailed && !isEditing) router.push(postUrl(post));
   };
 
   const stopPropagation = (e: React.MouseEvent) => {
@@ -73,11 +138,16 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
     sharesCount > 0 && `${formatCount(sharesCount)} ${sharesCount === 1 ? "repost" : "reposts"}`,
   ].filter(Boolean) as string[];
 
+  // Drop straight out of the list on delete. The revalidation kicked off by
+  // handleDelete will remove it from the cache too, but that lands a beat
+  // later and the row shouldn't linger in the meantime.
+  if (isRemoved) return null;
+
   return (
     <article
       className={cn(
         "px-4 py-3.5 transition-colors sm:px-6 sm:py-5",
-        !isDetailed && "cursor-pointer active:bg-zinc-50 md:hover:bg-zinc-50/80 dark:active:bg-zinc-900/60 dark:md:hover:bg-zinc-900/60"
+        !isDetailed && !isEditing && "cursor-pointer active:bg-zinc-50 md:hover:bg-zinc-50/80 dark:active:bg-zinc-900/60 dark:md:hover:bg-zinc-900/60"
       )}
       onClick={handleCardClick}
     >
@@ -104,7 +174,7 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
               right. The handle drops below `sm` - at 360px it pushes the
               timestamp off-screen, and the avatar plus name already identify
               the author. */}
-          <div className="flex items-baseline gap-1.5">
+          <div className="flex items-center gap-1.5">
             <Link
               href={profileUrl(post.author)}
               onClick={stopPropagation}
@@ -120,6 +190,16 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
             <span className="ml-auto shrink-0 text-[13px] text-zinc-400 dark:text-zinc-500">
               {timeAgo(post.createdAt)}
             </span>
+            <PostActionsMenu
+              canEdit={isOwner}
+              canDelete={isOwner}
+              onEdit={() => {
+                setDraft(content);
+                setEditError(null);
+                setIsEditing(true);
+              }}
+              onDelete={handleDelete}
+            />
           </div>
 
           {(post.linkedArticleId || post.threadId) && (
@@ -129,9 +209,52 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
             </div>
           )}
 
-          <p className="mt-1 whitespace-pre-wrap break-words text-[15px] leading-[1.5] text-zinc-950 dark:text-zinc-200">
-            {post.content}
-          </p>
+          {isEditing ? (
+            // Inline, matching how comments are edited - a separate route or
+            // modal for a two-line post would cost more navigation than the
+            // edit itself. onClick stops the card's navigate-to-post handler
+            // from firing while you're typing in it.
+            <div className="mt-1" onClick={(e) => e.stopPropagation()}>
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                autoFocus
+                rows={4}
+                aria-label="Edit post"
+                // text-base (16px): anything smaller and iOS Safari zooms the
+                // page in on focus and never zooms back out.
+                className="w-full resize-y rounded-xl border border-zinc-200 bg-white p-3 text-base leading-[1.5] outline-none focus:border-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-blue-500"
+              />
+              {editError && (
+                <p role="alert" className="mt-2 text-[13px] text-red-600 dark:text-red-400">
+                  {editError}
+                </p>
+              )}
+              <div className="mt-2 flex items-center justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full"
+                  onClick={() => setIsEditing(false)}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="rounded-full px-5 font-semibold"
+                  onClick={handleSaveEdit}
+                  disabled={isSaving || !draft.trim()}
+                >
+                  {isSaving ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-1 whitespace-pre-wrap break-words text-[15px] leading-[1.5] text-zinc-950 dark:text-zinc-200">
+              {content}
+            </p>
+          )}
 
           {post.images && post.images.length > 0 && (
             <div className="mt-3 overflow-hidden rounded-2xl">
