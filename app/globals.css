@@ -24,25 +24,36 @@
   bottom: env(safe-area-inset-bottom);
 }
 
-/* Native-app touch feel on the mobile shell: no blue flash on tap, no
-   rubber-band chaining from an inner scroller to the document, and no
-   accidental text selection when dragging chrome (tab bar, headers, chip
-   rails). Text content itself opts back in via .select-text below. */
+/* Native-app touch feel on the mobile shell: no blue flash on tap, and no
+   auto text-inflation on rotate.
+
+   Deliberately NOT here: `overscroll-behavior-y: none` on html/body. It was,
+   and it silently disabled pull-to-refresh on Android Chrome and the bounce
+   on iOS Safari - the document is the only vertical scroller on mobile, so
+   there was never any chaining for it to prevent. The one genuine inner
+   scroller (the compose sheet's body) contains its own overscroll locally
+   with `overscroll-contain`, which is where that rule belongs. */
 @media (max-width: 767px) {
   html {
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
-    overscroll-behavior-y: none;
   }
-  body {
-    overscroll-behavior-y: none;
-  }
-  /* Horizontal chip/card rails inside a vertically scrolling page: keep the
-     gesture on one axis so a slightly-off swipe doesn't jitter both. */
-  .rail-x {
-    overscroll-behavior-x: contain;
-    touch-action: pan-x;
-  }
+}
+
+/* Horizontal chip/card rails inside a vertically scrolling page.
+   `overscroll-behavior-x: contain` stops a swipe that runs off the end of a
+   rail from triggering the browser's back-navigation gesture.
+
+   No `touch-action` here on purpose. `touch-action: pan-x` reads like "this
+   strip scrolls horizontally", but what it actually declares is that the
+   element accepts *only* horizontal panning - so a touch starting anywhere
+   on a rail could not scroll the page vertically at all, and the feed froze
+   under your finger. These rails are interleaved through the feed and sit at
+   the top of Explore, Activity and Profile, so a lot of the screen was dead
+   to vertical swipes. The default (`auto`) lets the browser axis-lock from
+   the gesture direction, which is the behaviour that was wanted. */
+.rail-x {
+  overscroll-behavior-x: contain;
 }
 
 /* Mobile chrome geometry. Both are republished at runtime from the real
