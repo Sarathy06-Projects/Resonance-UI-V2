@@ -32,7 +32,7 @@ const TARGET_ICONS: Record<string, typeof Link2> = {
 
 export function ShareSheet({ open, onOpenChange, content }: ShareSheetProps) {
   const [copied, setCopied] = useState(false);
-  const [storyState, setStoryState] = useState<"idle" | "working" | "unsupported" | "failed">("idle");
+  const [storyState, setStoryState] = useState<"idle" | "working" | "shared" | "unsupported" | "failed">("idle");
   // Capability checks have to run after mount: navigator doesn't exist during
   // SSR, and rendering a different set of buttons on the server than the
   // client would hydrate mismatched.
@@ -76,11 +76,16 @@ export function ShareSheet({ open, onOpenChange, content }: ShareSheetProps) {
     // clipboard is what makes that possible without hunting for it.
     await copyToClipboard(content.url);
     const result = await shareStoryImage(content);
-    if (result === "shared") {
-      onOpenChange(false);
+    if (result === "cancelled") {
       setStoryState("idle");
       return;
     }
+    // Deliberately does *not* close on success. The story itself can't carry
+    // a tappable link - only Instagram's link sticker can, and only the
+    // person posting can add it - so closing here would hand off the image
+    // and leave the destination silently lost. Staying open to show the
+    // three-step instruction is the whole difference between a story that
+    // leads back here and one that doesn't.
     setStoryState(result);
   };
 
@@ -126,6 +131,24 @@ export function ShareSheet({ open, onOpenChange, content }: ShareSheetProps) {
             );
           })}
         </div>
+
+        {/* The step that makes a shared story lead anywhere. Instagram only
+            renders a tappable link if the poster adds a link sticker, so this
+            spells out where it is - the link is already on the clipboard,
+            waiting to be pasted into it. */}
+        {storyState === "shared" && (
+          <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3.5 dark:border-blue-900/50 dark:bg-blue-950/30">
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-blue-900 dark:text-blue-200">
+              <Check className="h-4 w-4 shrink-0" />
+              Link copied — one more step to make it tappable
+            </div>
+            <ol className="mt-2 list-decimal space-y-1 pl-5 text-[13px] leading-relaxed text-blue-900/80 dark:text-blue-200/70">
+              <li>In Instagram, tap the sticker icon at the top</li>
+              <li>Choose <span className="font-semibold">Link</span></li>
+              <li>Paste, then place it over the card</li>
+            </ol>
+          </div>
+        )}
 
         {storyState === "unsupported" && (
           <p className="mt-3 px-2 text-[13px] text-zinc-500 dark:text-zinc-400">

@@ -130,7 +130,9 @@ export function storyImageUrl(shareUrl: string): string {
  * Fetches the story card and hands it to the OS share sheet as a file.
  * Returns why it failed so the caller can fall back rather than fail silently.
  */
-export async function shareStoryImage(content: ShareContent): Promise<"shared" | "unsupported" | "failed"> {
+export async function shareStoryImage(
+  content: ShareContent
+): Promise<"shared" | "cancelled" | "unsupported" | "failed"> {
   try {
     const res = await fetch(storyImageUrl(content.url));
     if (!res.ok) return "failed";
@@ -144,9 +146,10 @@ export async function shareStoryImage(content: ShareContent): Promise<"shared" |
     await navigator.share({ files: [file], title: content.title, text: `${content.title}\n${content.url}` });
     return "shared";
   } catch (err) {
-    // An AbortError just means the user dismissed the sheet - not a failure
-    // worth showing an error for.
-    if (err instanceof DOMException && err.name === "AbortError") return "shared";
+    // An AbortError means the user dismissed the OS sheet. Reported
+    // separately from success so the caller doesn't tell someone who backed
+    // out to go add a link sticker to a story they never posted.
+    if (err instanceof DOMException && err.name === "AbortError") return "cancelled";
     return "failed";
   }
 }
