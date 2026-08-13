@@ -67,6 +67,24 @@ export function updatePost(id: string, input: UpdatePostInput) {
   return apiFetch<Post>(`/api/posts/${id}`, { method: "PATCH", json: input });
 }
 
+// Short share links (/p/:code). Kept minimal on purpose - the redirect route
+// only needs enough to rebuild the canonical URL, not a whole post.
+export interface ShortLinkTarget {
+  id: string;
+  slug: string | null;
+  username: string | null;
+}
+
+export function resolveShortLink(code: string) {
+  return apiFetch<ShortLinkTarget>(`/api/posts/by-short/${encodeURIComponent(code)}`);
+}
+
+// POST because it mints a code for posts that predate short links. Idempotent:
+// a post that already has one gets the same value back.
+export function getOrCreateShortCode(id: string) {
+  return apiFetch<{ shortCode: string }>(`/api/posts/${id}/short-link`, { method: "POST" });
+}
+
 export function deletePost(id: string) {
   return apiFetch<{ deleted: boolean }>(`/api/posts/${id}`, { method: "DELETE" });
 }

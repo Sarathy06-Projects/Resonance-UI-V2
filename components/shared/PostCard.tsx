@@ -373,6 +373,7 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
         <ShareSheet
           open={isShareOpen}
           onOpenChange={setIsShareOpen}
+          postId={post.id}
           content={{
             url: absoluteUrl(postUrl(post)),
             title: `${post.author.name} on Resonance`,

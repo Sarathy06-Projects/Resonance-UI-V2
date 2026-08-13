@@ -8,17 +8,24 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { cn } from "@/lib/utils";
 import {
   WEB_SHARE_TARGETS,
+  absoluteUrl,
   canNativeShare,
   canShareFiles,
   copyToClipboard,
   shareStoryImage,
   type ShareContent,
 } from "@/lib/share";
+import { getOrCreateShortCode } from "@/lib/api/posts";
 
 interface ShareSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   content: ShareContent;
+  /** Post id, when the thing being shared is a post. Used to swap in the
+   *  short /p/:code link, which is what makes the URL printed on a story card
+   *  short enough to read and retype. Articles have no short link yet, so
+   *  they share their canonical URL. */
+  postId?: string;
 }
 
 const TARGET_ICONS: Record<string, typeof Link2> = {
@@ -30,7 +37,13 @@ const TARGET_ICONS: Record<string, typeof Link2> = {
   email: Mail,
 };
 
-export function ShareSheet({ open, onOpenChange, content }: ShareSheetProps) {
+export function ShareSheet({ open, onOpenChange, content: canonical, postId }: ShareSheetProps) {
+  // Starts as the canonical URL and upgrades to the short one once it
+  // resolves. Sharing must never be blocked on that request - a slow or
+  // failed short-link lookup silently leaves the full URL in place, which
+  // works perfectly well, just longer.
+  const [shortUrl, setShortUrl] = useState<string | null>(null);
+  const content: ShareContent = shortUrl ? { ...canonical, url: shortUrl } : canonical;
   const [copied, setCopied] = useState(false);
   const [storyState, setStoryState] = useState<"idle" | "working" | "shared" | "unsupported" | "failed">("idle");
   // Capability checks have to run after mount: navigator doesn't exist during
@@ -43,6 +56,22 @@ export function ShareSheet({ open, onOpenChange, content }: ShareSheetProps) {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reading a browser capability (an external system) once on mount; it can't be computed during render because navigator doesn't exist during SSR
     setCaps({ native: canNativeShare(), files: canShareFiles([probe]) });
   }, []);
+
+  useEffect(() => {
+    if (!postId) return;
+    let cancelled = false;
+    getOrCreateShortCode(postId)
+      .then(({ shortCode }) => {
+        if (!cancelled) setShortUrl(absoluteUrl(`/p/${shortCode}`));
+      })
+      .catch(() => {
+        // Keep the canonical URL. A share that works with a long link beats
+        // an error, and the caller never has to know this failed.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [postId]);
 
   // No reset-on-open effect: callers mount this only while it's open (which
   // is also what keeps the Dialog primitive out of the feed's bundle), so

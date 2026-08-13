@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getContentBySlug } from "@/lib/api/content";
+import { resolveShortLink } from "@/lib/api/posts";
 
 // 9:16 story card for Instagram Stories / WhatsApp Status.
 //
@@ -32,9 +33,22 @@ const GRID_GAP = 16;
 // Threads' own shared cards cap it here too.
 const MAX_IMAGES = 2;
 
-function parseSlugPath(pathname: string): { username: string; slug: string } | null {
-  const match = pathname.match(/^\/@([^/]+)\/([^/]+)$/);
-  return match ? { username: match[1], slug: match[2] } : null;
+// Resolves either address a share can carry to the /@username/slug pair the
+// content lookup needs: the canonical URL, or the short /p/:code alias that
+// share sheets now hand out (see app/p/[code]/route.ts). Missing the short
+// form here would silently render the generic fallback card for every share
+// that used one - which is all of them.
+async function resolveTarget(pathname: string): Promise<{ username: string; slug: string } | null> {
+  const canonical = pathname.match(/^\/@([^/]+)\/([^/]+)$/);
+  if (canonical) return { username: canonical[1], slug: canonical[2] };
+
+  const short = pathname.match(/^\/p\/([^/]+)$/);
+  if (short) {
+    const target = await resolveShortLink(short[1]).catch(() => null);
+    if (target?.username && target.slug) return { username: target.username, slug: target.slug };
+  }
+
+  return null;
 }
 
 function compactCount(n: number): string {
@@ -110,7 +124,7 @@ export async function GET(request: Request) {
       // something anyone retypes - the real URL goes to the clipboard.
       displayUrl = full.length > 44 ? `${full.slice(0, 44)}…` : full;
 
-      const parsed = parseSlugPath(target.pathname);
+      const parsed = await resolveTarget(target.pathname);
       if (parsed) {
         const resolved = await getContentBySlug(parsed.username, parsed.slug).catch(() => null);
         if (resolved) {
