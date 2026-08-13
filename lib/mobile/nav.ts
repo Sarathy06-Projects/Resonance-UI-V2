@@ -74,7 +74,11 @@ const ROUTES: Array<[RegExp, MobileChrome]> = [
   // --- Messages -------------------------------------------------------------
   // A thread is a pushed screen so the tab bar yields the bottom edge to the
   // composer, exactly as a post thread does.
-  [/^\/messages\/[^/]+$/, { header: "title", title: "Message", tab: "messages", ...PUSHED_DEFAULTS }],
+  // The screen paints its own header, because a generic "Message" title above
+  // a second bar naming the other person would be two headers stacked on a
+  // phone - roughly 110px spent saying less than one of them does alone. The
+  // thread's own header carries the back chevron, avatar, name and presence.
+  [/^\/messages\/[^/]+$/, { header: "none", title: "Message", tab: "messages", ...PUSHED_DEFAULTS }],
   [/^\/messages$/, { header: "large-title", title: "Messages", tab: "messages", ...PUSHED_DEFAULTS }],
 
   // --- Pushed inside the Profile tab --------------------------------------

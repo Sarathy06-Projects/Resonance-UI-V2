@@ -1,7 +1,8 @@
 "use client";
 
 import { use, useEffect, useRef, useState } from "react";
-import { AlertCircle, Send, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { AlertCircle, ChevronLeft, Send, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { profileUrl } from "@/lib/urls";
@@ -21,6 +22,7 @@ import { cn } from "@/lib/utils";
 export default function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: conversationId } = use(params);
   const { user, isAuthenticated } = useAuthStore();
+  const router = useRouter();
   const [draft, setDraft] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -84,8 +86,24 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
       {/* Who you are talking to. The thread previously showed only a generic
           "Message" title on mobile and nothing at all on desktop, so an open
           conversation never named its other side. */}
-      {participant && (
-        <div className="sticky top-[var(--mobile-header-height)] z-10 flex items-center gap-3 border-b border-zinc-100 bg-white/90 px-4 py-3 backdrop-blur-xl sm:px-6 dark:border-zinc-800 dark:bg-zinc-950/90">
+      {/* Rendered unconditionally, not gated on `participant`.
+          This route sets header: "none" (lib/mobile/nav.ts) so the shell draws
+          nothing above it - if this bar only appeared once the participant had
+          loaded, a slow or failed lookup would leave a mobile user with no
+          header and, worse, no back affordance at all. The identity fills in
+          when it arrives; the frame and the way out are always there. */}
+      <div className="sticky top-0 z-20 flex items-center gap-2 border-b border-zinc-100 bg-white/90 px-2 py-2.5 backdrop-blur-xl sm:gap-3 sm:px-6 sm:py-3 dark:border-zinc-800 dark:bg-zinc-950/90">
+        {/* Mobile only - on desktop you navigate from the rail. */}
+        <button
+          type="button"
+          onClick={() => router.back()}
+          aria-label="Back to messages"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-900 transition-colors active:bg-zinc-100 md:hidden dark:text-zinc-100 dark:active:bg-zinc-800"
+        >
+          <ChevronLeft className="h-6 w-6" strokeWidth={2.2} />
+        </button>
+
+        {participant ? (
           <Link href={profileUrl(participant)} className="flex min-w-0 items-center gap-3">
             <span className="relative shrink-0">
               <Avatar className="h-9 w-9 border border-zinc-100 dark:border-zinc-800">
@@ -108,8 +126,13 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
               </span>
             </span>
           </Link>
-        </div>
-      )}
+        ) : (
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-zinc-100 dark:bg-zinc-800" />
+            <span className="h-3.5 w-28 animate-pulse rounded bg-zinc-100 dark:bg-zinc-800" />
+          </span>
+        )}
+      </div>
 
       <div className="flex-1 px-4 pb-4 pt-2 sm:px-6">
         {isLoading && messages.length === 0 ? (
