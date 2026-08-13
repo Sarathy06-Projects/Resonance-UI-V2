@@ -93,28 +93,46 @@ export function MobileTabBar({ onCompose }: MobileTabBarProps) {
         <TabButton {...home} label="Home" icon={Home} fillWhenActive />
         <TabButton {...search} label="Search" icon={Search} />
 
+        {/* Activity and Profile are hidden entirely when signed out rather
+            than shown as auth prompts. Both describe things that only exist
+            for a signed-in user - *your* notifications, *your* profile - so
+            to a public visitor they are two of five tabs that lead nowhere
+            but a modal. The desktop TopNav filters them the same way; the
+            header's Join button carries the sign-up path instead. */}
+
         {/* Compose is an action, not a destination - it opens a sheet over
             whatever you were reading rather than navigating away from it, so
-            you never lose your place in the feed to write a reply. */}
-        <button
-          type="button"
-          onClick={() => (isAuthenticated ? onCompose() : openAuthModal())}
-          aria-label="New post"
-          className="group flex flex-1 items-center justify-center py-2.5 active:scale-95 transition-transform"
-        >
-          <span className="flex h-10 w-14 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-900 transition-colors group-active:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-50 dark:group-active:bg-zinc-700">
-            <SquarePen className="h-6 w-6" strokeWidth={2} />
-          </span>
-        </button>
+            you never lose your place in the feed to write a reply.
 
-        <TabButton {...activity} label="Activity" icon={Heart} badgeCount={unreadCount} fillWhenActive />
-        <TabButton
-          {...profile}
-          label="Profile"
-          icon={User}
-          avatarSrc={isAuthenticated ? user?.avatar : undefined}
-          avatarFallback={user?.name?.charAt(0)}
-        />
+            Signed out it can't do that job, so it's hidden rather than shown
+            as a third auth prompt. That leaves the public bar as Home and
+            Search - two tabs that both actually work - with signing up
+            handled by the header's Join button. */}
+        {isAuthenticated && (
+          <button
+            type="button"
+            onClick={onCompose}
+            aria-label="New post"
+            className="group flex flex-1 items-center justify-center py-2.5 active:scale-95 transition-transform"
+          >
+            <span className="flex h-10 w-14 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-900 transition-colors group-active:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-50 dark:group-active:bg-zinc-700">
+              <SquarePen className="h-6 w-6" strokeWidth={2} />
+            </span>
+          </button>
+        )}
+
+        {isAuthenticated && (
+          <>
+            <TabButton {...activity} label="Activity" icon={Heart} badgeCount={unreadCount} fillWhenActive />
+            <TabButton
+              {...profile}
+              label="Profile"
+              icon={User}
+              avatarSrc={user?.avatar}
+              avatarFallback={user?.name?.charAt(0)}
+            />
+          </>
+        )}
       </div>
     </nav>
   );
