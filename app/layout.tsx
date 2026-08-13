@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { ThemeColorSync } from "@/components/providers/ThemeColorSync";
 import { SessionSync } from "@/components/providers/SessionSync";
 import { InstallPrompt } from "@/components/providers/InstallPrompt";
 import { Analytics } from "@vercel/analytics/next";
@@ -27,7 +28,11 @@ export const metadata: Metadata = constructMetadata({ canonical: "/" });
 // always 0, so the mobile tab bar and compose sheet render flush under the
 // home indicator no matter what padding they ask for.
 export const viewport: Viewport = {
-  themeColor: "#09090b",
+  // Matches the default (light) theme, so the browser's own chrome agrees
+  // with the page on first paint. next-themes toggles a class rather than
+  // prefers-color-scheme, so this can't be media-matched to the *chosen*
+  // theme - ThemeColorSync updates it live when someone switches.
+  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -59,10 +64,11 @@ export default function RootLayout({
         <JsonLd id="organization-json-ld" data={organizationJsonLd} />
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="light"
           enableSystem={false}
           disableTransitionOnChange
         >
+          <ThemeColorSync />
           <SessionSync />
           {children}
           <InstallPrompt />

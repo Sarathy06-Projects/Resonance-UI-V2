@@ -7,8 +7,11 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "A modern design community platform where designers share ideas, validate concepts, and discuss design.",
     start_url: "/",
     display: "standalone",
-    background_color: "#09090b",
-    theme_color: "#09090b",
+    // The installed-app splash and chrome. Light, matching the default theme
+    // a first launch lands on - a dark splash followed by a light app is a
+    // visible flash on every cold start.
+    background_color: "#ffffff",
+    theme_color: "#ffffff",
     icons: [
       { src: "/logo-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/logo-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
