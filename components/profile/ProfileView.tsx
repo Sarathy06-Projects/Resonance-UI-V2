@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/shared/PostCard";
+import { ProfileMenuSheet } from "@/components/profile/ProfileMenuSheet";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useFollowState } from "@/lib/hooks/useFollowState";
 import { uploadAvatar, uploadCover } from "@/lib/api/users";
@@ -108,6 +109,11 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
             <ChevronLeft className="h-6 w-6" strokeWidth={2.2} />
           </button>
         )}
+
+        {/* Your own profile is the mobile home for Saved, Drafts, Your
+            activity, Settings and Log out - all of which live in the desktop
+            TopNav's avatar dropdown, which is hidden below `md`. */}
+        {profile.isSelf && <ProfileMenuSheet />}
         {profile.isSelf && (
           <>
             <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
