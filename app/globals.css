@@ -10,18 +10,44 @@
    rules, so devices with a notch / bottom gesture bar actually get content
    clear of them instead of sitting flush underneath. These only resolve to
    non-zero values because the root viewport sets viewport-fit=cover (see
-   app/layout.tsx). */
+   app/layout.tsx).
+
+   The --android-inset-* fallbacks are for the Capacitor WebView, which is the
+   one environment where env(safe-area-inset-*) is a lie: it reports 0 there
+   no matter what viewport-fit says, while the window genuinely does draw
+   under the status bar and gesture pill (edge-to-edge is mandatory from API
+   36). SystemUiPlugin reads the real WindowInsets and writes them to these
+   custom properties on <html>, so the same class does the right thing in both
+   environments. Order matters - env() is listed second so a real browser,
+   where the variable is never defined, still gets the correct value from it.
+
+   `max()` rather than a plain fallback chain because both can be defined at
+   once: the WebView sets the variables, and some Android builds *also* report
+   a non-zero env() for the cutout. Taking the larger avoids double-counting
+   while never under-padding.
+
+   --safe-top / --safe-bottom exist so this expression is written once. Several
+   components need the inset inside a larger expression (a composer wants
+   `max(0.75rem, inset)`, not the bare inset) and used to spell out env()
+   inline in an arbitrary Tailwind value - which is exactly the spelling that
+   silently reads 0 in the WebView. Anything needing a safe-area inset should
+   use these, not env() directly. */
+:root {
+  --safe-top: max(var(--android-inset-top, 0px), env(safe-area-inset-top));
+  --safe-bottom: max(var(--android-inset-bottom, 0px), env(safe-area-inset-bottom));
+}
+
 .pb-safe {
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: var(--safe-bottom);
 }
 .pt-safe {
-  padding-top: env(safe-area-inset-top);
+  padding-top: var(--safe-top);
 }
 .mb-safe {
-  margin-bottom: env(safe-area-inset-bottom);
+  margin-bottom: var(--safe-bottom);
 }
 .inset-b-safe {
-  bottom: env(safe-area-inset-bottom);
+  bottom: var(--safe-bottom);
 }
 
 /* Native-app touch feel on the mobile shell: no blue flash on tap, and no

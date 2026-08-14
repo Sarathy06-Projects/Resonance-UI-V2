@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { isNative } from "@/lib/native";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -33,6 +34,12 @@ export function InstallPrompt() {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
+    // Already installed, natively, from the Play Store. Registering a service
+    // worker here would put a second cache layer under a WebView that has its
+    // own, and the banner would be inviting someone to install the app they
+    // are currently holding.
+    if (isNative()) return;
+
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch((err) => {
         console.error("[pwa] service worker registration failed", err);

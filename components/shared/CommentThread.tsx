@@ -98,7 +98,7 @@ export function CommentThread({ targetType, targetId, targetAuthorId }: CommentT
         type="button"
         onClick={handleMobileTrigger}
         aria-label={composerPlaceholder}
-        className="fixed inset-x-0 bottom-[var(--mobile-tabbar-height)] z-40 flex items-center gap-3 border-t border-zinc-100 bg-white/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-left backdrop-blur-xl sm:hidden dark:border-zinc-800 dark:bg-zinc-950/95"
+        className="fixed inset-x-0 bottom-[var(--mobile-tabbar-height)] z-40 flex items-center gap-3 border-t border-zinc-100 bg-white/95 px-4 py-3 pb-[max(0.75rem,var(--safe-bottom))] text-left backdrop-blur-xl sm:hidden dark:border-zinc-800 dark:bg-zinc-950/95"
       >
         <Avatar className="h-8 w-8 border border-zinc-100 dark:border-zinc-800">
           {isAuthenticated && user ? (

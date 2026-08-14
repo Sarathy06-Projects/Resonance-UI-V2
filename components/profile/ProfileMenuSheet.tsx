@@ -49,13 +49,13 @@ export function ProfileMenuSheet() {
         // the cover image, which is the only chrome this screen has (the
         // route renders no MobileHeader - see lib/mobile/nav.ts).
         className="absolute right-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-transform active:scale-90 sm:hidden"
-        style={{ top: "calc(0.75rem + env(safe-area-inset-top))" }}
+        style={{ top: "calc(0.75rem + var(--safe-top))" }}
       >
         <Menu className="h-5 w-5" strokeWidth={2.2} />
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="gap-0 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <SheetContent className="gap-0 pb-[max(1.5rem,var(--safe-bottom))]">
           {/* Visible rather than sr-only: SheetContent floats its close
               button at top-right, which would otherwise land on top of the
               first row's chevron. A real title row gives it somewhere to sit

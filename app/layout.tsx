@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { ThemeColorSync } from "@/components/providers/ThemeColorSync";
 import { SessionSync } from "@/components/providers/SessionSync";
 import { InstallPrompt } from "@/components/providers/InstallPrompt";
+import { NativeShell } from "@/components/providers/NativeShell";
 import { Analytics } from "@vercel/analytics/next";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getSiteUrl } from "@/lib/siteUrl";
@@ -70,6 +71,10 @@ export default function RootLayout({
         >
           <ThemeColorSync />
           <SessionSync />
+          {/* Inert in a browser - see components/providers/NativeShell.tsx.
+              Inside the Android shell it owns the back button, deep links,
+              push registration, the splash handoff and status bar colour. */}
+          <NativeShell />
           {children}
           <InstallPrompt />
         </ThemeProvider>

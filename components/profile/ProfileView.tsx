@@ -126,7 +126,7 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
             onClick={() => router.back()}
             aria-label="Go back"
             className="absolute left-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-transform active:scale-90 sm:hidden"
-            style={{ top: "calc(0.75rem + env(safe-area-inset-top))" }}
+            style={{ top: "calc(0.75rem + var(--safe-top))" }}
           >
             <ChevronLeft className="h-6 w-6" strokeWidth={2.2} />
           </button>

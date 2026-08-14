@@ -189,7 +189,7 @@ export default function ConversationPage({ params }: { params: Promise<{ id: str
 
       {/* Composer owns the bottom edge - this is a pushed screen, so the tab
           bar steps aside (lib/mobile/nav.ts). */}
-      <div className="sticky bottom-0 flex items-end gap-2 border-t border-zinc-100 bg-white/95 px-3 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95">
+      <div className="sticky bottom-0 flex items-end gap-2 border-t border-zinc-100 bg-white/95 px-3 py-2.5 pb-[max(0.625rem,var(--safe-bottom))] backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95">
         <textarea
           value={draft}
           onChange={(e) => {

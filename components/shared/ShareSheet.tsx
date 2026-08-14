@@ -13,9 +13,17 @@ import {
   canShareFiles,
   copyToClipboard,
   shareStoryImage,
+  storyImageUrl,
   type ShareContent,
 } from "@/lib/share";
 import { getOrCreateShortCode } from "@/lib/api/posts";
+import {
+  blobToBase64,
+  canShareToInstagram,
+  isNative,
+  shareStoryToSystemSheet,
+  shareToInstagramStory,
+} from "@/lib/native";
 
 interface ShareSheetProps {
   open: boolean;
@@ -48,13 +56,25 @@ export function ShareSheet({ open, onOpenChange, content: canonical, postId }: S
   const [storyState, setStoryState] = useState<"idle" | "working" | "shared" | "unsupported" | "failed">("idle");
   // Capability checks have to run after mount: navigator doesn't exist during
   // SSR, and rendering a different set of buttons on the server than the
-  // client would hydrate mismatched.
-  const [caps, setCaps] = useState({ native: false, files: false });
+  // client would hydrate mismatched. `instagram` is the same kind of check,
+  // one layer down - inside the Android app we can ask the OS whether
+  // Instagram is actually installed, which no browser can answer.
+  const [caps, setCaps] = useState({ native: false, files: false, inApp: false, instagram: false });
 
   useEffect(() => {
     const probe = new File([new Blob([""], { type: "image/png" })], "probe.png", { type: "image/png" });
+    const inApp = isNative();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reading a browser capability (an external system) once on mount; it can't be computed during render because navigator doesn't exist during SSR
-    setCaps({ native: canNativeShare(), files: canShareFiles([probe]) });
+    setCaps({ native: canNativeShare(), files: canShareFiles([probe]), inApp, instagram: false });
+
+    if (!inApp) return;
+    let cancelled = false;
+    void canShareToInstagram().then((available) => {
+      if (!cancelled) setCaps((prev) => ({ ...prev, instagram: available }));
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -99,12 +119,19 @@ export function ShareSheet({ open, onOpenChange, content: canonical, postId }: S
 
   const handleStory = async () => {
     setStoryState("working");
-    // Copy the link as part of the same action. An Instagram story shared
-    // from the web can't carry a tappable link - only Instagram's own link
-    // sticker can, added by the poster - so having the URL already on the
-    // clipboard is what makes that possible without hunting for it.
+    // Copy the link as part of the same action. A shared Instagram story
+    // can't carry a tappable link - only Instagram's own link sticker can,
+    // added by the poster - so having the URL already on the clipboard is
+    // what makes that possible without hunting for it.
     await copyToClipboard(content.url);
-    const result = await shareStoryImage(content);
+
+    // Inside the Android app, the same card goes to Instagram's story
+    // composer directly rather than through the OS sheet. Two taps become
+    // none: no "share with" list to pick Instagram from, no "Feed / Story"
+    // choice afterwards. The web path below is unchanged and is still what
+    // every browser gets.
+    const result = isNative() ? await shareStoryNatively() : await shareStoryImage(content);
+
     if (result === "cancelled") {
       setStoryState("idle");
       return;
@@ -118,9 +145,34 @@ export function ShareSheet({ open, onOpenChange, content: canonical, postId }: S
     setStoryState(result);
   };
 
+  /** The Android path: fetch the card, hand it straight to Instagram. */
+  const shareStoryNatively = async (): Promise<"shared" | "cancelled" | "unsupported" | "failed"> => {
+    let base64: string;
+    try {
+      const res = await fetch(storyImageUrl(content.url));
+      if (!res.ok) return "failed";
+      base64 = await blobToBase64(await res.blob());
+    } catch {
+      return "failed";
+    }
+
+    if (caps.instagram) {
+      const result = await shareToInstagramStory(base64, content.url);
+      if (result?.shared) return "shared";
+      // Instagram was there a moment ago but couldn't take it. Fall through
+      // to the system sheet rather than dead-ending.
+    }
+
+    // No Instagram installed, or it refused the intent: the Android share
+    // sheet still reaches WhatsApp status, Telegram, Files and the rest.
+    const fallback = await shareStoryToSystemSheet(base64, `${content.title}\n${content.url}`);
+    if (fallback?.shared) return "shared";
+    return fallback === null ? "unsupported" : "failed";
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="gap-0 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+      <SheetContent className="gap-0 pb-[max(1.5rem,var(--safe-bottom))]">
         <SheetHeader className="px-2 pb-3">
           <SheetTitle>Share</SheetTitle>
         </SheetHeader>
@@ -136,9 +188,16 @@ export function ShareSheet({ open, onOpenChange, content: canonical, postId }: S
             highlight={copied}
           />
 
-          {caps.files && (
+          {/* caps.inApp is an independent gate, not a duplicate of caps.files:
+              the Android WebView reports navigator.canShare({files}) as false
+              even though the shell can hand a file to any app on the device,
+              so keying only off `files` would hide this exactly where it
+              works best. Label names the real destination when we know
+              Instagram is installed - it is one tap to the story composer
+              there, not a share sheet to choose from. */}
+          {(caps.files || caps.inApp) && (
             <CircleAction
-              label="Add to story"
+              label={caps.instagram ? "Instagram story" : "Add to story"}
               icon={storyState === "working" ? Loader2 : Sparkles}
               spinning={storyState === "working"}
               onClick={handleStory}

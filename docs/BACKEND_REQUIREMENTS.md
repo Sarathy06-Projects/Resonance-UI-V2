@@ -215,3 +215,70 @@ Quick reference for things that render in the UI but currently do nothing on cli
 6. **Search + Explore** (Algorithm 4) — once there's enough real content to search.
 7. **Recommendations + Trending** (Algorithms 2, 3) — need real engagement data to be meaningful; sequence after step 2-3 have live traffic.
 8. **Moderation, rate limiting, digest jobs** — pre-launch hardening pass.
+
+---
+
+## 7. Android Push Notifications
+
+Added 2026-08-14, when the Capacitor Android shell (`../resonanceandroidapp`)
+landed. This is the one backend gap the Android app has; everything else it
+needs already exists.
+
+The web app receives notifications over SSE (`GET /api/notifications/stream`),
+which only works while a tab is open. That is the whole reason push is needed
+on mobile — a phone with the app backgrounded has no stream.
+
+### `POST /api/notifications/devices`
+
+Authenticated. Body `{ token: string, platform: "android" | "ios" }`.
+
+**Upsert on `(userId, token)`**, not insert: the client re-sends the same token
+on every launch, because FCM can rotate a token at any time and re-asserting
+the current one is the only way to notice.
+
+```
+device_tokens(
+  id, user_id, token UNIQUE, platform,
+  created_at, last_seen_at
+)
+```
+
+### `DELETE /api/notifications/devices`
+
+Body `{ token }`. Called on sign-out, so a signed-out phone stops receiving
+another account's notifications.
+
+### Sending
+
+Wherever a `notification` row is written today, also look up the recipient's
+device tokens and send via `firebase-admin`:
+
+```js
+await messaging.sendEachForMulticast({
+  tokens,
+  notification: { title, body },
+  // The client navigates to data.path. It must be a same-origin relative path
+  // — the client rejects anything else, because a push payload is
+  // attacker-influenceable as soon as user content is reflected into it.
+  data: { path: `/post/${postId}` },
+  android: { priority: "high", notification: { channelId: "resonance_general" } },
+});
+```
+
+Prune tokens returning `messaging/registration-token-not-registered`;
+uninstalled apps otherwise accumulate forever.
+
+Keep the SSE stream — it is faster than a push round trip when the app is
+already in the foreground, and it is what browsers use.
+
+### Secrets
+
+The Firebase service account JSON goes in the backend environment (Azure App
+Service → Configuration). Never in a repository, and never in the APK: anything
+shipped in an APK is extractable, and an FCM service account can notify every
+user of the app.
+
+Client side is already done — see `lib/api/notifications.ts`
+(`registerPushToken` / `unregisterPushToken`) and
+`components/providers/NativeShell.tsx`. Until these endpoints exist the client
+calls 404 and are swallowed, so nothing breaks; push simply does not arrive.
