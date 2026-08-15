@@ -12,7 +12,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "seo:diagnostics": "node scripts/seo-diagnostics.mjs"
+    "seo:diagnostics": "node scripts/seo-diagnostics.mjs",
+    "otp": "node scripts/otp.mjs",
+    "test:verify-email": "node scripts/verify-email-e2e.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

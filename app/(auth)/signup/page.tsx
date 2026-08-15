@@ -48,7 +48,15 @@ export default function SignupPage() {
         return;
       }
 
-      router.push("/onboarding");
+      // requireEmailVerification (lib/auth.ts) means signup deliberately
+      // does not sign the user in - the account exists but is unverified
+      // and holds no session. The code just emailed is the way through, and
+      // clearing it both verifies the address and starts the session.
+      //
+      // Better Auth also returns this same success shape when the address is
+      // already registered, rather than "user already exists" - so this path
+      // can't be used to test whether an email has an account.
+      router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
       router.refresh();
     } catch {
       setFormError("Couldn't reach the server. Check your connection and try again.");

@@ -7,6 +7,7 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 
 const forgotPasswordSchema = z.object({
@@ -16,7 +17,7 @@ const forgotPasswordSchema = z.object({
 type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
 export default function ForgotPasswordPage() {
-  const [sent, setSent] = useState(false);
+  const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
 
   const {
@@ -30,40 +31,32 @@ export default function ForgotPasswordPage() {
   const onSubmit = async (data: ForgotPasswordFormValues) => {
     setFormError(null);
     try {
-      const { error } = await authClient.requestPasswordReset({
+      const { error } = await authClient.emailOtp.requestPasswordReset({
         email: data.email,
-        redirectTo: "/reset-password",
       });
 
       if (error) {
-        setFormError(error.message ?? "Something went wrong. Please try again.");
+        setFormError("Something went wrong. Please try again.");
         return;
       }
-      setSent(true);
+
+      // Better Auth answers this endpoint identically whether or not the
+      // address has an account, so moving straight to the code screen
+      // doesn't disclose anything - someone probing for registered emails
+      // sees this same screen either way, and simply never receives a code.
+      router.push(`/reset-password?email=${encodeURIComponent(data.email)}`);
     } catch {
       setFormError("Couldn't reach the server. Check your connection and try again.");
     }
   };
 
-  if (sent) {
-    return (
-      <div className="w-full max-w-[400px] flex flex-col gap-6 text-center">
-        <h1 className="text-2xl font-bold tracking-tight dark:text-white">Check your email</h1>
-        <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-          If an account exists for that email address, we&apos;ve sent a link to reset your password.
-        </p>
-        <Link href="/login" className="text-sm font-semibold text-zinc-950 dark:text-white hover:underline">
-          Back to sign in
-        </Link>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full max-w-[400px] flex flex-col gap-6">
       <div className="flex flex-col space-y-2 text-center">
         <h1 className="text-3xl font-bold tracking-tight dark:text-white">Forgot password?</h1>
-        <p className="text-zinc-500 dark:text-zinc-400 text-sm">Enter your email and we&apos;ll send you a reset link.</p>
+        <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+          Enter your email and we&apos;ll send you a 6-digit reset code.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -84,7 +77,7 @@ export default function ForgotPasswordPage() {
           disabled={isSubmitting}
           className="w-full h-12 rounded-xl text-base font-semibold shadow-sm mt-2 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
         >
-          {isSubmitting ? "Sending..." : "Send reset link"}
+          {isSubmitting ? "Sending..." : "Send reset code"}
         </Button>
       </form>
 

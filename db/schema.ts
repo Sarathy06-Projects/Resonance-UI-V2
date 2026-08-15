@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, bigint } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -57,4 +57,20 @@ export const verification = pgTable("verification", {
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Required by rateLimit.storage = "database" in lib/auth.ts - Better Auth
+// looks this model up by name and will fail at runtime if it is absent.
+// Field names and types are fixed by better-auth's own table definition
+// (@better-auth/core/db/get-tables): key unique, count, lastRequest as a
+// bigint epoch in milliseconds.
+//
+// Rows are transient - one per (ip, path) window, rewritten in place as
+// requests arrive. Nothing reads them outside the limiter and none of it is
+// personal data beyond the IP already present in `session.ip_address`.
+export const rateLimit = pgTable("rateLimit", {
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  count: integer("count").notNull(),
+  lastRequest: bigint("lastRequest", { mode: "number" }).notNull(),
 });

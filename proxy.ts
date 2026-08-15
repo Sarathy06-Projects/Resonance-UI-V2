@@ -15,6 +15,17 @@ import { getSessionCookie } from "better-auth/cookies";
 // unconnected things; not a conflict, just a naming coincidence.
 const PROTECTED_PREFIXES = ["/settings", "/create", "/notifications", "/drafts", "/collections", "/onboarding", "/create-password"];
 
+// Deliberately excludes /verify-email and /reset-password. Both are reached
+// with no session by design - requireEmailVerification (lib/auth.ts) means a
+// freshly signed-up account holds no session until its code is entered, and
+// someone resetting a forgotten password has no session either. Both screens
+// authenticate on the emailed code instead, so gating them on a cookie would
+// lock out exactly the people they exist to serve.
+//
+// They're also left out of AUTH_PAGES below: a session cookie is not
+// evidence the address is verified for accounts that predate this flow, and
+// bouncing those users off /verify-email would leave them with no way to
+// clear it.
 const AUTH_PAGES = ["/login", "/signup"];
 
 // Onboarding completion is deliberately *not* gated here too. A middleware

@@ -55,6 +55,19 @@ function LoginPageInner() {
       });
 
       if (error) {
+        // The password was right but the address was never confirmed.
+        // Better Auth refuses the session (403) rather than letting an
+        // unverified account in - so mint a fresh code and hand the user
+        // straight to the screen that can clear it, instead of showing a
+        // dead end they have no obvious way out of.
+        if (error.code === "EMAIL_NOT_VERIFIED" || error.status === 403) {
+          await authClient.emailOtp.sendVerificationOtp({
+            email: data.email,
+            type: "email-verification",
+          });
+          router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
+          return;
+        }
         setFormError(error.message ?? "Unable to sign in. Check your credentials.");
         return;
       }
