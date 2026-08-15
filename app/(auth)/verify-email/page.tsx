@@ -11,7 +11,7 @@ import { useResendCooldown } from "@/lib/hooks/useResendCooldown";
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={<div className="w-full max-w-[400px]" />}>
+    <Suspense fallback={<div className="w-full" />}>
       <VerifyEmailPageInner />
     </Suspense>
   );
@@ -98,10 +98,10 @@ function VerifyEmailPageInner() {
     }
   };
 
-  if (!email) return <div className="w-full max-w-[400px]" />;
+  if (!email) return <div className="w-full" />;
 
   return (
-    <div className="w-full max-w-[400px] flex flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <div className="flex flex-col space-y-2 text-center">
         <h1 className="text-3xl font-bold tracking-tight dark:text-white">Check your email</h1>
         <p className="text-zinc-500 dark:text-zinc-400 text-sm">

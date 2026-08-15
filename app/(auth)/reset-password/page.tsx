@@ -27,7 +27,7 @@ type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="w-full max-w-[400px]" />}>
+    <Suspense fallback={<div className="w-full" />}>
       <ResetPasswordPageInner />
     </Suspense>
   );
@@ -117,7 +117,7 @@ function ResetPasswordPageInner() {
   // No code target and no legacy token - nothing to act on.
   if ((!email && !legacyToken) || invalidToken) {
     return (
-      <div className="w-full max-w-[400px] flex flex-col gap-6 text-center">
+      <div className="flex w-full flex-col gap-6 text-center">
         <h1 className="text-2xl font-bold tracking-tight dark:text-white">Request expired</h1>
         <p className="text-zinc-500 dark:text-zinc-400 text-sm">
           This password reset request is invalid or has expired. Start again to continue.
@@ -134,7 +134,7 @@ function ResetPasswordPageInner() {
 
   if (done) {
     return (
-      <div className="w-full max-w-[400px] flex flex-col gap-6 text-center">
+      <div className="flex w-full flex-col gap-6 text-center">
         <h1 className="text-2xl font-bold tracking-tight dark:text-white">Password updated</h1>
         <p className="text-zinc-500 dark:text-zinc-400 text-sm">Redirecting you to sign in…</p>
       </div>
@@ -142,7 +142,7 @@ function ResetPasswordPageInner() {
   }
 
   return (
-    <div className="w-full max-w-[400px] flex flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <div className="flex flex-col space-y-2 text-center">
         <h1 className="text-3xl font-bold tracking-tight dark:text-white">Choose a new password</h1>
         <p className="text-zinc-500 dark:text-zinc-400 text-sm">

@@ -77,7 +77,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex w-full max-w-[400px] flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight dark:text-white">Create your account</h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">

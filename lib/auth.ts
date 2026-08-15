@@ -178,6 +178,26 @@ export const auth = betterAuth({
           google: {
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            // Always show Google's account chooser.
+            //
+            // Without this, Google silently reuses whichever account the
+            // browser is already signed into and auto-approves an app that
+            // has been consented to before. The redirect back completes and
+            // a session is minted the instant "Continue with Google" is
+            // clicked - so closing the window afterwards cancels nothing,
+            // and the visitor lands signed in as an account they were never
+            // asked to confirm. On a shared or handed-over device that is
+            // how one person ends up in another person's account.
+            //
+            // Reported as "I closed the popup, reloaded, and it logged me
+            // into a previous session" - which is exactly this: the flow had
+            // already finished before the window was closed.
+            //
+            // The backend's socialProviders block has carried this setting
+            // all along, with a comment claiming it mirrored this file. It
+            // did not; this is the side that actually starts the browser
+            // redirect, and it was the side missing the option.
+            prompt: "select_account",
           },
         }
       : undefined,

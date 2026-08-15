@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="w-full max-w-[400px] flex flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <div className="flex flex-col space-y-2 text-center">
         <h1 className="text-3xl font-bold tracking-tight dark:text-white">Forgot password?</h1>
         <p className="text-zinc-500 dark:text-zinc-400 text-sm">

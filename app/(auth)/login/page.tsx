@@ -31,7 +31,7 @@ function safeRedirectTarget(next: string | null): string {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="w-full max-w-[400px]" />}>
+    <Suspense fallback={<div className="w-full" />}>
       <LoginPageInner />
     </Suspense>
   );
@@ -98,7 +98,7 @@ function LoginPageInner() {
   };
 
   return (
-    <div className="flex w-full max-w-[400px] flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight dark:text-white">Log in</h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
