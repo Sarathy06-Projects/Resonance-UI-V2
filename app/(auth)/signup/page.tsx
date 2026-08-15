@@ -6,9 +6,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { GoogleButton } from "@/components/auth/GoogleButton";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { useLastAuthMethod } from "@/lib/hooks/useLastAuthMethod";
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -26,6 +28,7 @@ export default function SignupPage() {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const { lastMethod, remember } = useLastAuthMethod();
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -48,6 +51,7 @@ export default function SignupPage() {
         return;
       }
 
+      remember("email");
       // requireEmailVerification (lib/auth.ts) means signup deliberately
       // does not sign the user in - the account exists but is unverified
       // and holds no session. The code just emailed is the way through, and
@@ -65,6 +69,7 @@ export default function SignupPage() {
 
   const onGoogleSignIn = async () => {
     setIsGoogleLoading(true);
+    remember("google");
     // newUserCallbackURL: better-auth itself knows, server-side, whether this
     // OAuth flow just created a brand-new account - a first-time Google
     // sign-up lands on /create-password instead of going straight in.
@@ -72,82 +77,121 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="w-full max-w-[400px] flex flex-col gap-6">
-      <div className="flex flex-col space-y-2 text-center">
-        <h1 className="text-3xl font-bold tracking-tight dark:text-white">Create an account</h1>
-        <p className="text-zinc-500 dark:text-zinc-400 text-sm">Enter your details below to create your account</p>
+    <div className="flex w-full max-w-[400px] flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight dark:text-white">Create your account</h1>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          Join Resonance and start publishing today.
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {/* Google first, for the same reason as on the login screen - and here
+          it also skips email verification entirely, since Google's own
+          email_verified claim is what the account is created from. */}
+      <GoogleButton
+        onClick={onGoogleSignIn}
+        loading={isGoogleLoading}
+        lastUsed={lastMethod === "google"}
+        label="Sign up with Google"
+      />
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-zinc-200 dark:border-zinc-800" />
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-white px-3 text-xs font-medium uppercase tracking-wide text-zinc-400 dark:bg-zinc-950 dark:text-zinc-500">
+            or
+          </span>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <div className="space-y-2">
+          <label htmlFor="name" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Full name
+          </label>
           <Input
             {...register("name")}
+            id="name"
             type="text"
-            placeholder="Full name"
-            className="h-12 rounded-xl bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 dark:text-white dark:placeholder:text-zinc-500"
+            autoComplete="name"
+            placeholder="Ada Lovelace"
+            className="h-12 rounded-xl border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-500"
           />
           {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
         </div>
+
         <div className="space-y-2">
+          <label htmlFor="email" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Email
+          </label>
           <Input
             {...register("email")}
+            id="email"
             type="email"
-            placeholder="m@example.com"
-            className="h-12 rounded-xl bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 dark:text-white dark:placeholder:text-zinc-500"
+            autoComplete="email"
+            placeholder="you@example.com"
+            className="h-12 rounded-xl border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-500"
           />
           {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
         </div>
+
         <div className="space-y-2">
+          <label htmlFor="password" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Password
+          </label>
           <Input
             {...register("password")}
+            id="password"
             type="password"
-            placeholder="Password"
-            className="h-12 rounded-xl bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 dark:text-white dark:placeholder:text-zinc-500"
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
+            className="h-12 rounded-xl border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-500"
           />
           {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
         </div>
+
         <div className="space-y-2">
+          <label htmlFor="confirmPassword" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Confirm password
+          </label>
           <Input
             {...register("confirmPassword")}
+            id="confirmPassword"
             type="password"
-            placeholder="Confirm password"
-            className="h-12 rounded-xl bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 dark:text-white dark:placeholder:text-zinc-500"
+            autoComplete="new-password"
+            placeholder="Re-enter your password"
+            className="h-12 rounded-xl border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-500"
           />
           {errors.confirmPassword && <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>}
         </div>
 
-        {formError && <p className="text-sm text-red-500">{formError}</p>}
+        {formError && (
+          <p className="text-sm text-red-500" role="alert">
+            {formError}
+          </p>
+        )}
 
-        <Button type="submit" disabled={isSubmitting} className="w-full h-12 rounded-xl text-base font-semibold shadow-sm mt-2 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
-          {isSubmitting ? "Creating account..." : "Sign up"}
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="h-12 w-full rounded-xl text-base font-semibold shadow-sm dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+        >
+          {isSubmitting ? "Creating account..." : "Continue"}
         </Button>
+
+        <p className="text-center text-xs leading-relaxed text-zinc-400 dark:text-zinc-500">
+          We&apos;ll email you a 6-digit code to confirm your address.
+        </p>
       </form>
 
-      <div className="relative my-4">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-zinc-200 dark:border-zinc-800" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white dark:bg-zinc-950 px-2 text-zinc-500 dark:text-zinc-400">Or continue with</span>
-        </div>
-      </div>
-
-      <Button
-        variant="outline"
-        type="button"
-        disabled={isGoogleLoading}
-        onClick={onGoogleSignIn}
-        className="h-12 rounded-xl font-medium w-full dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-900"
-      >
-        {isGoogleLoading ? "Redirecting..." : "Continue with Google"}
-      </Button>
-
-      <div className="text-center text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
         Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-zinc-950 dark:text-white hover:underline">
-          Sign in
+        <Link href="/login" className="font-semibold text-zinc-950 hover:underline dark:text-white">
+          Log in
         </Link>
-      </div>
+      </p>
     </div>
   );
 }

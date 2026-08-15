@@ -6,8 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { GoogleButton } from "@/components/auth/GoogleButton";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
+import { useLastAuthMethod } from "@/lib/hooks/useLastAuthMethod";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const loginSchema = z.object({
@@ -41,6 +43,7 @@ function LoginPageInner() {
   const redirectTo = safeRedirectTarget(searchParams.get("next"));
   const [formError, setFormError] = useState<string | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const { lastMethod, remember } = useLastAuthMethod();
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -72,6 +75,7 @@ function LoginPageInner() {
         return;
       }
 
+      remember("email");
       router.push(redirectTo);
       router.refresh();
     } catch {
@@ -86,6 +90,7 @@ function LoginPageInner() {
 
   const onGoogleSignIn = async () => {
     setIsGoogleLoading(true);
+    remember("google");
     // newUserCallbackURL: better-auth itself knows, server-side, whether this
     // OAuth flow just created a brand-new account - a first-time Google
     // sign-up lands on /create-password instead of going straight in.
@@ -93,71 +98,100 @@ function LoginPageInner() {
   };
 
   return (
-    <div className="w-full max-w-[400px] flex flex-col gap-6">
-      <div className="flex flex-col space-y-2 text-center">
-        <h1 className="text-3xl font-bold tracking-tight dark:text-white">Welcome back</h1>
-        <p className="text-zinc-500 dark:text-zinc-400 text-sm">Enter your email to sign in to your account</p>
+    <div className="flex w-full max-w-[400px] flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight dark:text-white">Log in</h1>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          Welcome back. Pick up where you left off.
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {/* Google leads. It is one tap, needs no password, and arrives already
+          verified - so it is offered before the form rather than beneath it. */}
+      <GoogleButton
+        onClick={onGoogleSignIn}
+        loading={isGoogleLoading}
+        lastUsed={lastMethod === "google"}
+      />
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-zinc-200 dark:border-zinc-800" />
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-white px-3 text-xs font-medium uppercase tracking-wide text-zinc-400 dark:bg-zinc-950 dark:text-zinc-500">
+            or
+          </span>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <div className="space-y-2">
+          <label htmlFor="email" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Email
+          </label>
           <Input
             {...register("email")}
+            id="email"
             type="email"
-            placeholder="m@example.com"
-            className="h-12 rounded-xl bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 dark:text-white dark:placeholder:text-zinc-500"
+            autoComplete="email"
+            placeholder="you@example.com"
+            className="h-12 rounded-xl border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-500"
           />
           {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
         </div>
+
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Link href="/forgot-password" className="text-sm font-medium text-blue-600 dark:text-blue-500 hover:underline">
-              Forgot password?
+            <label htmlFor="password" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Password
+            </label>
+            <Link
+              href="/forgot-password"
+              className="text-sm font-medium text-zinc-500 hover:text-zinc-950 hover:underline dark:text-zinc-400 dark:hover:text-white"
+            >
+              Forgot?
             </Link>
           </div>
           <Input
             {...register("password")}
+            id="password"
             type="password"
+            autoComplete="current-password"
             placeholder="••••••••"
-            className="h-12 rounded-xl bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 dark:text-white dark:placeholder:text-zinc-500"
+            className="h-12 rounded-xl border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-500"
           />
           {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
         </div>
 
-        {formError && <p className="text-sm text-red-500">{formError}</p>}
+        {formError && (
+          <p className="text-sm text-red-500" role="alert">
+            {formError}
+          </p>
+        )}
 
-        <Button type="submit" disabled={isSubmitting} className="w-full h-12 rounded-xl text-base font-semibold shadow-sm mt-2 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
-          {isSubmitting ? "Signing in..." : "Sign in"}
-        </Button>
+        <div className="relative">
+          {lastMethod === "email" && (
+            <span className="absolute -top-2.5 right-3 z-10 rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px] font-medium text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+              Last used
+            </span>
+          )}
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="h-12 w-full rounded-xl text-base font-semibold shadow-sm dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
+            {isSubmitting ? "Signing in..." : "Continue"}
+          </Button>
+        </div>
       </form>
 
-      <div className="relative my-4">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-zinc-200 dark:border-zinc-800" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white dark:bg-zinc-950 px-2 text-zinc-500 dark:text-zinc-400">Or continue with</span>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <Button
-          variant="outline"
-          type="button"
-          disabled={isGoogleLoading}
-          onClick={onGoogleSignIn}
-          className="h-12 rounded-xl font-medium w-full dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-900"
-        >
-          {isGoogleLoading ? "Redirecting..." : "Continue with Google"}
-        </Button>
-      </div>
-
-      <div className="text-center text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className="font-semibold text-zinc-950 dark:text-white hover:underline">
-          Sign up
+        <Link href="/signup" className="font-semibold text-zinc-950 hover:underline dark:text-white">
+          Create your account
         </Link>
-      </div>
+      </p>
     </div>
   );
 }
