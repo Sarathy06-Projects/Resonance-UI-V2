@@ -69,7 +69,7 @@ export function ImageAttachmentsGrid({ images, onChange }: ImageAttachmentsProps
   if (images.length === 1) {
     return (
       <div className="relative aspect-[4/5] max-h-[400px] rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 group">
-        <Image src={images[0]} alt="" fill sizes="(max-width: 640px) 100vw, 560px" className="object-cover" />
+        <Image src={images[0]} alt="Attached image" fill sizes="(max-width: 640px) 100vw, 560px" className="object-cover" />
         <button
           type="button"
           onClick={() => remove(0)}
@@ -89,7 +89,7 @@ export function ImageAttachmentsGrid({ images, onChange }: ImageAttachmentsProps
           key={src + idx}
           className="relative shrink-0 w-32 aspect-square rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 group"
         >
-          <Image src={src} alt="" fill sizes="128px" className="object-cover" />
+          <Image src={src} alt={`Attached image ${idx + 1}`} fill sizes="128px" className="object-cover" />
           <button
             type="button"
             onClick={() => remove(idx)}

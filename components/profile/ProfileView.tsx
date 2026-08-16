@@ -112,7 +112,7 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
       {/* Cover banner. Short on mobile - a 192px hero on a 700px screen spent
           a quarter of the viewport on decoration before any content. */}
       <div className="group relative h-28 w-full bg-zinc-100 sm:h-72 dark:bg-zinc-900">
-        {profile.coverImage && <Image src={profile.coverImage} alt="" fill sizes="100vw" priority className="object-cover" />}
+        {profile.coverImage && <Image src={profile.coverImage} alt={`${profile.name}'s cover photo`} fill sizes="100vw" priority className="object-cover" />}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
 
         {/* This route renders no MobileHeader (lib/mobile/nav.ts gives it
@@ -375,7 +375,7 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
                   articlesData.articles.map((article) => (
                     <div key={article.id} className="group flex flex-col sm:flex-row gap-4 sm:gap-6 p-4 sm:p-5 border border-zinc-100 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 rounded-3xl transition-all hover:shadow-sm bg-white dark:bg-zinc-950">
                       <Link href={articleUrl(article)} className="relative w-full sm:w-[240px] h-48 sm:h-[160px] shrink-0 rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 block">
-                        {article.coverImage && <Image src={article.coverImage} alt="" fill sizes="(max-width: 640px) 100vw, 240px" loading="lazy" className="object-cover group-hover:scale-105 transition-transform duration-500" />}
+                        {article.coverImage && <Image src={article.coverImage} alt={article.title} fill sizes="(max-width: 640px) 100vw, 240px" loading="lazy" className="object-cover group-hover:scale-105 transition-transform duration-500" />}
                       </Link>
                       <div className="flex flex-col flex-1 min-w-0 py-1">
                         <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 dark:text-zinc-400 mb-2 uppercase tracking-wide">
