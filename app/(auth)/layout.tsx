@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Metadata } from "next";
-import { Logo } from "@/components/shared/Logo";
+import { Wordmark } from "@/components/shared/Logo";
 import { constructMetadata } from "@/lib/seo";
 
 // Applies to every route in this group (login, signup, verify-email,
@@ -23,11 +23,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             shell - every other screen in the app already does this. */}
         <header className="px-5 pt-safe sm:px-8">
           <div className="flex h-16 items-center sm:h-20">
-            <Link href="/" className="inline-flex items-center gap-2.5">
-              <Logo size={30} />
-              <span className="text-lg font-bold tracking-tight sm:text-xl dark:text-white">
-                Resonance
-              </span>
+            {/* Height in CSS rather than the size prop alone, so the lockup
+                still steps up on wider screens the way the old logo+label
+                pair did. The width/height props stay as the aspect hint. */}
+            <Link href="/" className="inline-flex items-center">
+              <Wordmark size={30} className="h-[26px] w-auto sm:h-[30px]" />
             </Link>
           </div>
         </header>

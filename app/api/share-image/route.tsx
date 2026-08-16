@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { getContentBySlug } from "@/lib/api/content";
 import { resolveShortLink } from "@/lib/api/posts";
+import { loadWordmark, Wordmark } from "@/lib/og/brand";
 
 // 9:16 story card for Instagram Stories / WhatsApp Status.
 //
@@ -182,6 +183,9 @@ export async function GET(request: Request) {
   // Some handles are auto-derived from an email address and are long enough
   // to push the name row out of the card on their own.
   const shownHandle = handle.length > 22 ? `${handle.slice(0, 22)}…` : handle;
+  // Light artwork: this sits on the white card, not on the dark gradient
+  // behind it. Same origin the attachments above were pulled through.
+  const wordmark = await loadWordmark("light", origin);
 
   const thumbSize = images.length > 1 ? (INNER - GRID_GAP) / 2 : INNER;
   const thumbHeight = images.length > 1 ? thumbSize : 420;
@@ -252,7 +256,7 @@ export async function GET(request: Request) {
               {shownHandle && <div style={{ display: "flex", fontSize: 30, color: "#71717a", marginTop: 6 }}>{shownHandle}</div>}
             </div>
 
-            <div style={{ display: "flex", fontSize: 26, fontWeight: 700, letterSpacing: 3, color: "#a1a1aa" }}>RESONANCE</div>
+            <Wordmark src={wordmark} height={34} color="#a1a1aa" />
           </div>
 
           <div style={{ display: "flex", fontSize: 38, lineHeight: 1.42, color: "#18181b" }}>{excerpt}</div>

@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getContentBySlug } from "@/lib/api/content";
+import { loadWordmark, Wordmark } from "@/lib/og/brand";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -13,6 +14,8 @@ export default async function Image({ params }: { params: { username: string; sl
       : resolved.post.content.split("\n")[0].slice(0, 120)
     : "Resonance";
   const authorName = resolved ? (resolved.type === "article" ? resolved.article.author.name : resolved.post.author.name) : "";
+  // Dark artwork: the card's own background is #09090b.
+  const wordmark = await loadWordmark("dark");
 
   return new ImageResponse(
     (
@@ -29,7 +32,7 @@ export default async function Image({ params }: { params: { username: string; sl
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ display: "flex", fontSize: 32, fontWeight: 700, color: "#71717a" }}>RESONANCE</div>
+        <Wordmark src={wordmark} height={46} color="#71717a" />
         <div style={{ display: "flex", fontSize: 56, fontWeight: 700, lineHeight: 1.2 }}>{title}</div>
         {authorName && <div style={{ display: "flex", fontSize: 30, color: "#a1a1aa" }}>{authorName}</div>}
       </div>

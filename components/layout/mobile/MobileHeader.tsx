@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ChevronLeft, MessageCircle } from "lucide-react";
 import { useChatUnread } from "@/lib/hooks/useChatUnread";
 import { cn } from "@/lib/utils";
-import { Logo } from "@/components/shared/Logo";
+import { Wordmark } from "@/components/shared/Logo";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -120,9 +120,8 @@ export function MobileHeader() {
 function HomeHeader({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
     <div className="flex h-14 items-center justify-between px-4">
-      <Link href="/" aria-label="Resonance home" className="flex items-center gap-2">
-        <Logo size={28} />
-        <span className="text-lg font-bold tracking-tight dark:text-white">Resonance</span>
+      <Link href="/" aria-label="Resonance home" className="flex items-center">
+        <Wordmark size={26} />
       </Link>
 
       <div className="flex items-center gap-1">
