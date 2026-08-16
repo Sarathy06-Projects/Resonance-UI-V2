@@ -12,11 +12,17 @@ export default function manifest(): MetadataRoute.Manifest {
     // visible flash on every cold start.
     background_color: "#ffffff",
     theme_color: "#ffffff",
+    // The two purposes need genuinely different artwork, not one file listed
+    // twice. A maskable icon is cropped to whatever shape the launcher uses,
+    // so it has to be full-bleed and keep the mark inside the centre 80% -
+    // and an icon padded that defensively looks lost on a home screen when
+    // nothing crops it. So `any` gets the app's own rounded square with the
+    // mark sized to fill it, and `maskable` gets the full-bleed plate.
     icons: [
       { src: "/logo-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "/logo-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
       { src: "/logo-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/logo-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/logo-maskable-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+      { src: "/logo-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }
