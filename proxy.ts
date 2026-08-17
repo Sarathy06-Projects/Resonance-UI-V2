@@ -22,11 +22,34 @@ const PROTECTED_PREFIXES = ["/settings", "/create", "/notifications", "/drafts",
 // authenticate on the emailed code instead, so gating them on a cookie would
 // lock out exactly the people they exist to serve.
 //
-// They're also left out of AUTH_PAGES below: a session cookie is not
-// evidence the address is verified for accounts that predate this flow, and
-// bouncing those users off /verify-email would leave them with no way to
-// clear it.
-const AUTH_PAGES = ["/login", "/signup"];
+// They are equally not "auth pages a signed-in user should be bounced off":
+// a session cookie is not evidence the address is verified for accounts that
+// predate this flow, and bouncing those users off /verify-email would leave
+// them with no way to clear it.
+
+// Sending an already-signed-in visitor away from /login and /signup is
+// deliberately *not* done here, even though it looks like it belongs next to
+// the check above. The only signal available at this layer is
+// getSessionCookie(), which is a bare presence check - it reads the cookie
+// jar, verifies nothing, expires nothing and never touches the database. So
+// it says "signed in" for a cookie whose session was revoked (a password
+// reset revokes every session, lib/auth.ts), signed out on another device, or
+// simply outlived server-side.
+//
+// Bouncing on that signal produced a bug that read as "the Join button
+// doesn't work". The header shows Join whenever the client believes it is
+// signed out, which is correct for a revoked-but-still-present cookie - and
+// also true for the second or two before /get-session answers on any load.
+// Clicking it navigated to /signup, this rule answered 307 -> "/", and Next
+// followed the redirect back to the page the click started on. No error, no
+// URL change, nothing: a dead button, "sometimes", depending entirely on
+// cookie state and how slow the session request was.
+//
+// AuthPageGuard (mounted in app/(auth)/layout.tsx) does the redirect instead,
+// off the resolved session - the same state the Join button reads, so the two
+// can no longer disagree. The cost is a brief flash of the form for a
+// signed-in user who navigates to /login on purpose, which is the same
+// trade-off the onboarding note below already accepts.
 
 // Onboarding completion is deliberately *not* gated here too. A middleware
 // fast-path would need to read the session-cache cookie without a DB round
@@ -78,22 +101,19 @@ export function proxy(request: NextRequest) {
   const atUsernameRewrite = rewriteAtUsername(request, pathname);
   if (atUsernameRewrite) return atUsernameRewrite;
 
-  // Cheap presence/signature check only - no DB round trip. This is
-  // sufficient to gate navigation; every actual data request still goes
-  // through the backend's requireAuth middleware, which does the real
-  // session verification against the database.
-  const hasSession = Boolean(getSessionCookie(request));
-
+  // Cheap presence check only - no signature check, no expiry check, no DB
+  // round trip. Sufficient in this direction: the absence of a cookie is
+  // conclusive, so no-cookie -> /login never turns anyone away wrongly, and
+  // every actual data request still goes through the backend's requireAuth
+  // middleware, which does the real session verification against the
+  // database. The converse ("a cookie is here, therefore signed in") is *not*
+  // sound, which is why nothing above redirects on it - see the AUTH_PAGES
+  // note near the top of this file.
   const isProtected = PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
-  if (isProtected && !hasSession) {
+  if (isProtected && !getSessionCookie(request)) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
-  }
-
-  const isAuthPage = AUTH_PAGES.some((p) => pathname === p);
-  if (isAuthPage && hasSession) {
-    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();

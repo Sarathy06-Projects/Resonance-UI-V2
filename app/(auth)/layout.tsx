@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Metadata } from "next";
 import { Wordmark } from "@/components/shared/Logo";
+import { AuthPageGuard } from "@/components/providers/AuthPageGuard";
 import { constructMetadata } from "@/lib/seo";
 
 // Applies to every route in this group (login, signup, verify-email,
@@ -13,6 +14,11 @@ export const metadata: Metadata = constructMetadata({ noIndex: true });
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-white text-zinc-950 lg:grid lg:grid-cols-2 dark:bg-zinc-950 dark:text-zinc-50">
+      {/* Scoped to this group, so /login and /signup send a signed-in visitor
+          home without a cookie-presence check in proxy.ts deciding it for
+          them. See the component. */}
+      <AuthPageGuard />
+
       {/* Form column. Full width below lg - the panel opposite is decoration,
           and a phone should spend its pixels on the thing being filled in. */}
       <div className="flex min-h-screen flex-col">

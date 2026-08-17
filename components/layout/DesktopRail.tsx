@@ -42,7 +42,7 @@ interface DesktopRailProps {
 export function DesktopRail({ onCompose }: DesktopRailProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthenticated, openAuthModal, logout } = useAuthStore();
+  const { user, isAuthenticated, isSessionResolved, openAuthModal, logout } = useAuthStore();
   const unreadNotifications = useUnreadNotifications();
   const unreadMessages = useChatUnread();
 
@@ -154,14 +154,21 @@ export function DesktopRail({ onCompose }: DesktopRailProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <Button
-            size="sm"
-            nativeButton={false}
-            className="h-9 w-11 rounded-2xl px-0 text-[13px] font-semibold"
-            render={<Link href="/signup" aria-label="Join Resonance" />}
-          >
-            Join
-          </Button>
+          // Only once the session has actually resolved - see
+          // useAuthStore.isSessionResolved. `isAuthenticated` is false both
+          // for a visitor and for a signed-in user whose session request
+          // hasn't come back yet, and the second of those gets a Join button
+          // that navigates to /signup and lands back where it started.
+          isSessionResolved && (
+            <Button
+              size="sm"
+              nativeButton={false}
+              className="h-9 w-11 rounded-2xl px-0 text-[13px] font-semibold"
+              render={<Link href="/signup" aria-label="Join Resonance" />}
+            >
+              Join
+            </Button>
+          )
         )}
         <ThemeToggle />
       </div>

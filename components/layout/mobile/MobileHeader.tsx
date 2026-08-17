@@ -29,7 +29,7 @@ const TAB_ROOTS: Record<Exclude<MobileTab, null>, string> = {
 export function MobileHeader() {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isSessionResolved } = useAuthStore();
   const headerRef = useRef<HTMLElement>(null);
 
   const chrome = resolveMobileChrome(pathname);
@@ -93,7 +93,9 @@ export function MobileHeader() {
         chrome.stickyHeader ? "sticky top-0" : "relative"
       )}
     >
-      {chrome.header === "home" && <HomeHeader isAuthenticated={isAuthenticated} />}
+      {chrome.header === "home" && (
+        <HomeHeader isAuthenticated={isAuthenticated} isSessionResolved={isSessionResolved} />
+      )}
 
       {chrome.header === "large-title" && (
         <div className="flex h-14 items-center gap-1 px-2">
@@ -117,7 +119,13 @@ export function MobileHeader() {
   );
 }
 
-function HomeHeader({ isAuthenticated }: { isAuthenticated: boolean }) {
+function HomeHeader({
+  isAuthenticated,
+  isSessionResolved,
+}: {
+  isAuthenticated: boolean;
+  isSessionResolved: boolean;
+}) {
   return (
     <div className="flex h-14 items-center justify-between px-4">
       <Link href="/" aria-label="Resonance home" className="flex items-center">
@@ -131,7 +139,11 @@ function HomeHeader({ isAuthenticated }: { isAuthenticated: boolean }) {
             Signed out it's hidden entirely - there is no inbox to show. */}
         {isAuthenticated && <InboxButton />}
         <ThemeToggle />
-        {!isAuthenticated && (
+        {/* Waits for the real session, not just for `isAuthenticated` to still
+            be at its signed-out default - see useAuthStore.isSessionResolved.
+            Offering "Join" to someone who already has a session is a button
+            that cannot do anything when tapped. */}
+        {isSessionResolved && !isAuthenticated && (
           <Button size="sm" nativeButton={false} className="h-8 rounded-full px-4 text-[13px] font-semibold" render={<Link href="/signup" />}>
             Join
           </Button>
