@@ -37,6 +37,21 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  // Shrink the layout viewport when the software keyboard opens, instead of
+  // leaving it full-height and only shrinking the visual viewport.
+  //
+  // The default, resizes-visual, is why anything pinned to the bottom of a
+  // `fixed inset-0` panel disappears behind the keyboard: `inset-0` is the
+  // *layout* viewport, which the keyboard does not touch. The compose sheet's
+  // toolbar - carrying the only control for attaching an image - sat under the
+  // keyboard for the entire time someone was typing, which is exactly when
+  // they would reach for it.
+  //
+  // resizes-content makes the bottom edge mean the top of the keyboard, so
+  // bottom-anchored chrome stays reachable with no JS. Chrome 108+ and Safari
+  // 17.4+; older browsers ignore it and get the visualViewport fallback in
+  // ComposeSheet.
+  interactiveWidget: "resizes-content",
 };
 
 // Site-wide brand entity signal - present on every page (not just the

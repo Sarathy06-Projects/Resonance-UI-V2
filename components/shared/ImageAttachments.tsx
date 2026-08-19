@@ -12,10 +12,22 @@ interface ImageAttachmentsProps {
   max?: number;
 }
 
+interface ImageAttachButtonProps extends ImageAttachmentsProps {
+  /**
+   * Renders the button as a labelled pill instead of a bare glyph.
+   *
+   * Icon-only is fine on a desktop composer sitting inside a row of familiar
+   * affordances. It is not fine where the button is the single control in an
+   * otherwise empty toolbar, which is the mobile sheet - there it needs to
+   * say what it does.
+   */
+  label?: string;
+}
+
 // The composer's "attach image" button - handles the file picker + upload,
 // leaves rendering the resulting grid to ImageAttachmentsGrid so callers can
 // place the button and the preview grid separately in their layout.
-export function ImageAttachButton({ images, onChange, max = 4 }: ImageAttachmentsProps) {
+export function ImageAttachButton({ images, onChange, max = 4, label }: ImageAttachButtonProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const remaining = max - images.length;
@@ -48,10 +60,19 @@ export function ImageAttachButton({ images, onChange, max = 4 }: ImageAttachment
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={remaining <= 0 || isUploading}
-        aria-label="Add image"
-        className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors dark:hover:text-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed"
+        aria-label={isUploading ? "Uploading image" : "Add image"}
+        className={cn(
+          "inline-flex items-center gap-2 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+          label
+            ? // Labelled: an outlined pill that reads as a control. A bare grey
+              // glyph in a corner is easy to miss when it is the only way to
+              // attach a photo - which is how the mobile composer had it.
+              "border border-zinc-200 px-3.5 py-2 text-[14px] font-semibold text-zinc-700 hover:bg-zinc-50 active:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            : "p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+        )}
       >
         {isUploading ? <Loader2 className="w-[18px] h-[18px] animate-spin" /> : <ImagePlus className="w-[18px] h-[18px]" />}
+        {label && <span>{isUploading ? "Uploading…" : label}</span>}
       </button>
     </>
   );

@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ImageAttachButton, ImageAttachmentsGrid } from "@/components/shared/ImageAttachments";
 import { HashtagAutocomplete } from "@/components/shared/comment/HashtagAutocomplete";
 import { useHashtagSuggest } from "@/lib/hooks/useHashtagSuggest";
+import { useKeyboardInset } from "@/lib/hooks/useKeyboardInset";
 import { useAuthStore } from "@/store/useAuthStore";
 import { createPost } from "@/lib/api/posts";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ export function ComposeSheet({ open, onOpenChange, onPosted }: ComposeSheetProps
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hashtags = useHashtagSuggest({ value: content, onChange: setContent, textareaRef });
+  const keyboardInset = useKeyboardInset();
 
   const trimmed = content.trim();
   const canPost = trimmed.length > 0 && trimmed.length <= MAX_LENGTH && !isPosting;
@@ -191,13 +193,28 @@ export function ComposeSheet({ open, onOpenChange, onPosted }: ComposeSheetProps
 
           </div>
 
-          {/* Toolbar rides above the keyboard rather than sitting at the
-              document bottom where the keyboard would cover it. */}
-          <div className="flex shrink-0 items-center justify-between border-t border-zinc-100 px-2 py-2 pb-safe dark:border-zinc-800">
-            <ImageAttachButton images={images} onChange={setImages} />
+          {/* Toolbar, kept above the keyboard.
+              The old comment here claimed it already did that. It did not: the
+              sheet is `fixed inset-0`, which is the layout viewport, and the
+              keyboard shrinks only the visual one - so this bar, holding the
+              single control for attaching a photo, sat underneath the keyboard
+              for the whole time someone was typing.
+
+              interactive-widget=resizes-content (app/layout.tsx) fixes it
+              declaratively where supported. keyboardInset is the fallback for
+              browsers that ignore it, and reads 0 wherever the hint worked, so
+              the two never double-count. */}
+          <div
+            className="flex shrink-0 items-center justify-between gap-3 border-t border-zinc-100 px-3 py-2.5 dark:border-zinc-800"
+            style={{ paddingBottom: keyboardInset > 0 ? keyboardInset : undefined }}
+          >
+            <div className={keyboardInset > 0 ? "" : "pb-safe"}>
+              <ImageAttachButton images={images} onChange={setImages} label="Photo" />
+            </div>
             <span
               className={cn(
-                "px-3 text-[13px] tabular-nums",
+                "px-1 text-[13px] tabular-nums",
+                keyboardInset > 0 ? "" : "pb-safe",
                 remaining < 0 ? "font-semibold text-red-500" : remaining <= 50 ? "text-amber-500" : "text-zinc-400 dark:text-zinc-600"
               )}
             >
