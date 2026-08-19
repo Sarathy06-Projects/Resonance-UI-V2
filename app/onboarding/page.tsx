@@ -13,6 +13,8 @@ import { checkUsername, uploadAvatar } from "@/lib/api/users";
 import { authClient } from "@/lib/auth-client";
 import { useAuthStore } from "@/store/useAuthStore";
 import { allTopics } from "@/lib/topics";
+import { ImageCropper, useImageCropper } from "@/components/shared/ImageCropper";
+import type { CropResult } from "@/lib/imageCrop";
 
 const roles = [
   "UI Designer", "UX Designer", "Product Designer",
@@ -77,20 +79,23 @@ export default function OnboardingPage() {
   // The endpoint writes user.image itself, so there is nothing to carry into
   // completeOnboarding - and picking a file then seeing the old placeholder
   // until the very last step is the kind of thing that reads as broken.
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Same crop editor as the profile screens - a photo picked here gets the
+  // same 1:1 framing step, so an avatar chosen at signup is not the one
+  // uploaded raw and awkwardly cropped by the circle.
+  const avatarCrop = useImageCropper();
+
+  const handleAvatarCropped = async ({ file }: CropResult) => {
     setIsUploadingAvatar(true);
     setAvatarError(null);
     try {
       const { image } = await uploadAvatar(file);
       setAvatarUrl(image);
+      avatarCrop.close();
     } catch (err) {
       setAvatarError(err instanceof Error ? err.message : "Couldn't upload that image.");
+      throw err;
     } finally {
       setIsUploadingAvatar(false);
-      // Reset so picking the same file again still fires a change event.
-      e.target.value = "";
     }
   };
 
@@ -290,7 +295,7 @@ export default function OnboardingPage() {
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={handleAvatarChange}
+                  onChange={avatarCrop.onFileChange}
                 />
                 {/* A real button, not a div with cursor-pointer: this is the
                     control that opens the picker, so it needs to be reachable
@@ -390,6 +395,8 @@ export default function OnboardingPage() {
           )}
         </AnimatePresence>
       </div>
+
+      <ImageCropper file={avatarCrop.file} preset="avatar" onCancel={avatarCrop.close} onApply={handleAvatarCropped} />
     </div>
   );
 }

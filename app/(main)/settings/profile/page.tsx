@@ -14,6 +14,8 @@ import { ErrorState, errorMessage } from "@/components/shared/ErrorState";
 import { useAuthStore } from "@/store/useAuthStore";
 import { getProfile, updateProfile, uploadAvatar, uploadCover, checkUsername } from "@/lib/api/users";
 import { allTopics } from "@/lib/topics";
+import { ImageCropper, useImageCropper } from "@/components/shared/ImageCropper";
+import type { CropResult } from "@/lib/imageCrop";
 import { cn } from "@/lib/utils";
 import { profileUrl } from "@/lib/urls";
 
@@ -106,35 +108,39 @@ function EditProfileForm({ username }: { username: string }) {
     return () => clearTimeout(timer);
   }, [handle, profile]);
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Picking a file opens the crop editor; the upload happens on Save with the
+  // rendered result. Errors are rethrown so the editor keeps itself open and
+  // shows them in place, rather than closing onto a page-level message.
+  const avatarCrop = useImageCropper();
+  const coverCrop = useImageCropper();
+
+  const handleAvatarCropped = async ({ file }: CropResult) => {
     setIsUploadingAvatar(true);
     setUploadError(null);
     try {
       await uploadAvatar(file);
       await mutate();
+      avatarCrop.close();
     } catch (err) {
       setUploadError(errorMessage(err, "Couldn't upload your avatar."));
+      throw err;
     } finally {
       setIsUploadingAvatar(false);
-      e.target.value = "";
     }
   };
 
-  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleCoverCropped = async ({ file }: CropResult) => {
     setIsUploadingCover(true);
     setUploadError(null);
     try {
       await uploadCover(file);
       await mutate();
+      coverCrop.close();
     } catch (err) {
       setUploadError(errorMessage(err, "Couldn't upload your cover image."));
+      throw err;
     } finally {
       setIsUploadingCover(false);
-      e.target.value = "";
     }
   };
 
@@ -229,7 +235,7 @@ function EditProfileForm({ username }: { username: string }) {
         <section>
           <div className="h-36 sm:h-44 w-full relative rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-900">
             {profile.coverImage && <Image src={profile.coverImage} alt="" fill sizes="(max-width: 768px) 100vw, 672px" className="object-cover" />}
-            <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
+            <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={coverCrop.onFileChange} />
             <Button
               variant="secondary"
               size="sm"
@@ -247,7 +253,7 @@ function EditProfileForm({ username }: { username: string }) {
                 <AvatarImage src={profile.image ?? undefined} />
                 <AvatarFallback className="text-2xl font-bold">{profile.name.charAt(0)}</AvatarFallback>
               </Avatar>
-              <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+              <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={avatarCrop.onFileChange} />
               <button
                 type="button"
                 onClick={() => avatarInputRef.current?.click()}
@@ -379,6 +385,9 @@ function EditProfileForm({ username }: { username: string }) {
           </Button>
         </div>
       </div>
+
+      <ImageCropper file={avatarCrop.file} preset="avatar" onCancel={avatarCrop.close} onApply={handleAvatarCropped} />
+      <ImageCropper file={coverCrop.file} preset="cover" onCancel={coverCrop.close} onApply={handleCoverCropped} />
     </div>
   );
 }

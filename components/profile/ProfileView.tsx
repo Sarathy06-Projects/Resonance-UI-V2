@@ -26,6 +26,8 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import type { Profile, Post } from "@/lib/api/types";
+import { ImageCropper, useImageCropper } from "@/components/shared/ImageCropper";
+import type { CropResult } from "@/lib/imageCrop";
 
 const TABS = [
   { id: "posts", label: "Posts" },
@@ -81,29 +83,30 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
   );
   const { data: articlesData, error: articlesError, mutate: mutateArticles } = useSWR(activeTab === "articles" ? `profile-articles-${profile.id}` : null, () => getUserArticles(profile.id));
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Picking a file opens the crop editor rather than uploading straight away;
+  // the upload happens on Save, with whatever the editor rendered.
+  const avatarCrop = useImageCropper();
+  const coverCrop = useImageCropper();
+
+  const handleAvatarCropped = async ({ file }: CropResult) => {
     setIsUploading(true);
     try {
       await uploadAvatar(file);
+      avatarCrop.close();
       router.refresh();
     } finally {
       setIsUploading(false);
-      e.target.value = "";
     }
   };
 
-  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleCoverCropped = async ({ file }: CropResult) => {
     setIsUploading(true);
     try {
       await uploadCover(file);
+      coverCrop.close();
       router.refresh();
     } finally {
       setIsUploading(false);
-      e.target.value = "";
     }
   };
 
@@ -138,7 +141,7 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
         {profile.isSelf && <ProfileMenuSheet />}
         {profile.isSelf && (
           <>
-            <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
+            <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={coverCrop.onFileChange} />
             <Button
               variant="secondary" size="sm" disabled={isUploading}
               onClick={() => coverInputRef.current?.click()}
@@ -169,7 +172,7 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
               )}
               {profile.isSelf && (
                 <>
-                  <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                  <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={avatarCrop.onFileChange} />
                   <button
                     onClick={() => avatarInputRef.current?.click()}
                     disabled={isUploading}
@@ -445,6 +448,15 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
           </div>
         </div>
       </div>
+
+      {/* One editor per target, opened by its own file input. Only rendered
+          for your own profile because only then can either input exist. */}
+      {profile.isSelf && (
+        <>
+          <ImageCropper file={avatarCrop.file} preset="avatar" onCancel={avatarCrop.close} onApply={handleAvatarCropped} />
+          <ImageCropper file={coverCrop.file} preset="cover" onCancel={coverCrop.close} onApply={handleCoverCropped} />
+        </>
+      )}
     </main>
   );
 }
