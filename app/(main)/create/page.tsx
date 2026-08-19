@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Globe, Users, Lock, Check, Loader2, PenTool, UploadCloud } from "lucide-react";
+import { Globe, Users, Lock, Check, Loader2, PenTool, UploadCloud, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ArticleEditor } from "@/components/editor/ArticleEditor";
 import { getDraft, createDraft, updateDraft, publishDraft } from "@/lib/api/drafts";
@@ -77,6 +77,14 @@ function CreatePageInner() {
   const [figmaLink, setFigmaLink] = useState("");
 
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  // Confirmation that lives on the button itself. The "Draft saved 10:00"
+  // stamp beside it is hidden below sm - there is no room for it next to
+  // Save and Publish on a phone - so without this, tapping Save on mobile
+  // changes nothing on screen and reads as a dead control.
+  const [justSaved, setJustSaved] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
@@ -107,40 +115,53 @@ function CreatePageInner() {
     }).catch(() => {});
   }, [draftIdParam]);
 
-  // Debounced autosave.
+  // One place the draft payload is described. Autosave, the Save draft button
+  // and publish all write the same shape, and this is what stops them drifting
+  // apart as fields come and go.
+  const buildDraftPayload = useCallback(() => ({
+    mode,
+    title: title || undefined,
+    content: content || undefined,
+    coverImage: coverImage ?? undefined,
+    meta: {
+      tags: selectedTopics,
+      toolsUsed,
+      portfolioLink,
+      feedbackType,
+      urgency,
+      figmaLink,
+      images: mode === "article" ? galleryImages : postImages,
+      seriesId: seriesId ?? undefined,
+    },
+  }), [mode, title, content, coverImage, selectedTopics, toolsUsed, portfolioLink, feedbackType, urgency, figmaLink, galleryImages, postImages, seriesId]);
+
+  // Writes the draft immediately and returns its id, creating it on first
+  // call. Throws on failure so callers can decide - autosave swallows it,
+  // the explicit button reports it.
+  const persistDraft = useCallback(async () => {
+    const payload = buildDraftPayload();
+    if (draftId.current) {
+      await updateDraft(draftId.current, payload);
+    } else {
+      const created = await createDraft(payload);
+      draftId.current = created.id;
+    }
+    setLastSaved(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+    return draftId.current!;
+  }, [buildDraftPayload]);
+
+  // Debounced autosave. persistDraft is rebuilt whenever any saved field
+  // changes, which re-runs this and resets the timer - that identity change is
+  // the debounce, not an accident of the dependency array.
   useEffect(() => {
     if (!title && !content) return;
-    const timer = setTimeout(async () => {
-      const payload = {
-        mode,
-        title: title || undefined,
-        content: content || undefined,
-        coverImage: coverImage ?? undefined,
-        meta: {
-          tags: selectedTopics,
-          toolsUsed,
-          portfolioLink,
-          feedbackType,
-          urgency,
-          figmaLink,
-          images: mode === "article" ? galleryImages : postImages,
-          seriesId: seriesId ?? undefined,
-        },
-      };
-      try {
-        if (draftId.current) {
-          await updateDraft(draftId.current, payload);
-        } else {
-          const created = await createDraft(payload);
-          draftId.current = created.id;
-        }
-        setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-      } catch {
-        // Autosave failures are silent - the user's content stays in local state.
-      }
+    const timer = setTimeout(() => {
+      // Silent: the content is still in local state, and an error toast that
+      // fires every 1.2s while the network is flaky is worse than nothing.
+      void persistDraft().catch(() => {});
     }, 1200);
     return () => clearTimeout(timer);
-  }, [title, content, mode, selectedTopics, toolsUsed, portfolioLink, feedbackType, urgency, figmaLink, coverImage, postImages, galleryImages, seriesId]);
+  }, [title, content, persistDraft]);
 
   const isPublishReady = () => {
     if (mode === "discussion") return content.trim().length > 0;
@@ -166,44 +187,56 @@ function CreatePageInner() {
   const handlePublish = async () => {
     if (!isPublishReady()) return;
     setIsPublishing(true);
+    setSaveError(null);
     try {
-      const meta = {
-        tags: selectedTopics,
-        toolsUsed,
-        portfolioLink,
-        feedbackType,
-        urgency,
-        figmaLink,
-        images: mode === "article" ? galleryImages : postImages,
-        seriesId: seriesId ?? undefined,
-      };
-      if (!draftId.current) {
-        const created = await createDraft({
-          mode,
-          title: title || undefined,
-          content,
-          coverImage: coverImage ?? undefined,
-          meta,
-        });
-        draftId.current = created.id;
-      } else {
-        await updateDraft(draftId.current, {
-          mode,
-          title: title || undefined,
-          content,
-          coverImage: coverImage ?? undefined,
-          meta,
-        });
-      }
-
-      const result = await publishDraft(draftId.current);
+      const id = await persistDraft();
+      const result = await publishDraft(id);
       setPublishSuccess(true);
       setTimeout(() => {
         router.push(result.resultType === "article" ? articleUrl(result) : postUrl(result));
       }, 1200);
     } catch {
+      setSaveError("Couldn't publish. Your draft is saved - try again.");
       setIsPublishing(false);
     }
+  };
+
+  // Explicit save, for the writer who does not know there is an autosave and
+  // wants to see something happen before they close the tab.
+  const handleSaveDraft = async () => {
+    setIsSavingDraft(true);
+    setSaveError(null);
+    try {
+      await persistDraft();
+      setJustSaved(true);
+    } catch {
+      setSaveError("Couldn't save your draft. Check your connection.");
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
+  // Let the "Saved" confirmation fade back to the resting label.
+  useEffect(() => {
+    if (!justSaved) return;
+    const t = setTimeout(() => setJustSaved(false), 2000);
+    return () => clearTimeout(t);
+  }, [justSaved]);
+
+  // Saves on the way out rather than asking. The debounce is 1.2s, so closing
+  // straight after a keystroke would otherwise drop the last thing typed - and
+  // a confirm dialog to protect work that is already being autosaved is a
+  // prompt that trains people to dismiss prompts.
+  const handleClose = async () => {
+    if (title || content) {
+      setIsClosing(true);
+      await persistDraft().catch(() => {});
+    }
+    // A deep link or a fresh tab has nothing behind it, and router.back()
+    // there walks the writer out of the site entirely. Same fallback the
+    // mobile header's chevron uses.
+    if (typeof window !== "undefined" && window.history.length > 1) router.back();
+    else router.push("/");
   };
 
   if (!user) {
@@ -233,41 +266,82 @@ function CreatePageInner() {
 
       <div className="sticky top-0 z-20 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 px-4 sm:px-8 h-16 flex items-center justify-between">
 
-        {/* Hidden while writing an article, which is the surface that is meant
-            to be title + cover + tools and nothing else. Articles publish
-            public, which is the value this control already defaulted to.
-            Other modes keep it - a showcase or a feedback request is exactly
-            the kind of thing someone wants to limit to followers. */}
-        {mode === "article" ? (
-          <span aria-hidden />
-        ) : (
-          <div className="flex items-center gap-2 text-sm font-semibold text-zinc-600 dark:text-zinc-300 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-900 px-3 py-1.5 rounded-lg transition-colors">
-            {visibility === "public" && <Globe className="w-4 h-4 text-emerald-500" />}
-            {visibility === "followers" && <Users className="w-4 h-4 text-blue-500" />}
-            {visibility === "private" && <Lock className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />}
-            <select
-              value={visibility}
-              onChange={(e) => setVisibility(e.target.value as typeof visibility)}
-              className="bg-transparent outline-none cursor-pointer capitalize"
-            >
-              <option value="public">Public</option>
-              <option value="followers">Followers</option>
-              <option value="private">Private</option>
-            </select>
-          </div>
-        )}
+        <div className="flex items-center gap-2 min-w-0">
+          {/* /create is full-bleed - hidesMobileChrome strips the tab bar and
+              header here - so without this there is no way out of the editor
+              at all except the browser's own back button. */}
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={isClosing || isPublishing}
+            aria-label="Close editor"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+          >
+            {isClosing ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <X className="h-[18px] w-[18px]" />}
+          </button>
 
-        <div className="flex items-center gap-4">
+          {/* Hidden while writing an article, which is the surface that is
+              meant to be title + cover + tools and nothing else. Articles
+              publish public, which is the value this control already defaulted
+              to. Other modes keep it - a showcase or a feedback request is
+              exactly the kind of thing someone limits to followers. */}
+          {mode !== "article" && (
+            <div className="flex items-center gap-2 text-sm font-semibold text-zinc-600 dark:text-zinc-300 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-900 px-3 py-1.5 rounded-lg transition-colors">
+              {visibility === "public" && <Globe className="w-4 h-4 text-emerald-500" />}
+              {visibility === "followers" && <Users className="w-4 h-4 text-blue-500" />}
+              {visibility === "private" && <Lock className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />}
+              <select
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value as typeof visibility)}
+                className="bg-transparent outline-none cursor-pointer capitalize"
+              >
+                <option value="public">Public</option>
+                <option value="followers">Followers</option>
+                <option value="private">Private</option>
+              </select>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-4">
           <AnimatePresence>
-            {lastSaved && !isPublishing && !publishSuccess && (
+            {saveError ? (
               <motion.span
+                key="save-error"
+                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                role="alert"
+                className="text-xs font-medium text-red-500 hidden sm:block"
+              >
+                {saveError}
+              </motion.span>
+            ) : lastSaved && !isPublishing && !publishSuccess ? (
+              <motion.span
+                key="saved-at"
                 initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 className="text-xs font-medium text-zinc-400 dark:text-zinc-500 hidden sm:block"
               >
                 Draft saved {lastSaved}
               </motion.span>
-            )}
+            ) : null}
           </AnimatePresence>
+
+          {/* Autosave already runs, but it is invisible until it has fired
+              once - and "did that save?" is the question people close a tab
+              wondering. This answers it on demand. */}
+          <Button
+            variant="ghost"
+            onClick={handleSaveDraft}
+            disabled={isSavingDraft || isPublishing || publishSuccess || (!title && !content)}
+            className="rounded-full px-4 font-semibold text-zinc-600 dark:text-zinc-300"
+          >
+            {isSavingDraft ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : justSaved ? (
+              <Check className="w-4 h-4 text-emerald-500" />
+            ) : null}
+            <span className="hidden sm:inline">{isSavingDraft ? "Saving" : justSaved ? "Saved" : "Save draft"}</span>
+            <span className="sm:hidden">{isSavingDraft ? "" : justSaved ? "Saved" : "Save"}</span>
+          </Button>
 
           <Button
             onClick={handlePublish}
