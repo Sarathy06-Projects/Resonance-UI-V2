@@ -17,6 +17,19 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "api.dicebear.com" },
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
     ],
+    // Next re-encodes every image it serves, and its default is quality 75.
+    // For a profile cover that was the third lossy pass in a row - the crop
+    // editor writes webp, sharp re-encodes it, then this did it again at 75 -
+    // and it was the one doing most of the damage. Measured against the
+    // original on a 1584x396 banner: RMSE 4.08 at 75, 2.75 at 90, where the
+    // two upstream passes together only accounted for 2.26.
+    //
+    // 75 stays the default and stays first, because it is right for feed and
+    // article imagery, which is displayed far smaller than it is stored. 90 is
+    // opt-in per <Image>, for the two places rendered at roughly their stored
+    // size - a cover and an avatar - where compression artefacts are visible.
+    // Next 16 rejects any quality not declared here, so both must be listed.
+    qualities: [75, 90],
   },
   // Proxies backend calls through this app's own domain. The backend lives
   // on a different domain (Render) than the frontend (Vercel), and browsers

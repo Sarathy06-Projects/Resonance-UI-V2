@@ -237,7 +237,9 @@ function EditProfileForm({ username }: { username: string }) {
               fixed height here showed a different slice of the banner than the
               profile page did, so this preview was not previewing anything. */}
           <div className="aspect-[4/1] w-full relative rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-900">
-            {profile.coverImage && <Image src={profile.coverImage} alt="" fill sizes="(max-width: 768px) 100vw, 672px" className="object-cover" />}
+            {profile.coverImage && (
+              <Image src={profile.coverImage} alt="" fill sizes="(max-width: 768px) 100vw, 672px" quality={90} className="object-cover" />
+            )}
             <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={coverCrop.onFileChange} />
             <Button
               variant="secondary"

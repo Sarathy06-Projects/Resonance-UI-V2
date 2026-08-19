@@ -120,7 +120,25 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
           framing anyone saw. Driving it from the ratio instead means the
           displayed banner is exactly the saved image. */}
       <div className="group relative aspect-[4/1] w-full bg-zinc-100 dark:bg-zinc-900">
-        {profile.coverImage && <Image src={profile.coverImage} alt={`${profile.name}'s cover photo`} fill sizes="100vw" priority className="object-cover" />}
+        {/* quality 90, not the default 75 - see next.config.ts. The banner is
+            rendered at close to its stored size, so this is the one image in
+            the app where the optimizer's default is visibly lossy.
+
+            sizes matches the real layout rather than claiming 100vw: the
+            banner is bounded by AppLayout's max-w-3xl column, so past 768px
+            "100vw" made Next fetch a variant roughly twice the width actually
+            painted. */}
+        {profile.coverImage && (
+          <Image
+            src={profile.coverImage}
+            alt={`${profile.name}'s cover photo`}
+            fill
+            sizes="(max-width: 768px) 100vw, 768px"
+            quality={90}
+            priority
+            className="object-cover"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
 
         {/* This route renders no MobileHeader (lib/mobile/nav.ts gives it
