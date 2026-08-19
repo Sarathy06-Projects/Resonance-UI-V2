@@ -84,7 +84,11 @@ export function CommentThread({ targetType, targetId, targetAuthorId }: CommentT
   return (
     // Bottom padding clears the fixed mobile composer bar so the last comment
     // in a thread is fully readable rather than sitting behind it.
-    <div className="pb-20 sm:pb-0">
+    //
+    // id="comments" is the target a post card's comment icon jumps to when the
+    // card is already on its own detail page. scroll-mt clears the sticky
+    // header, which would otherwise sit on top of whatever the jump landed on.
+    <div id="comments" className="scroll-mt-20 pb-20 sm:pb-0">
       <div className="hidden border-b border-zinc-100 sm:block dark:border-zinc-800">
         <CommentInput targetType={targetType} targetId={targetId} onSubmit={handleTopLevelSubmit} placeholder={composerPlaceholder} />
       </div>

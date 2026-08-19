@@ -331,7 +331,20 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
           {/* Icon-only action row. -ml-2 pulls the first icon's tap padding
               back so the glyphs still align to the text column above. */}
           <div className="-ml-2 mt-2 flex items-center text-zinc-500 dark:text-zinc-400">
-            <ActionButton label="Reply" icon={MessageCircle} onClick={(e) => handleInteraction(e)} />
+            {/* Goes to the discussion. This did nothing at all before - it
+                called handleInteraction with no action, so a signed-out
+                visitor got the auth modal and everyone else got silence from
+                the one control on the card that names the conversation.
+
+                No auth gate: reading a discussion is public, and the reply
+                composer on the detail page does its own gating when someone
+                actually tries to post. On the detail page there is nowhere to
+                navigate, so it jumps to the comments instead. */}
+            <ActionButton
+              label={commentsCount > 0 ? `${formatCount(commentsCount)} replies` : "Reply"}
+              icon={MessageCircle}
+              href={isDetailed ? "#comments" : postUrl(post)}
+            />
             <ActionButton label="Repost" icon={Repeat2} onClick={(e) => handleInteraction(e, toggleRepost)} />
             <ActionButton
               label={isLiked ? "Unlike" : "Like"}
@@ -388,12 +401,43 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
 interface ActionButtonProps {
   label: string;
   icon: typeof Heart;
-  onClick: (e: React.MouseEvent) => void;
+  onClick?: (e: React.MouseEvent) => void;
+  /** Renders an anchor instead of a button - see the comment action. */
+  href?: string;
   isActive?: boolean;
   activeClass?: string;
 }
 
-function ActionButton({ label, icon: Icon, onClick, isActive, activeClass }: ActionButtonProps) {
+// p-2.5 on a 20px glyph gives a 44px target, the platform minimum - worth more
+// here than the tighter spacing a smaller pad would buy.
+const ACTION_CLASS = "rounded-full p-2.5 transition-transform active:scale-90 md:hover:bg-zinc-100 dark:md:hover:bg-zinc-800";
+
+function ActionButton({ label, icon: Icon, onClick, href, isActive, activeClass }: ActionButtonProps) {
+  const glyph = <Icon className={cn("h-5 w-5", isActive && "fill-current")} />;
+
+  // A real anchor when the action is "go somewhere", so it behaves like a
+  // link: middle-click and cmd-click open the discussion in a new tab, the
+  // status bar previews the destination, and it is announced as a link rather
+  // than as a control that does something unspecified.
+  if (href) {
+    return (
+      <Link
+        href={href}
+        onClick={(e) => {
+          // The whole card is clickable and also navigates here; without this
+          // both handlers fire and the router is asked to push twice.
+          e.stopPropagation();
+          onClick?.(e);
+        }}
+        title={label}
+        aria-label={label}
+        className={cn("inline-flex", ACTION_CLASS, isActive && activeClass)}
+      >
+        {glyph}
+      </Link>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -401,14 +445,9 @@ function ActionButton({ label, icon: Icon, onClick, isActive, activeClass }: Act
       title={label}
       aria-label={label}
       aria-pressed={isActive}
-      // p-2.5 on a 20px glyph gives a 44px target, the platform minimum -
-      // worth more here than the tighter spacing a smaller pad would buy.
-      className={cn(
-        "rounded-full p-2.5 transition-transform active:scale-90 md:hover:bg-zinc-100 dark:md:hover:bg-zinc-800",
-        isActive && activeClass
-      )}
+      className={cn(ACTION_CLASS, isActive && activeClass)}
     >
-      <Icon className={cn("h-5 w-5", isActive && "fill-current")} />
+      {glyph}
     </button>
   );
 }
