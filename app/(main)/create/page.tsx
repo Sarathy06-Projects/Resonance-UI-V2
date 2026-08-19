@@ -51,7 +51,20 @@ function CreatePageInner() {
   const searchParams = useSearchParams();
   const draftIdParam = searchParams.get("draftId");
 
-  const [mode, setMode] = useState<Mode>("article");
+  // ?type= picks the starting mode. The compose flow has always linked here
+  // with one (CreateTypeDialog sends ?type=article, the composer's handoff rail
+  // sends showcase/feedback), but the param was read by nothing - so every
+  // handoff landed on the article editor whatever it asked for, and choosing
+  // "Showcase" silently opened the wrong surface. Validated against Mode rather
+  // than cast, so a hand-typed ?type=nonsense falls back instead of putting the
+  // page into a mode none of its branches handle.
+  const typeParam = searchParams.get("type");
+  const initialMode: Mode =
+    typeParam === "discussion" || typeParam === "showcase" || typeParam === "feedback" || typeParam === "article"
+      ? typeParam
+      : "article";
+
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [visibility, setVisibility] = useState<"public" | "followers" | "private">("public");
 
   const [title, setTitle] = useState("");

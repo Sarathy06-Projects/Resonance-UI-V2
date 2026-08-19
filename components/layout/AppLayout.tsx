@@ -14,7 +14,10 @@ import { resolveMobileChrome, hidesMobileChrome } from "@/lib/mobile/nav";
 // framer-motion it pulls in) is only ever needed once a visitor actually
 // triggers it, not on every page load.
 const AuthModal = dynamic(() => import("../shared/AuthModal").then((m) => m.AuthModal), { ssr: false });
-const ComposeSheet = dynamic(() => import("./mobile/MobileComposeSheet").then((m) => m.MobileComposeSheet), {
+const ComposeSheet = dynamic(() => import("./ComposeSheet").then((m) => m.ComposeSheet), {
+  ssr: false,
+});
+const CreateTypeDialog = dynamic(() => import("./CreateTypeDialog").then((m) => m.CreateTypeDialog), {
   ssr: false,
 });
 
@@ -35,8 +38,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { mutate } = useSWRConfig();
 
   // Held here rather than in either shell, so the rail's compose button and the
-  // tab bar's centre button open the same one sheet.
-  const [isComposeOpen, setIsComposeOpen] = useState(false);
+  // tab bar's centre button drive the same one flow.
+  //
+  // Compose is two steps now: pick what you're making, then make it. "choose"
+  // is what both buttons open; "post" is the composer, reached either by
+  // picking Post or - once that choice is behind you - directly. Picking
+  // Article leaves the layout entirely and navigates to /create.
+  const [composeStep, setComposeStep] = useState<null | "choose" | "post">(null);
 
   const chrome = resolveMobileChrome(pathname);
   const isFullBleed = hidesMobileChrome(pathname);
@@ -45,13 +53,21 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50">
       {isAuthModalOpen && <AuthModal />}
 
-      {!isFullBleed && <DesktopRail onCompose={() => setIsComposeOpen(true)} />}
-      <MobileShell onCompose={() => setIsComposeOpen(true)} />
+      {!isFullBleed && <DesktopRail onCompose={() => setComposeStep("choose")} />}
+      <MobileShell onCompose={() => setComposeStep("choose")} />
 
-      {isComposeOpen && (
+      {composeStep === "choose" && (
+        <CreateTypeDialog
+          open
+          onOpenChange={(next) => !next && setComposeStep(null)}
+          onChoosePost={() => setComposeStep("post")}
+        />
+      )}
+
+      {composeStep === "post" && (
         <ComposeSheet
-          open={isComposeOpen}
-          onOpenChange={setIsComposeOpen}
+          open
+          onOpenChange={(next) => !next && setComposeStep(null)}
           onPosted={() => {
             // Refresh every cached feed variant rather than one key - the user
             // could be on "For you", "Following", a profile or search when they

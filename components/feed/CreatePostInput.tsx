@@ -1,18 +1,13 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Image as ImageIcon, Smile, List, Layers } from "lucide-react";
+import { Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { createPost } from "@/lib/api/posts";
 import { ImageAttachButton, ImageAttachmentsGrid } from "@/components/shared/ImageAttachments";
-
-// Only needed once the "start a thread" button is clicked - keep it out of
-// the composer's initial bundle, which every visitor to the feed loads.
-const ThreadComposer = dynamic(() => import("@/components/shared/ThreadComposer").then((m) => m.ThreadComposer), { ssr: false });
 
 const placeholders = [
   "Share an idea...",
@@ -35,7 +30,6 @@ export function CreatePostInput({ onPosted }: CreatePostInputProps) {
   const [isPosting, setIsPosting] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [isFocused, setIsFocused] = useState(false);
-  const [isThreadOpen, setIsThreadOpen] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -69,14 +63,6 @@ export function CreatePostInput({ onPosted }: CreatePostInputProps) {
     } finally {
       setIsPosting(false);
     }
-  };
-
-  const openThreadComposer = () => {
-    if (!isAuthenticated || !user) {
-      openAuthModal();
-      return;
-    }
-    setIsThreadOpen(true);
   };
 
   return (
@@ -120,20 +106,13 @@ export function CreatePostInput({ onPosted }: CreatePostInputProps) {
                 <ImageIcon className="w-[18px] h-[18px]" />
               </button>
             )}
-            <button
-              className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors dark:hover:text-zinc-200"
-              onClick={isAuthenticated ? openThreadComposer : handleInteraction}
-              aria-label="Start a thread"
-              title="Start a thread"
-            >
-              <Layers className="w-[18px] h-[18px]" />
-            </button>
-            <button className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors dark:hover:text-zinc-200" onClick={handleInteraction} aria-label="Add poll">
-              <List className="w-[18px] h-[18px]" />
-            </button>
-            <button className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors dark:hover:text-zinc-200" onClick={handleInteraction} aria-label="Add emoji">
-              <Smile className="w-[18px] h-[18px]" />
-            </button>
+            {/* Thread, poll and emoji used to sit here. Poll and emoji were
+                never wired to anything - for a signed-in user they ran the
+                guest auth check and then did nothing at all, which is a
+                control that looks live and isn't. Thread did work, but it was
+                the third of four identical grey glyphs and read as more of the
+                same. The composer is down to the one attachment action that
+                does something. */}
           </div>
 
           <Button
@@ -145,16 +124,6 @@ export function CreatePostInput({ onPosted }: CreatePostInputProps) {
           </Button>
         </div>
 
-        {isThreadOpen && (
-          <ThreadComposer
-            open={isThreadOpen}
-            onClose={() => setIsThreadOpen(false)}
-            onPosted={() => {
-              setIsThreadOpen(false);
-              onPosted?.();
-            }}
-          />
-        )}
       </div>
     </div>
   );

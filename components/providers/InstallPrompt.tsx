@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/shared/Logo";
 import { isNative } from "@/lib/native";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -49,6 +50,13 @@ export function InstallPrompt() {
     if (isStandalone()) return;
 
     if (isIos()) {
+      // Has to happen after mount, not in a lazy useState initializer: the
+      // initializer also runs during the server render, where there is no
+      // navigator to sniff, so it would resolve false on the server and true
+      // on the client and hydrate mismatched. Detecting the platform *is*
+      // reading an external system, which is what an effect is for - the rule
+      // cannot tell that apart from deriving state it could have computed.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowIosInstructions(true);
       return;
     }
@@ -81,8 +89,13 @@ export function InstallPrompt() {
 
   return (
     <div className="fixed bottom-20 md:bottom-4 inset-x-4 sm:inset-x-auto sm:right-4 sm:max-w-sm z-40 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-lg p-4 flex items-start gap-3">
-      <div className="h-10 w-10 shrink-0 rounded-lg bg-zinc-950 dark:bg-white flex items-center justify-center text-white dark:text-zinc-950 font-bold">
-        R
+      {/* The real mark, not a letter in a box.
+          This was a hardcoded "R" on a solid square - a stand-in that predates
+          the brand artwork and then stayed. It is the wrong shape and the
+          wrong glyph, and it sits directly above a button offering to install
+          an app whose launcher icon looks nothing like it. */}
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-50 dark:bg-zinc-800">
+        <Logo size={22} />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Install Resonance</p>

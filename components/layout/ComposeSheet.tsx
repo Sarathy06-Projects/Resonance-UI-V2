@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { FileText, Palette, Eye, Lightbulb, Loader2 } from "lucide-react";
+import { Palette, Eye, Lightbulb, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ImageAttachButton, ImageAttachmentsGrid } from "@/components/shared/ImageAttachments";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -12,27 +12,41 @@ import { cn } from "@/lib/utils";
 
 const MAX_LENGTH = 500;
 
-// Long-form types keep their dedicated /create editor - a phone-sized sheet
-// is the wrong surface for writing an article. They're offered here as
-// handoffs so the compose button is still the single entry point for "make
-// something", which is the whole point of putting it in the tab bar.
+// The remaining long-form types keep their dedicated /create editor - a
+// composer sized for a quick thought is the wrong surface for writing one.
+// They stay here as handoffs so compose is still the single entry point for
+// "make something".
+//
+// Article is deliberately absent: CreateTypeDialog now asks post-or-article
+// before this sheet ever opens, so listing it again down here would be the
+// same choice offered twice, one screen apart.
 const LONG_FORM = [
-  { type: "article", label: "Article", icon: FileText },
   { type: "showcase", label: "Showcase", icon: Palette },
   { type: "feedback", label: "Feedback", icon: Eye },
   { type: "resource", label: "Resource", icon: Lightbulb },
 ] as const;
 
-interface MobileComposeSheetProps {
+interface ComposeSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPosted?: () => void;
 }
 
-// Full-screen rather than a partial sheet: the keyboard already takes roughly
-// half the viewport, and a 85vh sheet under it leaves a strip of dead feed
-// visible at the top that invites a mis-tap dismissing a half-written post.
-export function MobileComposeSheet({ open, onOpenChange, onPosted }: MobileComposeSheetProps) {
+/**
+ * The post composer, at every breakpoint.
+ *
+ * This was MobileComposeSheet and carried `md:hidden`, which meant the desktop
+ * rail's compose button opened a dialog that was then hidden by CSS: the
+ * backdrop mounted, the sheet did not paint, and the button read as dead. It
+ * is one composer now - full-screen on a phone, a centred modal from md up.
+ *
+ * Full-screen on mobile rather than a partial sheet: the keyboard already
+ * takes roughly half the viewport, and an 85vh sheet under it leaves a strip
+ * of dead feed visible at the top that invites a mis-tap dismissing a
+ * half-written post. On desktop there is no keyboard eating the viewport and
+ * no thumb reach to design around, so it behaves like every other dialog.
+ */
+export function ComposeSheet({ open, onOpenChange, onPosted }: ComposeSheetProps) {
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
   const [content, setContent] = useState("");
@@ -98,8 +112,16 @@ export function MobileComposeSheet({ open, onOpenChange, onPosted }: MobileCompo
         <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/40 duration-200 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
         <DialogPrimitive.Popup
           className={cn(
-            "fixed inset-0 z-50 flex flex-col bg-white outline-none dark:bg-zinc-950 md:hidden",
-            "duration-200 data-open:animate-in data-open:slide-in-from-bottom data-closed:animate-out data-closed:slide-out-to-bottom"
+            "fixed inset-0 z-50 flex flex-col bg-white outline-none dark:bg-zinc-950",
+            // Centred, bounded and detached from the edges once there is room
+            // for it. max-h + the scroll region below keep a long draft inside
+            // the viewport instead of growing the dialog off-screen.
+            "md:inset-auto md:left-1/2 md:top-1/2 md:h-auto md:max-h-[85vh] md:w-full md:max-w-xl",
+            "md:-translate-x-1/2 md:-translate-y-1/2 md:overflow-hidden md:rounded-2xl md:border md:border-zinc-200 md:shadow-2xl dark:md:border-zinc-800",
+            // Slides up from the bottom edge on a phone, where it comes from
+            // the tab bar; a centred dialog that slid would just look loose.
+            "duration-200 data-open:animate-in data-open:slide-in-from-bottom data-closed:animate-out data-closed:slide-out-to-bottom",
+            "md:data-open:slide-in-from-bottom-0 md:data-open:zoom-in-95 md:data-closed:zoom-out-95 md:data-closed:slide-out-to-bottom-0"
           )}
         >
           {/* Cancel / title / Post - the standard mobile modal contract:
