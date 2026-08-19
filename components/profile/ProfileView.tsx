@@ -29,12 +29,14 @@ import type { Profile, Post } from "@/lib/api/types";
 import { ImageCropper, useImageCropper } from "@/components/shared/ImageCropper";
 import type { CropResult } from "@/lib/imageCrop";
 
+// Collections, Likes and Media are gone. None of the three was ever
+// implemented: each rendered the same "Nothing to show yet" placeholder no
+// matter what the profile actually contained, so half the tab bar was
+// promising content that could not exist. Saved collections already have a
+// real home at /collections, reachable from the profile menu.
 const TABS = [
   { id: "posts", label: "Posts" },
   { id: "articles", label: "Articles" },
-  { id: "collections", label: "Collections" },
-  { id: "likes", label: "Likes" },
-  { id: "media", label: "Media" },
   { id: "about", label: "About" },
 ];
 
@@ -471,9 +473,6 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
               </div>
             )}
 
-            {["collections", "likes", "media"].includes(activeTab) && (
-              <EmptyTab label={activeTab} name={profile.name} />
-            )}
           </div>
         </div>
       </div>
