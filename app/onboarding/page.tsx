@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { completeOnboarding } from "@/lib/api/onboarding";
-import { checkUsername } from "@/lib/api/users";
+import { checkUsername, uploadAvatar } from "@/lib/api/users";
 import { authClient } from "@/lib/auth-client";
 import { useAuthStore } from "@/store/useAuthStore";
 import { allTopics } from "@/lib/topics";
@@ -33,6 +33,14 @@ export default function OnboardingPage() {
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
   const [finishError, setFinishError] = useState<string | null>(null);
+
+  // Avatar. The circle on step 3 used to be decoration - a cursor-pointer div
+  // with a hover label that read "Upload" and did nothing at all. It is wired
+  // to the same POST /api/users/me/avatar the profile editor uses.
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   const toggleTopic = (topic: string) => {
     setSelectedTopics(prev =>
@@ -64,6 +72,27 @@ export default function OnboardingPage() {
     }, 350);
     return () => clearTimeout(timer);
   }, [profile.username]);
+
+  // Uploads immediately on pick rather than deferring to "Join Resonance".
+  // The endpoint writes user.image itself, so there is nothing to carry into
+  // completeOnboarding - and picking a file then seeing the old placeholder
+  // until the very last step is the kind of thing that reads as broken.
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingAvatar(true);
+    setAvatarError(null);
+    try {
+      const { image } = await uploadAvatar(file);
+      setAvatarUrl(image);
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : "Couldn't upload that image.");
+    } finally {
+      setIsUploadingAvatar(false);
+      // Reset so picking the same file again still fires a change event.
+      e.target.value = "";
+    }
+  };
 
   const handleFinish = async () => {
     setIsFinishing(true);
@@ -255,15 +284,49 @@ export default function OnboardingPage() {
                 <p className="text-zinc-500 dark:text-zinc-400 text-lg">Add details so others can recognize you.</p>
               </div>
 
-              <div className="flex justify-center py-4">
-                <div className="relative group cursor-pointer">
+              <div className="flex flex-col items-center py-4">
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+                {/* A real button, not a div with cursor-pointer: this is the
+                    control that opens the picker, so it needs to be reachable
+                    by keyboard and to announce itself. */}
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={isUploadingAvatar}
+                  aria-label={avatarUrl ? "Change your profile photo" : "Upload a profile photo"}
+                  className="relative group rounded-full outline-none focus-visible:ring-4 focus-visible:ring-zinc-950/20 dark:focus-visible:ring-white/20 disabled:cursor-wait"
+                >
                   <Avatar className="w-28 h-28 border-4 border-white dark:border-zinc-950 shadow-xl">
-                    <AvatarFallback className="bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 text-3xl">?</AvatarFallback>
+                    {avatarUrl && <AvatarImage src={avatarUrl} alt="" className="object-cover" />}
+                    <AvatarFallback className="bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 text-3xl">
+                      {profile.name.trim().charAt(0).toUpperCase() || "?"}
+                    </AvatarFallback>
                   </Avatar>
-                  <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-white text-xs font-semibold">Upload</span>
+                  {/* Always visible while uploading, hover-only otherwise -
+                      on touch there is no hover, so a purely hover-revealed
+                      affordance is invisible on exactly the devices where the
+                      camera roll is closest to hand. */}
+                  <div
+                    className={cn(
+                      "absolute inset-0 bg-black/40 rounded-full flex items-center justify-center transition-opacity",
+                      isUploadingAvatar ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
+                    )}
+                  >
+                    <span className="text-white text-xs font-semibold">
+                      {isUploadingAvatar ? "Uploading…" : avatarUrl ? "Change" : "Upload"}
+                    </span>
                   </div>
-                </div>
+                </button>
+                <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+                  {avatarUrl ? "Looking good." : "Add a photo (optional)"}
+                </p>
+                {avatarError && <p className="mt-1 text-sm text-red-500">{avatarError}</p>}
               </div>
 
               <div className="space-y-5">
