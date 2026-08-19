@@ -46,7 +46,19 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-1 py-2 border-y border-zinc-100 dark:border-zinc-800">
+    // Pinned under the page header while the article scrolls.
+    //
+    // top-16 is that header's h-16, so the two sit flush; z-10 keeps the
+    // toolbar above the prose but below the header's z-20, which has to stay
+    // on top for Close and Publish. Sticky scopes itself to the parent box, so
+    // ArticleEditor's wrapper is what bounds it: the bar follows for exactly
+    // as long as the editor is on screen and leaves with it, rather than
+    // hanging around over the rest of the page.
+    //
+    // Needs its own background - a transparent bar would have body text
+    // scrolling straight through it. Matched to the header's treatment so the
+    // two read as one surface rather than two stacked bars.
+    <div className="sticky top-16 z-10 flex flex-wrap items-center gap-1 py-2 border-y border-zinc-100 bg-white/85 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/85">
       <Button
         variant="ghost"
         size="icon"

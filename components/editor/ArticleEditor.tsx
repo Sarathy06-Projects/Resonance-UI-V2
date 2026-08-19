@@ -43,7 +43,11 @@ export function ArticleEditor({ content, onChange }: ArticleEditorProps) {
   }, [content, editor]);
 
   return (
-    <div className="flex flex-col border-y border-zinc-100 dark:border-zinc-800">
+    // No border on this wrapper: the toolbar is sticky and owns the rules
+    // above and below itself. A border here would stay behind when the bar
+    // detaches and scrolls away, leaving a stray line across the page where
+    // the toolbar used to be.
+    <div className="flex flex-col">
       <EditorToolbar editor={editor} />
       <div className="mt-4 px-4 sm:px-0">
         <EditorContent editor={editor} />
