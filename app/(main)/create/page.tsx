@@ -2,30 +2,17 @@
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import Image from "next/image";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Hash, ChevronDown,
-  Globe, Users, Lock, Check, Loader2, PenTool,
-  MessageSquare, HelpCircle, FileText, UploadCloud, Layers, Plus
-} from "lucide-react";
+import { Globe, Users, Lock, Check, Loader2, PenTool, UploadCloud } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ArticleEditor } from "@/components/editor/ArticleEditor";
 import { getDraft, createDraft, updateDraft, publishDraft } from "@/lib/api/drafts";
 import { uploadArticleCover } from "@/lib/api/uploads";
 import { ImageAttachButton, ImageAttachmentsGrid } from "@/components/shared/ImageAttachments";
-import { createSeries, getUserSeries } from "@/lib/api/series";
 import { articleUrl, postUrl } from "@/lib/urls";
-import type { Series } from "@/lib/api/types";
-
-const TOPICS = [
-  "UI Design", "UX", "Typography", "Accessibility",
-  "Research", "Motion", "Design Systems", "Branding",
-  "Illustration", "AI"
-];
 
 const FEEDBACK_TYPES = [
   "Visual Design", "UX", "Research", "Accessibility", "Interaction", "Prototype"
@@ -76,11 +63,11 @@ function CreatePageInner() {
   const [postImages, setPostImages] = useState<string[]>([]);
 
   // Article-only: Dribbble-style shot gallery + Medium-style series.
+  // Gallery and series no longer have UI on this page, but both still round-
+  // trip: a draft saved when they did keeps its values through autosave and
+  // publish instead of being silently emptied by the next keystroke.
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
-  const [userSeries, setUserSeries] = useState<Series[]>([]);
   const [seriesId, setSeriesId] = useState<string | null>(null);
-  const [isCreatingSeries, setIsCreatingSeries] = useState(false);
-  const [newSeriesTitle, setNewSeriesTitle] = useState("");
 
   const [toolsUsed, setToolsUsed] = useState("");
   const [portfolioLink, setPortfolioLink] = useState("");
@@ -120,12 +107,6 @@ function CreatePageInner() {
     }).catch(() => {});
   }, [draftIdParam]);
 
-  // Load the author's existing series for the "add to series" picker.
-  useEffect(() => {
-    if (!user) return;
-    getUserSeries(user.id).then((res) => setUserSeries(res.series)).catch(() => {});
-  }, [user]);
-
   // Debounced autosave.
   useEffect(() => {
     if (!title && !content) return;
@@ -159,14 +140,7 @@ function CreatePageInner() {
       }
     }, 1200);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, content, mode, selectedTopics, toolsUsed, portfolioLink, feedbackType, urgency, figmaLink, coverImage, postImages, galleryImages, seriesId]);
-
-  const toggleTopic = (topic: string) => {
-    setSelectedTopics(prev =>
-      prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
-    );
-  };
 
   const isPublishReady = () => {
     if (mode === "discussion") return content.trim().length > 0;
@@ -259,20 +233,29 @@ function CreatePageInner() {
 
       <div className="sticky top-0 z-20 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800 px-4 sm:px-8 h-16 flex items-center justify-between">
 
-        <div className="flex items-center gap-2 text-sm font-semibold text-zinc-600 dark:text-zinc-300 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-900 px-3 py-1.5 rounded-lg transition-colors">
-          {visibility === "public" && <Globe className="w-4 h-4 text-emerald-500" />}
-          {visibility === "followers" && <Users className="w-4 h-4 text-blue-500" />}
-          {visibility === "private" && <Lock className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />}
-          <select
-            value={visibility}
-            onChange={(e) => setVisibility(e.target.value as typeof visibility)}
-            className="bg-transparent outline-none cursor-pointer capitalize"
-          >
-            <option value="public">Public</option>
-            <option value="followers">Followers</option>
-            <option value="private">Private</option>
-          </select>
-        </div>
+        {/* Hidden while writing an article, which is the surface that is meant
+            to be title + cover + tools and nothing else. Articles publish
+            public, which is the value this control already defaulted to.
+            Other modes keep it - a showcase or a feedback request is exactly
+            the kind of thing someone wants to limit to followers. */}
+        {mode === "article" ? (
+          <span aria-hidden />
+        ) : (
+          <div className="flex items-center gap-2 text-sm font-semibold text-zinc-600 dark:text-zinc-300 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-900 px-3 py-1.5 rounded-lg transition-colors">
+            {visibility === "public" && <Globe className="w-4 h-4 text-emerald-500" />}
+            {visibility === "followers" && <Users className="w-4 h-4 text-blue-500" />}
+            {visibility === "private" && <Lock className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />}
+            <select
+              value={visibility}
+              onChange={(e) => setVisibility(e.target.value as typeof visibility)}
+              className="bg-transparent outline-none cursor-pointer capitalize"
+            >
+              <option value="public">Public</option>
+              <option value="followers">Followers</option>
+              <option value="private">Private</option>
+            </select>
+          </div>
+        )}
 
         <div className="flex items-center gap-4">
           <AnimatePresence>
@@ -315,29 +298,12 @@ function CreatePageInner() {
 
         <div className="flex-1 flex flex-col px-4 sm:px-8 py-8 min-w-0">
 
-          <div className="bg-zinc-50 dark:bg-zinc-900/50 p-1 rounded-2xl flex items-center mb-10 overflow-x-auto no-scrollbar border border-zinc-100 dark:border-zinc-800 shrink-0">
-            {[
-              { id: "discussion" as const, icon: MessageSquare, label: "Discussion" },
-              { id: "showcase" as const, icon: PenTool, label: "Showcase" },
-              { id: "feedback" as const, icon: HelpCircle, label: "Request Feedback" },
-              { id: "article" as const, icon: FileText, label: "Article" }
-            ].map(m => (
-              <button
-                key={m.id}
-                onClick={() => setMode(m.id)}
-                className={cn(
-                  "relative flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold transition-colors whitespace-nowrap",
-                  mode === m.id ? "text-zinc-950 dark:text-white" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-                )}
-              >
-                <m.icon className="w-4 h-4 shrink-0" />
-                {m.label}
-                {mode === m.id && (
-                  <motion.div layoutId="mode-indicator" className="absolute inset-0 bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200/50 dark:border-zinc-700/50 -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
-                )}
-              </button>
-            ))}
-          </div>
+          {/* The mode switcher is gone. What you are making is decided before
+              you get here - CreateTypeDialog asks post-or-article, and a draft
+              opened by id carries its own mode - so a four-tab control at the
+              top of the page was re-asking a question already answered, and
+              putting three answers the writer did not choose in front of the
+              one they did. */}
 
           <div className="max-w-[700px] w-full mx-auto space-y-8 pb-20">
 
@@ -444,104 +410,26 @@ function CreatePageInner() {
               </>
             )}
 
-            {mode === "article" && (
-              <div className="pt-8 border-t border-zinc-100 dark:border-zinc-800/60 space-y-8">
-                <div>
-                  <label className="text-sm font-bold dark:text-white mb-3 block flex items-center gap-2">
-                    <Hash className="w-4 h-4 text-zinc-400" /> Select Topics
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {TOPICS.map(topic => {
-                      const isSelected = selectedTopics.includes(topic);
-                      return (
-                        <button
-                          key={topic}
-                          onClick={() => toggleTopic(topic)}
-                          className={cn(
-                            "px-3 py-1.5 rounded-xl text-sm font-semibold transition-all border",
-                            isSelected
-                              ? "bg-zinc-950 border-zinc-950 text-white dark:bg-white dark:border-white dark:text-zinc-950 shadow-sm"
-                              : "bg-zinc-50 border-zinc-200 text-zinc-600 hover:border-zinc-300 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-700"
-                          )}
-                        >
-                          {topic}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-sm font-bold dark:text-white mb-3 block flex items-center gap-2">
-                    <UploadCloud className="w-4 h-4 text-zinc-400" /> Gallery (extra shot images)
-                  </label>
-                  <div className="space-y-3">
-                    <ImageAttachmentsGrid images={galleryImages} onChange={setGalleryImages} />
-                    <ImageAttachButton images={galleryImages} onChange={setGalleryImages} max={10} />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-sm font-bold dark:text-white mb-3 block flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-zinc-400" /> Series
-                  </label>
-                  {isCreatingSeries ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        autoFocus
-                        placeholder="Series title..."
-                        value={newSeriesTitle}
-                        onChange={(e) => setNewSeriesTitle(e.target.value)}
-                        className="flex-1 h-11 px-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm font-medium outline-none focus:border-zinc-400 dark:focus:border-zinc-600 dark:text-white"
-                      />
-                      <Button
-                        type="button"
-                        className="h-11 rounded-xl px-4"
-                        disabled={!newSeriesTitle.trim()}
-                        onClick={async () => {
-                          const created = await createSeries({ title: newSeriesTitle.trim() });
-                          setUserSeries((prev) => [created, ...prev]);
-                          setSeriesId(created.id);
-                          setIsCreatingSeries(false);
-                          setNewSeriesTitle("");
-                        }}
-                      >
-                        Create
-                      </Button>
-                      <Button type="button" variant="outline" className="h-11 rounded-xl px-4" onClick={() => setIsCreatingSeries(false)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <select
-                        value={seriesId ?? ""}
-                        onChange={(e) => setSeriesId(e.target.value || null)}
-                        className="h-11 px-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm font-medium outline-none focus:border-zinc-400 dark:focus:border-zinc-600 dark:text-white"
-                      >
-                        <option value="">Not part of a series</option>
-                        {userSeries.map((s) => (
-                          <option key={s.id} value={s.id}>{s.title}</option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => setIsCreatingSeries(true)}
-                        className="flex items-center gap-1.5 text-sm font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
-                      >
-                        <Plus className="w-4 h-4" /> New series
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+            {/* Topics, the extra-shots gallery and series selection used to
+                follow the editor. All three are removed: the article surface
+                is a cover, a title and the writing tools, and nothing else.
+                The state behind them stays wired into autosave and publish, so
+                a draft written before this still round-trips its tags, gallery
+                and series instead of losing them on the next save. */}
 
           </div>
         </div>
 
-        <div className="hidden lg:flex flex-col w-[340px] shrink-0 border-l border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/50 dark:bg-zinc-900/10 p-8">
+        {/* The whole right column - draft checklist, word/read-time counters,
+            writing tips - is hidden for an article. It was three panels of
+            commentary beside the thing being written, and it is the bulk of
+            what "nothing else on the page" was asking to lose. Kept for the
+            other modes, whose forms are short enough that the column is not
+            competing with the work. */}
+        <div className={cn(
+          "hidden flex-col w-[340px] shrink-0 border-l border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/50 dark:bg-zinc-900/10 p-8",
+          mode !== "article" && "lg:flex"
+        )}>
 
           <div className="mb-8">
             <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-4">Draft Status</h3>

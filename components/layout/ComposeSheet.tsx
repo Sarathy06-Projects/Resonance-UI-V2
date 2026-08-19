@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { Palette, Eye, Lightbulb, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ImageAttachButton, ImageAttachmentsGrid } from "@/components/shared/ImageAttachments";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -12,19 +11,11 @@ import { cn } from "@/lib/utils";
 
 const MAX_LENGTH = 500;
 
-// The remaining long-form types keep their dedicated /create editor - a
-// composer sized for a quick thought is the wrong surface for writing one.
-// They stay here as handoffs so compose is still the single entry point for
-// "make something".
-//
-// Article is deliberately absent: CreateTypeDialog now asks post-or-article
-// before this sheet ever opens, so listing it again down here would be the
-// same choice offered twice, one screen apart.
-const LONG_FORM = [
-  { type: "showcase", label: "Showcase", icon: Palette },
-  { type: "feedback", label: "Feedback", icon: Eye },
-  { type: "resource", label: "Resource", icon: Lightbulb },
-] as const;
+// This used to carry an "Or create something longer" rail of Showcase /
+// Feedback / Resource chips. It is gone: CreateTypeDialog now asks
+// post-or-article before this sheet opens, so the composer has one job and
+// says so. A second set of destinations two thirds of the way down a
+// half-written post was a choice offered after the choice had been made.
 
 interface ComposeSheetProps {
   open: boolean;
@@ -47,7 +38,6 @@ interface ComposeSheetProps {
  * no thumb reach to design around, so it behaves like every other dialog.
  */
 export function ComposeSheet({ open, onOpenChange, onPosted }: ComposeSheetProps) {
-  const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
   const [content, setContent] = useState("");
   const [images, setImages] = useState<string[]>([]);
@@ -99,11 +89,6 @@ export function ComposeSheet({ open, onOpenChange, onPosted }: ComposeSheetProps
     } finally {
       setIsPosting(false);
     }
-  };
-
-  const handoff = (type: string) => {
-    onOpenChange(false);
-    router.push(`/create?type=${type}`);
   };
 
   return (
@@ -186,24 +171,6 @@ export function ComposeSheet({ open, onOpenChange, onPosted }: ComposeSheetProps
               </p>
             )}
 
-            <div className="mt-8 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-              <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                Or create something longer
-              </p>
-              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 no-scrollbar rail-x">
-                {LONG_FORM.map(({ type, label, icon: Icon }) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => handoff(type)}
-                    className="flex shrink-0 items-center gap-2 rounded-full border border-zinc-200 px-4 py-2.5 text-[14px] font-medium text-zinc-700 active:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:active:bg-zinc-800"
-                  >
-                    <Icon className="h-4 w-4 text-zinc-400" />
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* Toolbar rides above the keyboard rather than sitting at the
