@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCommentDraft } from "@/lib/hooks/useCommentDraft";
 import { useMentionSearch } from "@/lib/hooks/useMentionSearch";
-import { renderCommentContent } from "@/lib/renderCommentContent";
 import { MentionAutocomplete } from "@/components/shared/comment/MentionAutocomplete";
 import { EmojiPicker } from "@/components/shared/comment/EmojiPicker";
 import { cn } from "@/lib/utils";
-import { Smile, Eye, Pencil } from "lucide-react";
+import { Smile } from "lucide-react";
 import type { Author } from "@/lib/api/types";
 
 const MAX_LENGTH = 3000;
@@ -59,7 +58,6 @@ export function CommentInput({
   const setContent = isEdit ? setLocalContent : draft.setContent;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
   const [mention, setMention] = useState<{ start: number; query: string } | null>(null);
   const [activeMentionIndex, setActiveMentionIndex] = useState(0);
@@ -82,7 +80,6 @@ export function CommentInput({
       await onSubmit(trimmed);
       setContent("");
       if (!isEdit) draft.clear();
-      setShowPreview(false);
     } catch {
       // Leave the draft content in place so the user can retry.
     } finally {
@@ -177,29 +174,26 @@ export function CommentInput({
       </Avatar>
       <div className="min-w-0 flex-1">
         <div className="relative">
-          {showPreview ? (
-            <div className="min-h-[40px] pt-2 text-[15px] leading-normal whitespace-pre-wrap text-zinc-900 dark:text-zinc-100">
-              {content.trim() ? renderCommentContent(content) : <span className="text-zinc-400">Nothing to preview yet.</span>}
-            </div>
-          ) : (
-            <textarea
-              ref={textareaRef}
-              placeholder={placeholder}
-              aria-label={isEdit ? "Edit comment" : placeholder}
-              className="field-sizing-content min-h-[40px] w-full resize-none bg-transparent pt-2 text-[15px] outline-none placeholder:text-zinc-500 dark:text-zinc-100"
-              onClick={() => {
-                if (!isAuthenticated) openAuthModal();
-              }}
-              value={content}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              onBlur={() => setTimeout(() => setMention(null), 120)}
-              autoFocus={autoFocus}
-              maxLength={MAX_LENGTH + 200}
-            />
-          )}
+          <textarea
+            ref={textareaRef}
+            placeholder={placeholder}
+            aria-label={isEdit ? "Edit comment" : placeholder}
+            // 16px on mobile: anything smaller and iOS Safari zooms the page
+            // in on focus and never zooms back out, which on a nested reply
+            // leaves the thread scrolled sideways.
+            className="field-sizing-content min-h-[40px] w-full resize-none bg-transparent pt-2 text-[16px] outline-none placeholder:text-zinc-500 sm:text-[15px] dark:text-zinc-100"
+            onClick={() => {
+              if (!isAuthenticated) openAuthModal();
+            }}
+            value={content}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            onBlur={() => setTimeout(() => setMention(null), 120)}
+            autoFocus={autoFocus}
+            maxLength={MAX_LENGTH + 200}
+          />
 
-          {mention && mentionResults.length > 0 && !showPreview && (
+          {mention && mentionResults.length > 0 && (
             <MentionAutocomplete
               results={mentionResults}
               activeIndex={activeMentionIndex}
@@ -225,18 +219,12 @@ export function CommentInput({
             >
               <Smile className="h-4 w-4" />
             </button>
-            <button
-              type="button"
-              aria-label={showPreview ? "Edit" : "Preview"}
-              aria-pressed={showPreview}
-              onClick={() => setShowPreview((v) => !v)}
-              className={cn(
-                "rounded-full p-1.5 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800",
-                showPreview ? "text-blue-600 dark:text-blue-400" : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-              )}
-            >
-              {showPreview ? <Pencil className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
+            {/* The eye/pencil preview toggle used to sit here. It was a
+                markdown preview, but next to a composer an eye reads as a
+                visibility control - "who can see this" - which comments do not
+                have and should not appear to. A preview also earns very little
+                on content this short, where the only markup is bold, italic,
+                code, mentions and links, all of which are legible as typed. */}
             {remaining <= WARN_THRESHOLD && (
               <span className={cn("ml-1 text-xs tabular-nums", overLimit ? "font-semibold text-red-500" : "text-zinc-400")}>{remaining}</span>
             )}

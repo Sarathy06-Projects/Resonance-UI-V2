@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { CommentInput } from "./CommentInput";
 import { CommentActionsMenu } from "./comment/CommentActionsMenu";
 import { ReportCommentDialog } from "./comment/ReportCommentDialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useIsMobile } from "@/lib/hooks/useIsMobile";
 import * as commentsApi from "@/lib/api/comments";
 import { timeAgo } from "@/lib/formatTime";
 import { renderCommentContent } from "@/lib/renderCommentContent";
@@ -41,6 +43,13 @@ const MAX_VISUAL_DEPTH = 4;
 function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAuthor, isAdmin, onChanged, onDeleted }: CommentItemProps) {
   const { user, isAuthenticated, openAuthModal } = useAuthStore();
   const router = useRouter();
+  // Replying and editing move into a bottom sheet on phones. Inline was fine
+  // for a top-level comment and unusable for a nested one: by depth three the
+  // indent has eaten most of a 390px screen, so the textarea is a slot a few
+  // words wide, and it sits underneath the fixed composer bar with the
+  // keyboard up. Top-level replies already used a sheet - this is the same
+  // treatment for every other case, so the composer is one thing everywhere.
+  const isMobile = useIsMobile();
 
   const [isReplying, setIsReplying] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -53,6 +62,36 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+
+  // Reconcile local state with fresh server data.
+  //
+  // The like, pin and content values above are mirrored into state so a tap
+  // can update instantly instead of waiting for a round trip. That mirror
+  // goes stale the moment the row is refetched - a revalidation, a pin from
+  // another tab, the SSE stream - because useState only reads its initial
+  // value once. The previous code hid this by folding likesCount and content
+  // into the React key, which forced a remount; that re-read the props but
+  // also destroyed everything else the row was holding.
+  //
+  // Comparing against the last *props* seen, rather than against local state,
+  // is what makes this safe next to optimistic updates: an echo of a change
+  // the viewer just made arrives identical to what was already recorded, so
+  // nothing is overwritten, while a genuinely new server value still lands.
+  const [syncedFrom, setSyncedFrom] = useState(comment);
+  if (
+    syncedFrom.isLiked !== comment.isLiked ||
+    syncedFrom.likesCount !== comment.likesCount ||
+    syncedFrom.isPinned !== comment.isPinned ||
+    syncedFrom.content !== comment.content ||
+    syncedFrom.editedAt !== comment.editedAt
+  ) {
+    setSyncedFrom(comment);
+    setIsLiked(comment.isLiked);
+    setLikesCount(comment.likesCount);
+    setIsPinned(comment.isPinned);
+    setContent(comment.content);
+    setEditedAt(comment.editedAt);
+  }
 
   const {
     replies,
@@ -159,7 +198,16 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
     },
   };
 
-  const totalReplies = replies.length;
+  // The real number, not how many happen to be loaded. The server inlines
+  // only the first few, so a comment with twelve replies would otherwise
+  // offer to "Show 3 replies" and look like it had lost the rest.
+  // repliesCount can lag a locally-added reply by one, hence the max.
+  const totalReplies = Math.max(comment.repliesCount, replies.length);
+  // Replies exist but none are loaded - the server did not inline any at this
+  // depth. Without this the collapse toggle expands to nothing and the "view
+  // more" button, which lived inside the loaded-replies block, never rendered
+  // at all: a comment with replies and no way to reach them.
+  const hasUnloadedReplies = totalReplies > 0 && replies.length === 0;
 
   return (
     <div role="article" aria-label={`Comment by ${comment.author.name}`} className={cn("flex flex-col", isDeleting && "opacity-50 pointer-events-none")}>
@@ -227,11 +275,11 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
               />
             </div>
 
-            {isEditing ? (
+            {isEditing && !isMobile ? (
               <CommentInput
                 targetType={targetType}
                 targetId={targetId}
-                parentId={comment.parentId}
+                parentId={comment.id}
                 isEdit
                 initialContent={content}
                 submitLabel="Save"
@@ -248,7 +296,7 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
               </p>
             )}
 
-            {!isEditing && (
+            {!(isEditing && !isMobile) && (
               <div className="mt-1 flex items-center gap-6">
                 <button
                   onClick={(e) => handleInteraction(e, toggleLike)}
@@ -286,12 +334,27 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
 
                 {totalReplies > 0 && (
                   <button
-                    onClick={() => setCollapsed((v) => !v)}
-                    aria-expanded={!collapsed}
-                    className="flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                    onClick={() => {
+                      // Nothing loaded yet means this is a fetch, not a
+                      // toggle - expanding an empty list would just collapse
+                      // onto nothing.
+                      if (hasUnloadedReplies) {
+                        setCollapsed(false);
+                        void loadMore();
+                        return;
+                      }
+                      setCollapsed((v) => !v);
+                    }}
+                    disabled={isLoadingReplies}
+                    aria-expanded={!collapsed && replies.length > 0}
+                    className="flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-zinc-700 disabled:opacity-60 dark:hover:text-zinc-300"
                   >
-                    {collapsed ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
-                    {collapsed ? `Show ${totalReplies} ${totalReplies === 1 ? "reply" : "replies"}` : "Hide replies"}
+                    {collapsed || hasUnloadedReplies ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+                    {isLoadingReplies
+                      ? "Loading…"
+                      : collapsed || hasUnloadedReplies
+                        ? `Show ${totalReplies} ${totalReplies === 1 ? "reply" : "replies"}`
+                        : "Hide replies"}
                   </button>
                 )}
 
@@ -313,17 +376,63 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
         </motion.div>
       </div>
 
-      {isReplying && (
+      {isReplying && !isMobile && (
         <div className="mr-4 ml-6 border-l-2 border-zinc-100 pr-4 pl-12 sm:ml-9 sm:pl-16 dark:border-zinc-800">
           <CommentInput
             targetType={targetType}
             targetId={targetId}
             parentId={comment.id}
             onSubmit={handleReplySubmit}
-            placeholder="Post your reply"
+            onCancel={() => setIsReplying(false)}
+            placeholder={`Reply to ${comment.author.name}`}
             autoFocus
           />
         </div>
+      )}
+
+      {/* Mobile reply and edit. Full-width sheet rather than a textarea nested
+          inside the indent, and it names who is being replied to - once the
+          composer is detached from the row it was opened from, that context
+          is otherwise gone. Only mounted on mobile, so there is never a second
+          composer competing for focus or writing the same draft key. */}
+      {isMobile && (
+        <Sheet
+          open={isReplying || isEditing}
+          onOpenChange={(open) => {
+            if (open) return;
+            setIsReplying(false);
+            setIsEditing(false);
+          }}
+        >
+          <SheetContent>
+            <SheetHeader>
+              <SheetTitle>{isEditing ? "Edit comment" : `Reply to ${comment.author.name}`}</SheetTitle>
+            </SheetHeader>
+            {isEditing ? (
+              <CommentInput
+                targetType={targetType}
+                targetId={targetId}
+                parentId={comment.id}
+                isEdit
+                initialContent={content}
+                submitLabel="Save"
+                onSubmit={handleEditSubmit}
+                onCancel={() => setIsEditing(false)}
+                autoFocus
+              />
+            ) : (
+              <CommentInput
+                targetType={targetType}
+                targetId={targetId}
+                parentId={comment.id}
+                onSubmit={handleReplySubmit}
+                onCancel={() => setIsReplying(false)}
+                placeholder={`Reply to ${comment.author.name}`}
+                autoFocus
+              />
+            )}
+          </SheetContent>
+        </Sheet>
       )}
 
       <AnimatePresence initial={false}>
@@ -337,8 +446,15 @@ function CommentItemComponent({ comment, targetType, targetId, viewerIsTargetAut
             >
               <div className="absolute -bottom-4 -left-0.5 h-6 w-1 bg-white dark:bg-zinc-950" />
               {replies.map((reply) => (
+                // Keyed on id alone. It used to fold likesCount, isPinned and
+                // content.length into the key, which meant liking a reply
+                // changed its key: React unmounted the subtree and built a new
+                // one, throwing away an open reply box, any deeper replies
+                // that had been loaded, and the collapse state, with a visible
+                // flash. CommentItem already mirrors those fields into local
+                // state, so it re-renders on change without being replaced.
                 <CommentItem
-                  key={`${reply.id}-${reply.likesCount}-${reply.isPinned}-${reply.content.length}`}
+                  key={reply.id}
                   comment={reply}
                   targetType={targetType}
                   targetId={targetId}

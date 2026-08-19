@@ -183,10 +183,21 @@ export function CommentThread({ targetType, targetId, targetAuthorId }: CommentT
           })}
         </div>
       ) : (
-        <AnimatePresence initial={false}>
-          <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+        // AnimatePresence has to be the direct parent of the animating items,
+        // not a wrapper around the container. It was outside the div, so it
+        // only ever saw one static child and no exit animation could run - a
+        // deleted comment vanished and the list snapped shut. Inside, each row
+        // is a keyed child it can track.
+        <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <AnimatePresence initial={false}>
             {comments.map((comment) => (
-              <motion.div key={comment.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+              <motion.div
+                key={comment.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+              >
                 <CommentItem
                   comment={comment}
                   targetType={targetType}
@@ -198,8 +209,8 @@ export function CommentThread({ targetType, targetId, targetAuthorId }: CommentT
                 />
               </motion.div>
             ))}
-          </div>
-        </AnimatePresence>
+          </AnimatePresence>
+        </div>
       )}
 
       {hasMore && (
