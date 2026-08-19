@@ -4,6 +4,7 @@ import { getSeries } from "@/lib/api/series";
 import { ApiError } from "@/lib/api/client";
 import { profileUrl, articleUrl, topicUrl } from "@/lib/urls";
 import { breadcrumbJsonLd } from "@/components/shared/Breadcrumbs";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { ArticleDetailView } from "@/components/content/ArticleDetailView";
 import { PostDetailView } from "@/components/content/PostDetailView";
 import { getSiteUrl } from "@/lib/siteUrl";
@@ -43,8 +44,9 @@ export default async function ContentPage({ params }: { params: Promise<{ userna
 
     return (
       <>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }} />
+        {/* Title and author name are author-supplied free text - see JsonLd. */}
+        <JsonLd id="article-json-ld" data={articleJsonLd} />
+        <JsonLd id="article-breadcrumbs-json-ld" data={breadcrumbs} />
         <ArticleDetailView article={article} series={series} />
       </>
     );
@@ -62,7 +64,9 @@ export default async function ContentPage({ params }: { params: Promise<{ userna
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(postJsonLd) }} />
+      {/* articleBody is the post's raw text - the most directly attacker-
+          controlled string on the site. See JsonLd. */}
+      <JsonLd id="post-json-ld" data={postJsonLd} />
       <PostDetailView post={post} />
     </>
   );

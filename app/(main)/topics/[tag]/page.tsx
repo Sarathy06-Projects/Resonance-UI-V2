@@ -6,6 +6,7 @@ import { ArticleCard } from "@/components/shared/ArticleCard";
 import { PostCard } from "@/components/shared/PostCard";
 import { getHashtagArticles, getHashtagPosts } from "@/lib/api/hashtags";
 import { articleUrl, postUrl, topicUrl } from "@/lib/urls";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { getSiteUrl } from "@/lib/siteUrl";
 
 const siteUrl = getSiteUrl();
@@ -59,7 +60,9 @@ export default async function TopicPage({ params }: { params: Promise<{ tag: str
 
   return (
     <main className="flex flex-col min-h-screen bg-white dark:bg-zinc-950 pb-20 md:pb-0">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }} />
+      {/* Every list item name is an article title or a post excerpt, plus the
+          tag itself straight off the URL - see JsonLd. */}
+      <JsonLd id="topic-json-ld" data={collectionJsonLd} />
 
       <div className="sticky top-0 z-20 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl border-b border-zinc-100 dark:border-zinc-800">
         <div className="px-4 py-4 sm:px-6 flex items-center gap-4">

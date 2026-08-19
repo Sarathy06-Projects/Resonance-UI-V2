@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { getContentBySlug } from "@/lib/api/content";
 import { resolveShortLink } from "@/lib/api/posts";
 import { loadWordmark, Wordmark } from "@/lib/og/brand";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 // 9:16 story card for Instagram Stories / WhatsApp Status.
 //
@@ -50,6 +51,18 @@ async function resolveTarget(pathname: string): Promise<{ username: string; slug
   }
 
   return null;
+}
+
+// The configured public host, or null. Deliberately swallows getSiteUrl's
+// throw: this is one of two hosts an equality check accepts, and the request's
+// own origin already covers the normal case - a missing env var should not be
+// able to derail rendering the card from inside the try block below.
+function canonicalHost(): string | null {
+  try {
+    return new URL(getSiteUrl()).host;
+  } catch {
+    return null;
+  }
 }
 
 function compactCount(n: number): string {
@@ -119,11 +132,26 @@ export async function GET(request: Request) {
   if (raw) {
     try {
       const target = new URL(raw);
-      const full = `${target.host}${target.pathname}`;
-      // Slugs come from a post's first ten words, so full paths routinely run
-      // past 60 characters. This line is a cue that a link exists, not
-      // something anyone retypes - the real URL goes to the clipboard.
-      displayUrl = full.length > 44 ? `${full.slice(0, 44)}…` : full;
+
+      // Only ever print this app's own host on the card.
+      //
+      // `url` is an unauthenticated query parameter, and the footer text was
+      // rendered from whatever host it carried - so
+      // /api/share-image?url=https://evil.example/claim-your-prize returned a
+      // Resonance-branded, Resonance-hosted story card advertising someone
+      // else's domain. Nothing is executed (the response is a PNG), but the
+      // whole job of this card is to look official, which is exactly what
+      // makes it worth borrowing. A foreign host now falls back to the
+      // canonical domain, and the path is dropped with it since it describes
+      // content that isn't ours.
+      const isOwnHost = target.host === new URL(origin).host || target.host === canonicalHost();
+      if (isOwnHost) {
+        const full = `${target.host}${target.pathname}`;
+        // Slugs come from a post's first ten words, so full paths routinely run
+        // past 60 characters. This line is a cue that a link exists, not
+        // something anyone retypes - the real URL goes to the clipboard.
+        displayUrl = full.length > 44 ? `${full.slice(0, 44)}…` : full;
+      }
 
       const parsed = await resolveTarget(target.pathname);
       if (parsed) {

@@ -56,6 +56,17 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          // Two years, subdomains included, preload-eligible. Without this a
+          // first visit typed as "app.resonance.org.in" is still one plaintext
+          // request that can be intercepted before the redirect to https - and
+          // that request carries the session cookie on every visit after the
+          // first. Safe to send unconditionally: browsers ignore HSTS on
+          // plain-http responses, so it has no effect on local development.
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+          // The site never legitimately embeds another origin's plugin content
+          // or gets embedded itself (X-Frame-Options above), so opt out of
+          // cross-origin policy files entirely.
+          { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
         ],
       },
     ];

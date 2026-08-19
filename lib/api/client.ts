@@ -22,7 +22,38 @@ interface ApiFetchOptions extends RequestInit {
   json?: unknown;
 }
 
+/**
+ * Rejects a path that could aim the request somewhere other than the API route
+ * it looks like.
+ *
+ * Nearly every helper in this directory builds its path by interpolation -
+ * `/api/posts/${id}`, `/api/users/${username}` - and those values routinely
+ * come straight from a URL segment, which the caller does not control. The
+ * request URL is then just `${API_URL}${path}`, and fetch() resolves dot
+ * segments the same way a browser address bar does: a `username` of
+ * "../../health" makes `/api/users/../../health` collapse to `/health`.
+ *
+ * That matters most on the server, where apiFetch forwards the visitor's whole
+ * cookie header - so a crafted profile URL could point an authenticated
+ * server-side call at a backend path the page never meant to call, and render
+ * whatever came back. Encoding at each call site fixes each call site; checking
+ * here fixes the shape of the mistake, including in helpers not yet written.
+ */
+function assertSafePath(path: string): void {
+  if (!path.startsWith("/api/") && !path.startsWith("/uploads/")) {
+    throw new ApiError(400, `Refusing to call a non-API path: ${path}`);
+  }
+  // Split on both separators: a %2e%2e that survived a single decode, or a
+  // backslash on a path a Windows-side normaliser might fold, are the same
+  // request as a plain "..".
+  const [withoutQuery] = path.split(/[?#]/);
+  if (withoutQuery.split(/[/\\]/).includes("..")) {
+    throw new ApiError(400, "Refusing to call a path containing a parent-directory segment.");
+  }
+}
+
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
+  assertSafePath(path);
   const { json, headers, ...rest } = options;
 
   // `credentials: "include"` (below) only does anything in a real browser -
@@ -62,6 +93,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
 }
 
 export async function apiUpload<T>(path: string, file: File, fieldName = "file"): Promise<T> {
+  assertSafePath(path);
   const formData = new FormData();
   formData.append(fieldName, file);
 

@@ -23,9 +23,19 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 // URL query param, which anyone can craft - without this check, a link like
 // /login?next=https://evil.example would send a freshly-authenticated user
 // straight to an attacker's site (a classic open-redirect phishing vector).
+// Backslashes count as slashes here on purpose. Browsers normalise "\" to "/"
+// in the authority position of a URL, so "/\evil.example" and "/\/evil.example"
+// resolve to the protocol-relative "//evil.example" - the exact target the
+// leading-"//" test was written to stop, spelled a way that test doesn't see.
+// A control character can do the same job, since the URL parser strips
+// tab/newline before parsing (so "/\tevil.example" is not the path it looks
+// like). Rejecting outright beats trying to sanitise: `next` is only ever
+// meant to be an in-app path, and anything else is already wrong.
 function safeRedirectTarget(next: string | null): string {
   if (!next) return "/";
-  if (!next.startsWith("/") || next.startsWith("//")) return "/";
+  if (!next.startsWith("/")) return "/";
+  if (/^\/[/\\]/.test(next)) return "/";
+  if (Array.from(next).some((ch) => ch.charCodeAt(0) < 0x20)) return "/";
   return next;
 }
 

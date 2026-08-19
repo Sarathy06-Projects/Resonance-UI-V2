@@ -4,6 +4,7 @@ import { getUserPosts } from "@/lib/api/posts";
 import { ApiError } from "@/lib/api/client";
 import { profileUrl } from "@/lib/urls";
 import { ProfileView } from "@/components/profile/ProfileView";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { getSiteUrl } from "@/lib/siteUrl";
 
 const siteUrl = getSiteUrl();
@@ -36,7 +37,10 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd) }} />
+      {/* Via JsonLd, never a hand-rolled script tag: name, bio, role and
+          company are free text the profile owner controls, and raw
+          JSON.stringify would let any of them close this element. */}
+      <JsonLd id="person-json-ld" data={personJsonLd} />
       <ProfileView profile={profile} initialPosts={initialPosts} />
     </>
   );

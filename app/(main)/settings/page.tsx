@@ -7,7 +7,8 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { changePassword, deleteAccount } from "@/lib/api/users";
+import { changePassword, deleteAccount, PASSWORD_REQUIRED } from "@/lib/api/users";
+import { ApiError } from "@/lib/api/client";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 
@@ -23,6 +24,11 @@ export default function SettingsPage() {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  // Only revealed once the backend says this account has a password to
+  // confirm - a Google-only account never sees the field at all.
+  const [needsDeletePassword, setNeedsDeletePassword] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
@@ -63,14 +69,24 @@ export default function SettingsPage() {
     }
   };
 
+  // Two-phase on purpose. The first attempt sends no password; the backend
+  // answers PASSWORD_REQUIRED only for accounts that actually have one, which
+  // is how this asks for confirmation without ever showing a password field to
+  // someone who signed up through Google and has none.
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
+    setDeleteError(null);
     try {
-      await deleteAccount();
+      await deleteAccount(needsDeletePassword ? deletePassword : undefined);
       await authClient.signOut();
       logout();
       router.push("/");
-    } catch {
+    } catch (err) {
+      if (err instanceof ApiError && err.message === PASSWORD_REQUIRED) {
+        setNeedsDeletePassword(true);
+      } else {
+        setDeleteError(err instanceof Error ? err.message : "Couldn't delete your account.");
+      }
       setIsDeleting(false);
     }
   };
@@ -172,13 +188,53 @@ export default function SettingsPage() {
               Log Out
             </Button>
             {showDeleteConfirm ? (
-              <div className="flex gap-2 items-center">
-                <Button variant="destructive" disabled={isDeleting} onClick={handleDeleteAccount} className="rounded-xl h-12 px-8 font-semibold bg-red-500 hover:bg-red-600">
-                  {isDeleting ? "Deleting..." : "Confirm Delete"}
-                </Button>
-                <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)} className="rounded-xl h-12 px-4 dark:text-zinc-300 dark:hover:bg-zinc-800">
-                  Cancel
-                </Button>
+              <div className="flex flex-col gap-3">
+                {needsDeletePassword && (
+                  <div className="space-y-2">
+                    <label htmlFor="delete-password" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Enter your password to confirm
+                    </label>
+                    <Input
+                      id="delete-password"
+                      type="password"
+                      autoComplete="current-password"
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                      placeholder="Your password"
+                      className="h-12 rounded-xl border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-500"
+                    />
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      This permanently deletes your posts, articles and messages. It cannot be undone.
+                    </p>
+                  </div>
+                )}
+                {deleteError && (
+                  <p className="text-sm text-red-500" role="alert">
+                    {deleteError}
+                  </p>
+                )}
+                <div className="flex gap-2 items-center">
+                  <Button
+                    variant="destructive"
+                    disabled={isDeleting || (needsDeletePassword && !deletePassword)}
+                    onClick={handleDeleteAccount}
+                    className="rounded-xl h-12 px-8 font-semibold bg-red-500 hover:bg-red-600"
+                  >
+                    {isDeleting ? "Deleting..." : "Confirm Delete"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      setNeedsDeletePassword(false);
+                      setDeletePassword("");
+                      setDeleteError(null);
+                    }}
+                    className="rounded-xl h-12 px-4 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
             ) : (
               <Button variant="destructive" onClick={() => setShowDeleteConfirm(true)} className="rounded-xl h-12 px-8 font-semibold w-full sm:w-auto bg-red-500 hover:bg-red-600">
