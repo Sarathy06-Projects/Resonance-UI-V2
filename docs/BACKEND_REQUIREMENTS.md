@@ -146,6 +146,10 @@ Grouped by domain. All mutating endpoints require the Better Auth session; anony
 Numbered for cross-reference from the sections above.
 
 1. **Feed ranking ("For You" vs "Following").** "Following" is a simple reverse-chron filter on followed authors (with an explicit empty state already built). "For You" needs actual ranking — recency decay + engagement (likes/comments/bookmarks velocity) + affinity (shared topics from onboarding/interests) — not just chronological, or "For You" is indistinguishable from "Following" minus the filter.
+
+   **Built** (`modules/feed.ts`). Score is `(likes + 2·comments + 1.5·bookmarks + 1.5·shares + followBoost + affinityBoost) / (age_hours + 2)^1.5`. `followBoost` is a flat 6; `affinityBoost` is the viewer's strongest matching topic score (Algorithm 21) × 8, scaled so a strong interest match can outrank following the author — otherwise For You is Following with extra steps. Uses `max` and not `sum` across a post's tags, so attaching ten tags is not a cheap route into everyone's feed.
+
+   The 14-day candidate window is a **preference, not a filter**: when the recent pool cannot fill a page, older posts backfill it in reverse-chronological order. No post is ever unreachable because of its age, which is what keeps a quiet period — or seeded content — from rendering as an empty home screen.
 2. **Trending hashtags.** Rolling-window post count per hashtag with a velocity/growth component (mirrors the "↑ 18%" growth badges already shown in `RightPanel`'s "Trending Topics" — that growth number needs a real time-series comparison, not a hardcoded string).
 3. **Recommendation ("Who to follow" / "Featured Designers").** Exclude already-followed users; rank by mutual-follower count, topic/interest overlap, and recent activity. Appears in three places (`RightPanel`, `Explore`, home feed discovery module) — should be one shared endpoint.
 4. **Search relevance.** Multi-entity (posts, articles, users, hashtags) fuzzy/substring search with ranked results and a genuine "no results" path. Postgres full-text search (`tsvector`) is the minimum viable option; consider Meilisearch/Typesense if search becomes a core surface.
@@ -166,6 +170,22 @@ Numbered for cross-reference from the sections above.
 19. **Weekly digest generation.** Scheduled job that aggregates followed-community activity and trending articles into the "system" notification category (`systemData.title/description/cta` in the notification mock) — needs a cron/worker, not a request-time computation.
 20. **Cursor-based pagination.** Feed, explore sections, comments, notifications, drafts, hashtag pages — all currently render full unpaginated mock arrays. "Load More Feed" spinner is already in the UI with no real pagination behind it.
 21. **Onboarding → feed personalization.** The topics selected in step 2 of onboarding (`selectedTopics`, min 5 required) currently go nowhere — they should seed the affinity signal used by Algorithm 1.
+
+    **Built**, and generalised past onboarding into a full interaction profile. `jobs/affinity.ts` recomputes `user_topic_affinity` (`user_id, tag, score`) from scratch every 30 minutes, set-based, in one statement.
+
+    | Signal | Weight | Why |
+    | --- | --- | --- |
+    | Comment | 4 | Highest effort, so the clearest intent |
+    | Bookmark | 3 | "Keep this" is about the topic |
+    | Repost | 3 | Public endorsement |
+    | Like | 2 | Often about the author, not the topic |
+    | Search naming a tag | 2 | Explicit, deliberate |
+    | Article view | 0.5 | Passive, near-accidental |
+    | Onboarding interest | 1.5 | A standing prior, not an event — never decays |
+
+    Interaction signals decay on a 30-day half-life over a 90-day lookback; stated interests do not decay, so they keep mattering until behaviour overrides them. Scores normalise to 0..1 against the user's own strongest topic **and a floor of 4**, so an onboarding-only profile tops out near 0.375 rather than a flat 1.0 — a stated preference nudges, a demonstrated one dominates.
+
+    Two things this needed that were easy to miss: interests are stored as typed labels (`"AI Tools"`) while hashtags are `#aitools`, so the job canonicalises through the same transform as `normalizeTagToHashtag()` — without it 117 of 142 rows joined nothing and the profile looked populated while ranking nothing. And the table is derived, never written by a request, so re-tuning the weights above is a job rerun rather than a backfill.
 22. *(intentionally reserved)*
 23. **Article view tracking.** `12.4K` views shown per article — increment once per user/session (not per page load) to avoid trivial inflation; dedupe key `(userId or sessionId, articleId, day)`.
 
