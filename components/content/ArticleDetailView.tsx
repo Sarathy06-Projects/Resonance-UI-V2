@@ -168,10 +168,21 @@ export function ArticleDetailView({ article, series }: ArticleDetailViewProps) {
               <Heart className={cn("w-6 h-6", isLiked && "fill-current")} />
               <span className="font-medium">{likesCount}</span>
             </button>
-            <span className="flex items-center gap-2">
+            {/* Was a bare <span>: the glyph and the count rendered, and
+                nothing happened when anyone pressed them. An article's
+                comments are further down the same page, so this jumps to
+                them - the same #comments anchor CommentThread carries, and
+                the same behaviour the comment icon on a post's own detail
+                page has. An anchor rather than a button, so it announces
+                itself as navigation and previews where it goes. */}
+            <Link
+              href="#comments"
+              aria-label={`${article.commentsCount} ${article.commentsCount === 1 ? "comment" : "comments"}, jump to them`}
+              className="flex items-center gap-2 transition-colors hover:text-blue-500"
+            >
               <MessageCircle className="w-6 h-6" />
               <span className="font-medium">{article.commentsCount}</span>
-            </span>
+            </Link>
           </div>
           <div className="flex items-center gap-4 text-zinc-500 dark:text-zinc-400">
             <button
