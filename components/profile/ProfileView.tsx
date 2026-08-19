@@ -112,9 +112,14 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
 
   return (
     <main className="flex min-h-screen w-full flex-col overflow-x-clip bg-white dark:bg-zinc-950">
-      {/* Cover banner. Short on mobile - a 192px hero on a 700px screen spent
-          a quarter of the viewport on decoration before any content. */}
-      <div className="group relative h-28 w-full bg-zinc-100 sm:h-72 dark:bg-zinc-900">
+      {/* Cover banner, locked to the 4:1 the crop editor writes.
+          It was a fixed height at full width, which is a ratio that changes
+          with the viewport: 5:1 at 1440px, 3.48:1 at 390px, 4:1 at neither. So
+          object-cover trimmed the top and bottom on a desktop and the sides on
+          a phone, and the framing someone chose in the editor was not the
+          framing anyone saw. Driving it from the ratio instead means the
+          displayed banner is exactly the saved image. */}
+      <div className="group relative aspect-[4/1] w-full bg-zinc-100 dark:bg-zinc-900">
         {profile.coverImage && <Image src={profile.coverImage} alt={`${profile.name}'s cover photo`} fill sizes="100vw" priority className="object-cover" />}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
 
@@ -161,9 +166,15 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
               left the name ~140px and truncated most real names. */}
           <div className="mb-4 flex items-end justify-between">
             <div className="group/avatar relative">
-              <Avatar className="h-20 w-20 rounded-3xl border-4 border-white bg-white sm:h-32 sm:w-32 dark:border-zinc-950 dark:bg-zinc-900">
-                <AvatarImage src={profile.image ?? undefined} alt="" className="rounded-3xl object-cover" />
-                <AvatarFallback className="rounded-3xl text-2xl font-bold sm:text-3xl">{profile.name.charAt(0)}</AvatarFallback>
+              {/* Circular, matching the crop editor's preview - and matching
+                  every other avatar in the app, since the base component is
+                  rounded-full and this was the one place overriding it to a
+                  rounded square. A circular preview over a squared frame meant
+                  the editor showed corners being cut that the profile kept,
+                  and kept corners the profile cut. */}
+              <Avatar className="h-20 w-20 rounded-full border-4 border-white bg-white sm:h-32 sm:w-32 dark:border-zinc-950 dark:bg-zinc-900">
+                <AvatarImage src={profile.image ?? undefined} alt="" className="rounded-full object-cover" />
+                <AvatarFallback className="rounded-full text-2xl font-bold sm:text-3xl">{profile.name.charAt(0)}</AvatarFallback>
               </Avatar>
               {profile.verified && (
                 <div className="absolute -bottom-1.5 -right-1.5 rounded-full border-4 border-white bg-blue-500 p-1 text-white sm:-bottom-2 sm:-right-2 sm:p-1.5 dark:border-zinc-950" title="Verified Designer">
@@ -177,7 +188,7 @@ export function ProfileView({ profile, initialPosts }: ProfileViewProps) {
                     onClick={() => avatarInputRef.current?.click()}
                     disabled={isUploading}
                     aria-label="Change profile photo"
-                    className="absolute inset-0 flex items-center justify-center rounded-3xl bg-black/40 text-xs font-semibold text-white opacity-0 transition-opacity group-hover/avatar:opacity-100 focus-visible:opacity-100"
+                    className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-xs font-semibold text-white opacity-0 transition-opacity group-hover/avatar:opacity-100 focus-visible:opacity-100"
                   >
                     Change
                   </button>

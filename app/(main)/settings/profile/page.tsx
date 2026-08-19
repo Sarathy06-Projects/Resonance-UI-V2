@@ -233,7 +233,10 @@ function EditProfileForm({ username }: { username: string }) {
       <div className="max-w-2xl w-full mx-auto p-4 sm:p-6 space-y-10">
         {/* Cover + Avatar */}
         <section>
-          <div className="h-36 sm:h-44 w-full relative rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+          {/* 4:1, same as the crop editor writes and the profile renders. A
+              fixed height here showed a different slice of the banner than the
+              profile page did, so this preview was not previewing anything. */}
+          <div className="aspect-[4/1] w-full relative rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-900">
             {profile.coverImage && <Image src={profile.coverImage} alt="" fill sizes="(max-width: 768px) 100vw, 672px" className="object-cover" />}
             <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={coverCrop.onFileChange} />
             <Button
