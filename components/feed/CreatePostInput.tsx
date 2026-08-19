@@ -5,9 +5,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPost } from "@/lib/api/posts";
 import { ImageAttachButton, ImageAttachmentsGrid } from "@/components/shared/ImageAttachments";
+import { HashtagAutocomplete } from "@/components/shared/comment/HashtagAutocomplete";
+import { useHashtagSuggest } from "@/lib/hooks/useHashtagSuggest";
 
 const placeholders = [
   "Share an idea...",
@@ -30,6 +32,8 @@ export function CreatePostInput({ onPosted }: CreatePostInputProps) {
   const [isPosting, setIsPosting] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [isFocused, setIsFocused] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const hashtags = useHashtagSuggest({ value: content, onChange: setContent, textareaRef });
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -81,14 +85,28 @@ export function CreatePostInput({ onPosted }: CreatePostInputProps) {
       <div className="flex-1">
         <div className="relative min-h-[60px]">
           <textarea
+            ref={textareaRef}
             placeholder={placeholders[placeholderIndex]}
             className="w-full bg-transparent resize-none outline-none text-[17px] placeholder:text-zinc-500 dark:text-zinc-200 dark:placeholder:text-zinc-500 pt-1.5 transition-all duration-500 ease-in-out z-10 relative"
             onClick={handleInteraction}
             onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
+            onBlur={() => {
+              setIsFocused(false);
+              hashtags.handleBlur();
+            }}
+            onKeyDown={hashtags.handleKeyDown}
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={hashtags.handleChange}
           />
+
+          {hashtags.isOpen && (
+            <HashtagAutocomplete
+              results={hashtags.results}
+              activeIndex={hashtags.activeIndex}
+              onHover={hashtags.setActiveIndex}
+              onSelect={hashtags.apply}
+            />
+          )}
         </div>
 
         {isAuthenticated && (

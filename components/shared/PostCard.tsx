@@ -21,6 +21,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { formatCount } from "@/lib/formatCount";
 import { profileUrl, postUrl, articleUrl, topicUrl } from "@/lib/urls";
+import { renderCommentContent } from "@/lib/renderCommentContent";
 
 interface PostCardProps {
   post: Post;
@@ -133,6 +134,15 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
     e.stopPropagation();
     if (!post.author.username) e.preventDefault();
   };
+
+  // Tags the body does not already show. Compared on the normalised token so
+  // "#UXResearch" as typed matches the stored "#uxresearch".
+  const writtenTags = new Set(
+    (content.match(/#([a-zA-Z][a-zA-Z0-9_]{0,49})/g) ?? []).map((t) => t.slice(1).toLowerCase())
+  );
+  const unwrittenHashtags = (post.hashtags ?? []).filter(
+    (tag: string) => !writtenTags.has(tag.replace(/^#/, "").toLowerCase())
+  );
 
   const commentsCount = post.commentsCount ?? 0;
   const summary = [
@@ -255,7 +265,16 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
             </div>
           ) : (
             <p className="mt-1 whitespace-pre-wrap break-words text-[15px] leading-[1.5] text-zinc-950 dark:text-zinc-200">
-              {content}
+              {/* Hashtags and mentions are linkified where they were written,
+                  rather than left as flat text with a duplicate row of chips
+                  underneath. The body said "#UXResearch #Research" in plain
+                  black and then repeated "#uxresearch #research" in blue below
+                  it - the same tags twice, neither of the visible ones in the
+                  sentence clickable. */}
+              {renderCommentContent(content, {
+                onMentionClick: (username) => router.push(profileUrl({ username })),
+                onHashtagClick: (tag) => router.push(topicUrl(tag)),
+              })}
             </p>
           )}
 
@@ -313,9 +332,16 @@ export function PostCard({ post, isDetailed = false, priority = false }: PostCar
             </div>
           )}
 
-          {post.hashtags && post.hashtags.length > 0 && (
+          {/* Only the tags that are NOT already visible in the body.
+              post.hashtags is extracted server-side from the content, so for
+              an ordinary post every entry here is a repeat of something the
+              reader just read. It is still worth rendering the remainder: a
+              tag can reach this array without appearing in the text - an
+              article's tags come from the composer's tag field rather than
+              from prose - and those would otherwise be invisible. */}
+          {unwrittenHashtags.length > 0 && (
             <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1">
-              {post.hashtags.map((tag: string) => (
+              {unwrittenHashtags.map((tag: string) => (
                 <Link
                   key={tag}
                   href={topicUrl(tag)}

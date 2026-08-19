@@ -5,6 +5,8 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ImageAttachButton, ImageAttachmentsGrid } from "@/components/shared/ImageAttachments";
+import { HashtagAutocomplete } from "@/components/shared/comment/HashtagAutocomplete";
+import { useHashtagSuggest } from "@/lib/hooks/useHashtagSuggest";
 import { useAuthStore } from "@/store/useAuthStore";
 import { createPost } from "@/lib/api/posts";
 import { cn } from "@/lib/utils";
@@ -44,6 +46,7 @@ export function ComposeSheet({ open, onOpenChange, onPosted }: ComposeSheetProps
   const [isPosting, setIsPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const hashtags = useHashtagSuggest({ value: content, onChange: setContent, textareaRef });
 
   const trimmed = content.trim();
   const canPost = trimmed.length > 0 && trimmed.length <= MAX_LENGTH && !isPosting;
@@ -146,16 +149,31 @@ export function ComposeSheet({ open, onOpenChange, onPosted }: ComposeSheetProps
 
               <div className="min-w-0 flex-1">
                 <div className="text-[15px] font-semibold dark:text-zinc-100">{user?.name}</div>
-                <textarea
-                  ref={textareaRef}
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="What's on your mind?"
-                  rows={1}
-                  // 16px minimum: anything smaller and iOS Safari zooms the
-                  // whole page in on focus and never zooms back out.
-                  className="mt-1 w-full resize-none bg-transparent text-[16px] leading-relaxed outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-600"
-                />
+                {/* relative so the suggestion list positions against the
+                    textarea rather than the sheet. */}
+                <div className="relative">
+                  <textarea
+                    ref={textareaRef}
+                    value={content}
+                    onChange={hashtags.handleChange}
+                    onKeyDown={hashtags.handleKeyDown}
+                    onBlur={hashtags.handleBlur}
+                    placeholder="What's on your mind?"
+                    rows={1}
+                    // 16px minimum: anything smaller and iOS Safari zooms the
+                    // whole page in on focus and never zooms back out.
+                    className="mt-1 w-full resize-none bg-transparent text-[16px] leading-relaxed outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-600"
+                  />
+
+                  {hashtags.isOpen && (
+                    <HashtagAutocomplete
+                      results={hashtags.results}
+                      activeIndex={hashtags.activeIndex}
+                      onHover={hashtags.setActiveIndex}
+                      onSelect={hashtags.apply}
+                    />
+                  )}
+                </div>
 
                 {images.length > 0 && (
                   <div className="mt-3">
